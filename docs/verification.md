@@ -390,6 +390,41 @@ Post-rebase checks passed:
 
 The full test suites, native Supabase/concurrency tests and hosted services were not run or changed. The requested source publication targets `feature/places-route`, not `main`; it does not dispatch the manual Pages deployment.
 
+## Remembered trips on trusted devices
+
+Implemented the approved non-expiring access policy. The root page resumes the
+last selected trip, and Trips lists saved trip/member identities with Open,
+Forget, Open trip link and Create trip. Each tab retains its own selected access.
+Explicit links take precedence. Switching does not sign out the previous trip.
+
+PostgreSQL uses infinity and SQLite uses zero for non-expiring server sessions.
+Migration/upgrade checks prove that existing valid sessions are adopted without
+reviving expired or revoked credentials. SQLite keeps credentials HttpOnly in
+selected cookie slots. Online storage contains derived credentials and list
+metadata, not reusable links or private trip contents.
+
+Final checks passed:
+
+- `npm run build`, including TypeScript.
+- `npm test -- src/app/remembered-trips.test.ts src/app/api.test.ts tests/remembered-migration.test.ts tests/remembered-sessions.test.ts tests/server.test.ts tests/online-api.test.ts`: 56 tests.
+- `PLAYWRIGHT_PORT=5197 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH='C:/Program Files/Google/Chrome/Application/chrome.exe' VITE_BACKEND=sqlite npm run test:e2e -- tests/e2e/remembered-trips.spec.ts`: all 13 workflows. Includes closing and restarting an actual persistent Chrome profile, new tabs, independent trip writes, failed-switch retry, explicit viewer links, Forget/cancel, Exit, offline forgetting, invalid access, blocked persistent storage and protected drafts.
+- The same browser command with `tests/e2e/places-route.spec.ts --grep 'compact straight rail|inline selection'`: two responsive/focus regressions.
+- `TRIP_TEST_GREP='remembered|resume|switch|forget' PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH='C:/Program Files/Google/Chrome/Application/chrome.exe' node scripts/test-attribution.mjs`: five online workflows through real local PostgreSQL/PostgREST and the standalone Deno entry point at `/ferias-2026/`. Includes fresh-tab/profile-storage resume, multi-trip/tab isolation, family redaction/revocation and owner-session replacement.
+- `npx --no-install deno check supabase/functions/trip-api/index.ts`.
+- Trips pane at 320/768/1024/1440 pixels with axe WCAG A/AA checks and no document overflow. Inspected phone and desktop screenshots.
+
+The browser tests caught an initial draft-loss issue when another tab forgot
+access. The workspace now keeps its mounted forms and disables their controls;
+late responses cannot recreate forgotten access or overwrite newer credentials.
+Online tests reset their disposable request-limit counters between workflows
+so additional synthetic trip creation does not exhaust another test's quota.
+
+The isolated fixture applied the new migration only to its disposable database
+and removed its database, role and PostgREST container afterward. The shared local
+Supabase database was not migrated. Full suites and separate native
+pgTAP/concurrency checks were not run; the managed Edge sandbox, hosted deployment
+and physical-device acceptance were not repeated. No real trip data were changed.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

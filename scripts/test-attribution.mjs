@@ -20,6 +20,9 @@ const children = [];
 let createdDatabase = false, createdRole = false, createdRest = false;
 const redact = (text) => text.replaceAll(password, '[redacted]');
 const env = { ...process.env, TRIP_TEST_DATABASE: database, TRIP_TEST_API_URL: 'http://127.0.0.1:8000/functions/v1/trip-api' };
+// Other auth changes can reuse this disposable fixture without running unrelated
+// browser workflows or touching the database used by the running application.
+const browserGrep = process.env.TRIP_TEST_GREP;
 function sql(name, input, user = 'postgres') {
   return execFileSync('docker', ['exec', '-i', container, 'psql', '-X', '-qAt', '-U', user, '-d', name, '-v', 'ON_ERROR_STOP=1'],
     { input, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
@@ -68,8 +71,10 @@ try {
   for (const name of readdirSync('supabase/migrations').filter((name) => name.endsWith('.sql')).sort()) {
     sql(database, readFileSync(`supabase/migrations/${name}`, 'utf8'));
   }
-  await run(['node_modules/supabase/dist/supabase.js', 'test', 'db', '--db-url', `postgresql://${login}:${password}@127.0.0.1:54322/${database}`]);
-  await run(['--test', 'tests/supabase-concurrency.test.mjs']);
+  if (!browserGrep) {
+    await run(['node_modules/supabase/dist/supabase.js', 'test', 'db', '--db-url', `postgresql://${login}:${password}@127.0.0.1:54322/${database}`]);
+    await run(['--test', 'tests/supabase-concurrency.test.mjs']);
+  }
   sql(database, 'update trip_private.settings set creation_enabled = true;');
   execFileSync('docker', ['run', '--detach', '--rm', '--name', rest,
     '--network', 'supabase_network_ferias-2026', '--publish', '127.0.0.1:54391:3000',
@@ -106,8 +111,11 @@ try {
       env: { VITE_BASE_PATH: '/ferias-2026/' },
     }],
   }));
-  await run(['node_modules/@playwright/test/cli.js', 'test', '--config', config, '--max-failures=1']);
-  console.log('Attribution fixture passed: fresh native migrations, pgTAP, concurrency and Pages-path browser workflows through Deno + PostgREST. The shared local database was not migrated.');
+  await run(['node_modules/@playwright/test/cli.js', 'test', '--config', config, '--max-failures=1',
+    ...(browserGrep ? ['--grep', browserGrep] : [])]);
+  console.log(browserGrep
+    ? 'Focused browser fixture passed through Deno + PostgREST with fresh native migrations. Native pgTAP/concurrency checks were skipped. The shared local database was not migrated.'
+    : 'Attribution fixture passed: fresh native migrations, pgTAP, concurrency and Pages-path browser workflows through Deno + PostgREST. The shared local database was not migrated.');
 } catch (error) {
   // Child-process exceptions can contain connection-string arguments.
   console.error(redact(error instanceof Error ? error.message : String(error)));

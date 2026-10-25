@@ -44,6 +44,18 @@ For local Supabase, run `task db:migrate` to apply the repeat-city migration wit
 
 Save the private owner recovery link shown after creation. It is the way back from another browser or after signing out. Do not send it to other travelers. Use **Share** to create editor, viewer or family invitation links instead.
 
+The root page automatically reopens the last trip used in this browser. **Trips**
+lists previously opened trips and lets you switch, open another link or create
+a trip without signing out of the current one. Each tab keeps its own trip.
+Entries distinguish member names and roles, so a saved viewer link never silently
+becomes owner access.
+
+Remembered access has no automatic expiry. Use it only on trusted browser
+profiles: anyone using that profile can reopen these trips. **Forget this trip**
+removes saved access without deleting the trip; **Exit** signs out and forgets
+only the current trip. Clearing browser data also removes saved access. Keep your
+private recovery link for a new device or after forgetting/signing out.
+
 ## Your identity and change history
 
 Your name and role appear beneath **Belgium, together**, including on phones.
@@ -141,7 +153,13 @@ Removing a shared place or changing the trip does not rewrite someone else's pri
 
 Edits include the last-seen trip revision. If someone saved first, your change is rejected, the current trip is loaded, and your form stays available for review. Navigation warns before discarding open forms or drafts; invitation requests block navigation until their one-time link can be handled. Refresh manually or return to the tab after at least 30 seconds to load changes. There is no periodic polling or real-time collaborative text editor.
 
-Online sessions last 24 hours and use app-scoped `sessionStorage`, not cross-site cookies or Supabase Auth accounts. Keep the original private link to reopen access in another tab/device. Replacing a link from **Share** preserves the member's identity and notes but invalidates the previous link and all its sessions.
+Current source remembers derived online session credentials in app-scoped browser
+storage, without saving reusable invitation/owner links or full trip snapshots.
+Remembered sessions do not expire automatically. Replacing a link from **Share**
+preserves the member's identity and notes but invalidates the previous link and
+its sessions. SQLite keeps its credentials in HttpOnly cookies and uses public
+trip/member selectors to keep tabs separate. Browser storage eviction and cookie
+lifetime caps still apply. See ADR-008 and the rollout notes before deployment.
 
 ## Original SQLite self-hosting
 
@@ -162,7 +180,7 @@ The Node runner does not provision hosting, configure TLS or send invitations by
 - `shared/checklists.ts`: packing and departure strategies.
 - `server/`: validation, role strategies, SQLite persistence and HTTP API.
 - `supabase/`: private schema migrations, transactional routines and the Edge API, reusing the shared server domain rules.
-- `src/app/`: session, save/conflict handling, top navigation, empty itinerary and trip settings.
+- `src/app/`: remembered trips, tab-local session transport, save/conflict handling, top navigation, empty itinerary and trip settings.
 - `src/features/calendar/` and `places/`: itinerary and saved-place workflows.
 - `src/features/notes/`, `checklists/` and `sharing/`: collaboration and travel checks.
 - `tests/`: API and browser verification.
@@ -183,10 +201,19 @@ database's recorded SQL. Normal `task run` startup can now apply the additive
 attribution migration without resetting existing trip data. Use
 `task attribution:check` for isolated validation instead of migrating a running app.
 
+Remembered trips are implemented locally, not deployed. The online backend needs
+`20260717000500_remembered_sessions.sql` after the preceding migrations, followed
+by frontend publication. Existing valid sessions are adopted; expired or revoked
+ones are not revived. See the remembered-trips rollout in `docs/online-setup.md`.
+
 Start with `docs/online-setup.md` for the steps needing owner action. `supabase/README.md` describes local commands and permissions. `tasks/online-plan.md` records rollout status; ADR-002, ADR-003 and ADR-004 record the provider, access and persistence decisions.
 
 ## Deliberate limits
 
-The first version stores one active trip per browser session. Invitation links are revocable capabilities, not verified personal identities. There is no password recovery if the owner loses both their link and session. Private data is not encrypted at rest by the application.
+Each tab has one active trip, and trusted browser profiles can remember several
+trips and identities. There is no account or cross-device synchronization.
+Invitation links are revocable capabilities, not verified personal identities.
+There is no password recovery if the owner loses both their link and saved
+access. Private data is not encrypted at rest by the application.
 
 Offline synchronization, uploaded tickets, shared expenses, group voting, forecasts, reminders and calendar export remain follow-up work. Transport times, opening hours and prices are not live feeds.

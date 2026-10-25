@@ -4,7 +4,8 @@
 
 Requirements confirmed in this thread. The owner selected automatic reopening,
 browser-local trip switching and non-expiring access on trusted devices.
-The proposed 30-day limit was explicitly rejected. No application code has changed.
+The proposed 30-day limit was explicitly rejected. Implemented locally;
+verification is recorded in `docs/verification.md`. No push or deployment.
 
 ## Objective
 
@@ -136,21 +137,21 @@ native buttons and local React state. For example:
 
 ## Testing and commands
 
-Run only related tests, plus the production build. Planned new test filenames
-below become executable checks during implementation; none were run for this spec.
+Run only related tests, plus the production build. These are the implemented
+checks; actual results and limits are recorded in `docs/verification.md`.
 
 ```sh
 npm run build
-npm test -- src/app/remembered-trips.test.ts tests/server.test.ts tests/online-api.test.ts
+npm test -- src/app/remembered-trips.test.ts src/app/api.test.ts tests/remembered-migration.test.ts tests/remembered-sessions.test.ts tests/server.test.ts tests/online-api.test.ts
 PLAYWRIGHT_PORT=5197 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH='C:/Program Files/Google/Chrome/Application/chrome.exe' VITE_BACKEND=sqlite npm run test:e2e -- tests/e2e/remembered-trips.spec.ts
 npx --no-install deno check supabase/functions/trip-api/index.ts
 ```
 
-Add matching focused cases to `tests/e2e/online.spec.ts` and run them through the
-local Edge transport at the Pages base path:
+Run matching cases in `tests/e2e/online.spec.ts` through an isolated native
+PostgreSQL/PostgREST/Deno fixture at the Pages base path:
 
 ```sh
-PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH='C:/Program Files/Google/Chrome/Application/chrome.exe' npx --no-install playwright test --config playwright.online.config.ts --grep 'remembered|resume|switch|forget'
+TRIP_TEST_GREP='remembered|resume|switch|forget' PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH='C:/Program Files/Google/Chrome/Application/chrome.exe' node scripts/test-attribution.mjs
 ```
 
 Use synthetic trips only. Use an isolated local fixture when the shared local

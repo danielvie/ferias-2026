@@ -16,6 +16,7 @@ test.beforeAll(() => {
   originallyEnabled = sql('select creation_enabled from trip_private.settings where singleton;') === 't';
   sql('update trip_private.settings set creation_enabled = true; delete from trip_private.request_limits;');
 });
+test.beforeEach(() => { sql('delete from trip_private.request_limits;'); });
 test.afterEach(() => {
   for (const id of trips) sql(`delete from trip_private.trips where id = '${id}';`);
   trips.clear();
@@ -25,16 +26,23 @@ test.afterAll(() => { sql(`update trip_private.settings set creation_enabled = $
 async function navigate(page: Page, name: string) {
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name, exact: true }).click();
 }
-async function create(page: Page) {
-  await page.goto('./');
-  await page.getByRole('button', { name: 'Add trip details', exact: true }).click();
-  await page.getByLabel('Trip name', { exact: true }).fill('Online Belgium trip');
+async function create(page: Page, title = 'Online Belgium trip', another = false) {
+  if (another) {
+    await page.getByRole('button', { name: 'Trips', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Your trips', exact: true }).getByRole('button', { name: 'Create trip', exact: true }).click();
+  } else {
+    await page.goto('./');
+    await page.getByRole('button', { name: 'Add trip details', exact: true }).click();
+  }
+  await page.getByLabel('Trip name', { exact: true }).fill(title);
   await page.getByLabel('Your name', { exact: true }).fill('Daniel');
   await page.getByLabel('Start date', { exact: true }).fill('2030-06-01');
   await page.getByLabel('End date', { exact: true }).fill('2030-06-06');
   const response = page.waitForResponse((r) => r.url().endsWith('/trip-api/trips') && r.request().method() === 'POST');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
-  const result = await (await response).json();
+  const created = await response;
+  expect(created.status()).toBe(201);
+  const result = await created.json();
   expect(result.snapshot?.data.trip.id).toMatch(/^[0-9a-f-]{36}$/);
   trips.add(result.snapshot.data.trip.id);
   const link = await page.getByLabel('Private owner recovery link', { exact: true }).inputValue();
@@ -85,7 +93,7 @@ test('mobile profile and durable history work through the deployed-path Edge tra
   expect((await snapshot(page)).session).toEqual({ ...previous.session, name: 'Daniel online' });
 });
 
-test('Pages-path creation, derived-session reload and separate link-only identities work across browsers', async ({ page, browser }) => {
+test('remembered Pages-path access resumes in a fresh tab and isolates link-only identities', async ({ page, browser }) => {
   const ownerLink = await create(page);
   await note(page, 'Owner private note');
   const editorLink = await invite(page, 'Editor online', 'editor');
@@ -107,13 +115,14 @@ test('Pages-path creation, derived-session reload and separate link-only identit
     expect(Object.keys(await page.evaluate(() => ({ ...sessionStorage })))).toHaveLength(1);
     const blank = await page.context().newPage();
     await blank.goto('./');
-    await expect(blank.getByRole('button', { name: 'Add trip details', exact: true })).toBeVisible();
+    await expect(blank.getByRole('heading', { name: 'Online Belgium trip', exact: true })).toBeVisible();
+    expect((await snapshot(blank)).session.id).toBe((await snapshot(page)).session.id);
     await blank.close();
     expect((await snapshot(editor)).data.notes[0].title).toBe('Editor private note');
   } finally { await editorContext.close(); }
 });
 
-test('family UI is redacted and revoked links stop working', async ({ page, browser }) => {
+test('remembered family access stays redacted and revoked access requires a new link', async ({ page, browser }) => {
   await create(page);
   await note(page, 'Never share this note');
   const familyLink = await invite(page, 'Family online', 'family');
@@ -133,11 +142,12 @@ test('family UI is redacted and revoked links stop working', async ({ page, brow
     await expect(card).toHaveCount(0);
     await family.reload();
     await expect(family.getByRole('alert')).toBeVisible();
-    await expect(family.getByRole('button', { name: 'Add trip details', exact: true })).toBeVisible();
+    await expect(family.getByRole('heading', { name: 'Your trips', exact: true })).toBeVisible();
+    await expect(family.getByRole('list', { name: 'Remembered trips' })).toContainText('Access is no longer valid');
   } finally { await familyContext.close(); }
 });
 
-test('owner-link replacement preserves notes, invalidates the previous link and saves a new session', async ({ page, browser }) => {
+test('remembered owner access follows link replacement without retaining the reusable link', async ({ page, browser }) => {
   const previous = await create(page);
   await note(page, 'Kept after rotation');
   const memberId = (await snapshot(page)).session.id;
@@ -182,4 +192,48 @@ test('online trip settings preserve city IDs and update the continuous day index
   expect(saved.data.trip.cities[1]).toEqual({ id: original.data.trip.cities[0].id, name: 'Brussels Central' });
   expect(saved.data.trip.endDate).toBe('2030-06-08');
   await expect(page.getByRole('navigation', { name: 'Trip days' }).getByRole('button')).toHaveCount(8);
+});
+
+test('remembered trips switch at the Pages path and resume from persistent storage without sessionStorage', async ({ page, browser }) => {
+  const firstLink = await create(page, 'Online Alpha');
+  await create(page, 'Online Beta', true);
+  await page.getByRole('button', { name: 'Trips', exact: true }).click();
+  const pane = page.getByRole('dialog', { name: 'Your trips', exact: true });
+  await expect(pane.getByRole('listitem')).toHaveCount(2);
+  await pane.getByRole('button', { name: 'Open Online Alpha as Daniel, owner', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Online Alpha', exact: true })).toBeVisible();
+  const firstCredential = new URL(firstLink).hash.slice('#access='.length);
+  const serialized = await page.evaluate(() => JSON.stringify({ ...localStorage }));
+  expect(serialized).not.toContain(firstCredential);
+  const restored = await browser.newContext({ storageState: await page.context().storageState() });
+  try {
+    const fresh = await restored.newPage();
+    await fresh.goto(new URL('./', page.url()).href);
+    await expect(fresh.getByRole('heading', { name: 'Online Alpha', exact: true })).toBeVisible();
+    await expect(fresh).not.toHaveURL(/access=/);
+    await fresh.getByRole('button', { name: 'Trips', exact: true }).click();
+    await fresh.getByRole('button', { name: 'Open Online Beta as Daniel, owner', exact: true }).click();
+    await expect(fresh.getByRole('heading', { name: 'Online Beta', exact: true })).toBeVisible();
+    await fresh.getByRole('button', { name: 'Close this trip session', exact: true }).click();
+    await expect(fresh.getByRole('heading', { name: 'Your trips', exact: true })).toBeVisible();
+    await expect(fresh.getByRole('list', { name: 'Remembered trips' }).getByRole('listitem')).toHaveCount(1);
+  } finally { await restored.close(); }
+});
+
+test('remembered trip credentials stay tab-local while another online trip is selected', async ({ page, context }) => {
+  await create(page, 'Online Alpha');
+  const other = await context.newPage();
+  await other.goto(new URL('./', page.url()).href);
+  await expect(other.getByRole('heading', { name: 'Online Alpha', exact: true })).toBeVisible();
+  await create(other, 'Online Beta', true);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByLabel('Trip name', { exact: true }).fill('Online Alpha edited');
+  await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Online Alpha edited', exact: true })).toBeVisible();
+  await other.reload();
+  await expect(other.getByRole('heading', { name: 'Online Beta', exact: true })).toBeVisible();
+  const fresh = await context.newPage();
+  await fresh.goto(new URL('./', page.url()).href);
+  await expect(fresh.getByRole('heading', { name: 'Online Beta', exact: true })).toBeVisible();
 });

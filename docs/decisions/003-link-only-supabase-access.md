@@ -4,6 +4,9 @@
 
 Accepted for the Supabase online target. Database, Edge API and browser integration are implemented and locally verified; hosted deployment remains pending. Resolves Q3 in `tasks/online-plan.md` and replaces that plan's proposed account-based access.
 
+ADR-008 supersedes the expiring, tab-only session policy below. Link-only
+identities, role enforcement, private-note ownership and revocation still apply.
+
 ## Context
 
 The app is for a small group. The user explicitly chose sharing through links with no sign-in. The existing local application already uses private capabilities and logical members rather than verified accounts.

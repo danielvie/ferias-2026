@@ -98,6 +98,40 @@ Do not delete records or redeploy an unaudited writer to restore writes.
 Backups of the private schema now include history; `task backup:check` verifies
 its restoration with synthetic fixtures.
 
+## Remembered-trips rollout
+
+This feature is implemented locally, not deployed. It uses the existing online
+API endpoints and requires `20260717000500_remembered_sessions.sql` after the
+preceding migrations. ADR-008 records the trusted-device, non-expiring policy.
+
+After explicit approval for the target and deployment:
+
+1. Complete the applicable attribution rollout above and verify migration history.
+2. Preview and apply the remembered-session migration without resetting data.
+   It adopts still-valid, unrevoked sessions and makes new sessions non-expiring.
+   Already-expired or revoked credentials remain invalid.
+3. Publish the matching frontend. Verify root-page resume in a fresh tab and
+   after a browser restart, switching between two trips, member-role isolation,
+   Forget, Exit and link replacement. Do not change creation settings merely
+   to test an existing trip.
+4. Keep recovery links private. Anyone using the trusted browser profile can
+   reopen remembered trips. Browser storage cleanup can still remove access.
+
+For isolated local online browser validation without migrating the shared app:
+
+```sh
+TRIP_TEST_GREP='remembered|resume|switch|forget' node scripts/test-attribution.mjs
+```
+
+This mode uses a disposable database, real local PostgreSQL/PostgREST and the
+standalone Deno entry point. It runs only matching browser workflows and skips
+the fixture's separate native pgTAP/concurrency checks. The default attribution
+command retains those checks.
+
+SQLite requires the matching Node API and frontend together. Its selected cookie
+protocol keeps credentials HttpOnly; do not serve the new client against an old
+API that does not understand trip selection.
+
 ## 4. Create the online trip, then close creation
 
 Creation is disabled by default. In the hosted project's SQL editor, after backend deployment:

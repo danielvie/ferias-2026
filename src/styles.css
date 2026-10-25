@@ -144,6 +144,16 @@ progress::-webkit-progress-value { background: var(--forest); border-radius: 4px
 .access-retry p, .recovery-banner p { font-size: .85rem; margin-bottom: .75rem; }
 .recovery-banner .panel-header { margin-bottom: .25rem; }
 .recovery-banner input { flex: 1; min-width: 160px; font-size: .8rem; }
+.trip-content { display: flex; flex-direction: column; border: 0; padding: 0; margin: 0; min-width: 0; }
+.trips-list > p { margin-bottom: 0; }
+.remembered-trips { list-style: none; padding: 0; margin: 0; }
+.remembered-trips > li { display: flex; flex-direction: column; gap: .75rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
+.remembered-trips > li:first-child { padding-top: 0; }
+.remembered-trip-copy { min-width: 0; overflow-wrap: anywhere; }
+.remembered-trip-copy strong { display: block; margin-bottom: .25rem; }
+.remembered-trip-copy p { margin: 0; color: var(--muted); font-size: .85rem; }
+.remembered-trip-actions .button { font-size: .8rem; }
+.remembered-trip-copy .remembered-trip-invalid { margin-top: .5rem; color: var(--danger); }
 .empty-itinerary { margin: 8vh auto; padding: 2rem 0; width: min(100%, 42rem); }
 .empty-itinerary h1 { font-size: 2.25rem; }
 .empty-itinerary > p { color: var(--muted); }

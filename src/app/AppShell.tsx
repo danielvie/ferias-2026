@@ -18,11 +18,12 @@ interface Props {
   onOpenLink: () => void;
   onSettings: () => void;
   onMember: () => void;
+  onTrips: () => void;
   canEdit: boolean;
   children: ReactNode;
 }
 
-export function AppShell({ page, member, busy, mainRef, onNavigate, onRefresh, onExit, onOpenLink, onSettings, onMember, canEdit, children }: Props) {
+export function AppShell({ page, member, busy, mainRef, onNavigate, onRefresh, onExit, onOpenLink, onSettings, onMember, onTrips, canEdit, children }: Props) {
   const visibleNav = member?.role === 'family'
     ? navigation.filter((item) => ['today', 'calendar', 'places'].includes(item.id))
     : navigation;
@@ -42,6 +43,7 @@ export function AppShell({ page, member, busy, mainRef, onNavigate, onRefresh, o
             aria-current={page === item.id ? 'page' : undefined} onClick={() => onNavigate(item.id)}>{item.label}</button>)}
         </nav>
         <div className="session-controls">
+          <button id="trip-switcher-button" className="button ghost" onClick={onTrips} disabled={busy}>Trips</button>
           {member ? <>
             {canEdit && <button id="trip-settings-button" className="button secondary" onClick={onSettings} disabled={busy}>Settings</button>}
             <button className="button ghost" onClick={onRefresh} disabled={busy}>Refresh</button>

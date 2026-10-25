@@ -108,9 +108,11 @@ hosted deployment is not authorized.
 
 - [x] T1. Non-expiring server sessions and selected HttpOnly SQLite cookies.
   Verify: TypeScript and 33 focused server/online API tests pass.
-- [ ] T2. Browser registry, tab-local transport and stale-response protection.
-  Verify: focused storage/API tests, existing-session adoption and invalidation.
-- [ ] T3. Trips pane, root fallback, creation, switching and forgetting.
-  Verify: browser flows, draft guards, role isolation and focus return.
-- [ ] T4. Restart/concurrency, expiry migration and responsive checks.
-  Verify: related unit/API/browser tests, build, Edge types and screenshots.
+- [x] T2. Browser registry, tab-local transport and stale-response protection.
+  Verified storage/API tests, existing-session adoption and invalidation.
+- [x] T3. Trips pane, root fallback, creation, switching and forgetting.
+  Verified browser flows, draft guards, role isolation and focus return.
+- [x] T4. Restart/concurrency, expiry migration and responsive checks.
+  Build, Edge types, 56 focused tests, 13 remembered-trip browser workflows,
+  two Places regressions and five isolated online browser workflows pass.
+  Chrome profile restart and responsive screenshots verified. Not deployed.
