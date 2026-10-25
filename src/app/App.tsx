@@ -1,0 +1,122 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CreateTripInput, Page } from '../../shared/model';
+import { CalendarPage } from '../features/calendar/CalendarPage';
+import { PlacesPage } from '../features/places/PlacesPage';
+import { NotesPage } from '../features/notes/NotesPage';
+import { ChecklistsPage } from '../features/checklists/ChecklistsPage';
+import { SharingPage } from '../features/sharing/SharingPage';
+import { TripContext, type NavigationGuard } from './TripContext';
+import { useTripSession } from './useTripSession';
+import { AppShell } from './AppShell';
+import { Dashboard } from './Dashboard';
+import { TripDetailsForm } from './TripDetailsForm';
+import { OpenTripForm } from './OpenTripForm';
+
+export function App() {
+  const session = useTripSession();
+  const [page, setPage] = useState<Page>('today');
+  const [activePanel, setActivePanel] = useState<'details' | 'link' | null>(null);
+  const [setupHint, setSetupHint] = useState('');
+  const [copied, setCopied] = useState(false);
+  const main = useRef<HTMLElement>(null);
+  const guards = useRef(new Map<string, NavigationGuard>());
+  const registerNavigationGuard = useCallback((id: string, guard: NavigationGuard | null) => {
+    if (guard) guards.current.set(id, guard);
+    else guards.current.delete(id);
+  }, []);
+  useEffect(() => {
+    const protect = (event: BeforeUnloadEvent) => {
+      if (guards.current.size || session.busy || activePanel) { event.preventDefault(); event.returnValue = ''; }
+    };
+    window.addEventListener('beforeunload', protect);
+    return () => window.removeEventListener('beforeunload', protect);
+  }, [session.busy, activePanel]);
+  function canLeave() {
+    const blocking = [...guards.current.values()].find((guard) => guard.blocking);
+    if (session.busy || blocking) {
+      window.alert(blocking?.message || 'Wait for the current save to finish before leaving.');
+      return false;
+    }
+    if (activePanel) return window.confirm('Leave this form? Unsaved changes will be lost.');
+    const guard = [...guards.current.values()][0];
+    return !guard || window.confirm(guard.message);
+  }
+  function openPanel(panel: 'details' | 'link') {
+    if (activePanel === panel) {
+      document.querySelector<HTMLInputElement>('.details-panel input')?.focus();
+      return;
+    }
+    if (!canLeave()) return;
+    session.dismissError();
+    setSetupHint('');
+    setPage('today');
+    setActivePanel(panel);
+  }
+  function closePanel() {
+    setActivePanel(null);
+    setSetupHint('');
+    session.dismissError();
+    requestAnimationFrame(() => document.getElementById('trip-details-button')?.focus());
+  }
+  function navigate(next: Page) {
+    if (!session.snapshot && next !== 'today') {
+      openPanel('details');
+      setSetupHint('Save your trip details here to start adding plans, notes and travel checks.');
+      return;
+    }
+    if (next === page || !canLeave()) return;
+    setActivePanel(null);
+    setPage(next);
+    requestAnimationFrame(() => { main.current?.focus(); window.scrollTo({ top: 0 }); });
+  }
+  const error = session.error && <div className="global-error" role="alert"><span>{session.error}</span><button className="button ghost" onClick={session.dismissError}>Dismiss</button></div>;
+  if (session.loading) return <main className="loading-screen" aria-busy="true"><span className="brand">BELGIUM</span><p role="status">Opening your trip…</p></main>;
+  const { snapshot } = session;
+  const family = snapshot?.session.role === 'family';
+  const canEdit = snapshot?.session.role === 'owner' || snapshot?.session.role === 'editor';
+  const safePage = !snapshot || (family && !['today', 'calendar', 'places'].includes(page)) ? 'today' : page;
+  const pages = { calendar: CalendarPage, places: PlacesPage, notes: NotesPage, checklists: ChecklistsPage, sharing: SharingPage };
+  const FeaturePage = safePage === 'today' ? null : pages[safePage];
+  async function saveDetails(details: CreateTripInput) {
+    let saved: boolean;
+    if (snapshot) {
+      const trip = snapshot.data.trip;
+      const cities = details.cities.map((name) => trip.cities.find((city) => city.name.toLowerCase() === name.toLowerCase()) || { id: crypto.randomUUID(), name });
+      saved = await session.command({ type: 'trip.update', trip: { title: details.title, startDate: details.startDate, endDate: details.endDate, cities } });
+    } else saved = await session.create(details);
+    if (saved) { setActivePanel(null); setSetupHint(''); }
+  }
+  async function join(token: string) {
+    if (await session.join(token)) { setActivePanel(null); setSetupHint(''); setPage('today'); }
+  }
+  async function copyRecovery() {
+    try { await navigator.clipboard.writeText(session.recoveryLink); setCopied(true); }
+    catch { setCopied(false); }
+  }
+  async function logout() {
+    if (!canLeave()) return;
+    if (session.recoveryLink && !window.confirm('Have you saved your private owner link? You will need it to reopen this trip after exiting.')) return;
+    await session.logout();
+    setPage('today');
+    setActivePanel(null);
+  }
+  const detailsPanel = <>
+    {setupHint && activePanel === 'details' && <p className="setup-hint" role="status">{setupHint}</p>}
+    {activePanel === 'details' && <TripDetailsForm key={snapshot?.data.trip.id ?? 'new-trip'} trip={snapshot?.data.trip} busy={session.busy} error={session.error} onSave={saveDetails} onCancel={closePanel} />}
+    {activePanel === 'link' && <OpenTripForm busy={session.busy} error={session.error} onJoin={join} onCancel={closePanel} />}
+  </>;
+  const shell = <AppShell page={safePage} member={snapshot?.session} busy={session.busy} mainRef={main}
+    onNavigate={navigate} onRefresh={() => void session.refresh()} onExit={() => void logout()} onOpenLink={() => openPanel('link')}>
+    {!activePanel && error}
+    {session.pendingAccess && <section className="access-retry" aria-label="Retry trip link"><p>The link is kept in memory while this page stays open. Retry when your connection is back.</p><button className="button secondary" disabled={session.busy} onClick={() => void join(session.pendingAccess)}>Retry opening trip</button></section>}
+    {session.recoveryLink && <section className="recovery-banner" aria-label="Save your private owner link">
+      <div className="panel-header"><strong>Save your private owner link</strong><button className="button ghost" onClick={session.dismissRecovery}>I've saved it</button></div>
+      <p>This link gives full owner access. Keep it private; use Share to invite other people.</p>
+      <div className="actions"><label className="visually-hidden" htmlFor="owner-link">Private owner recovery link</label><input id="owner-link" readOnly value={session.recoveryLink} onFocus={(event) => event.currentTarget.select()} /><button className="button secondary" onClick={() => void copyRecovery()}>{copied ? 'Copied' : 'Copy owner link'}</button></div>
+    </section>}
+    {FeaturePage ? <FeaturePage /> : <Dashboard snapshot={snapshot} onNavigate={navigate} onDetails={() => openPanel('details')} detailsPanel={detailsPanel} />}
+  </AppShell>;
+  return snapshot
+    ? <TripContext value={{ snapshot, canEdit, busy: session.busy, command: session.command, refresh: session.refresh, navigate, registerNavigationGuard, onOwnerLinkReplaced: session.dismissRecovery }}>{shell}</TripContext>
+    : shell;
+}

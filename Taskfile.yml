@@ -1,0 +1,151 @@
+version: '3'
+
+tasks:
+  default:
+    desc: List available tasks
+    silent: true
+    cmds:
+      - task --list
+
+  install:
+    desc: Install locked npm dependencies
+    cmds:
+      - npm ci
+
+  env:setup:
+    desc: Create .env.local from the template without overwriting existing values
+    cmds:
+      - >-
+        node --input-type=module -e
+        "import { constants, copyFileSync } from 'node:fs';
+        try {
+        copyFileSync('.env.example', '.env.local', constants.COPYFILE_EXCL);
+        console.log('Created .env.local. Add only your public Supabase publishable key.');
+        } catch (error) {
+        if (error.code !== 'EEXIST') throw error;
+        console.log('.env.local already exists; left unchanged.');
+        }"
+
+  supabase:check:
+    desc: Validate public Supabase environment values without printing keys or accessing the network
+    cmds:
+      - npm run supabase:check
+
+  supabase:ping:
+    desc: Check public Supabase settings and the publishable key without sign-in or trip-data access
+    cmds:
+      - npm run supabase:ping
+
+  db:start:
+    desc: Start local Supabase with Docker and apply migrations; never connect to the hosted project
+    env:
+      SUPABASE_TELEMETRY_DISABLED: '1'
+    cmds:
+      - node scripts/prepare-supabase-network.mjs
+      - npx --no-install supabase start
+      - npx --no-install supabase migration up --local
+
+  db:stop:
+    desc: Stop local Supabase while preserving its database
+    env:
+      SUPABASE_TELEMETRY_DISABLED: '1'
+    cmds:
+      - npx --no-install supabase stop
+
+  db:migrate:
+    desc: Apply pending migrations to local Supabase only, without resetting data
+    env:
+      SUPABASE_TELEMETRY_DISABLED: '1'
+    cmds:
+      - npx --no-install supabase migration up --local
+
+  db:test:
+    desc: Run database access and link-session tests against local Supabase
+    env:
+      SUPABASE_TELEMETRY_DISABLED: '1'
+    cmds:
+      - npx --no-install supabase test db --local
+      - node --test tests/supabase-concurrency.test.mjs
+
+  run:
+    desc: Run the frontend and Supabase Edge API against the local Docker database
+    cmds:
+      - node scripts/dev-online.mjs
+
+  run:sqlite:
+    desc: Run the original SQLite app without changing or importing its data
+    env:
+      VITE_BACKEND: sqlite
+    cmds:
+      - npm run dev
+
+  online:test:
+    desc: Test the real local Supabase Edge API without accessing the hosted project
+    cmds:
+      - node scripts/test-online.mjs
+
+  online:e2e:
+    desc: Test the online frontend at the GitHub Pages base path against local Supabase
+    cmds:
+      - npx --no-install playwright test --config playwright.online.config.ts
+
+  online:check:
+    desc: Check Edge Function types with the pinned Deno CLI
+    cmds:
+      - npx --no-install deno check supabase/functions/trip-api/index.ts
+
+  online:build:
+    desc: Validate hosted public configuration and build the GitHub Pages frontend
+    env:
+      VITE_BACKEND: supabase
+      VITE_BASE_PATH: /ferias-2026/
+    cmds:
+      - npm run supabase:check -- --production
+      - npm run build
+
+  backup:check:
+    desc: Verify private-data backup and restore with disposable local fixture databases
+    cmds:
+      - node scripts/test-backup.mjs
+
+  build:
+    desc: Typecheck and build the production client
+    cmds:
+      - npm run build
+
+  start:
+    desc: Build and run the production client and API
+    cmds:
+      - task: build
+      - npm start
+
+  typecheck:
+    desc: Check TypeScript across the client, server and tests
+    cmds:
+      - npm run typecheck
+
+  test:
+    desc: Run domain, feature and backend tests
+    cmds:
+      - npm test -- {{.CLI_ARGS}}
+
+  test:e2e:
+    desc: Run Playwright browser tests with isolated test servers
+    cmds:
+      - npm run test:e2e -- {{.CLI_ARGS}}
+
+  check:
+    desc: Run the production build, typecheck and automated tests
+    cmds:
+      - task: build
+      - task: test
+
+  clean:
+    desc: Remove build and test artifacts, preserving trip data and dependencies
+    aliases: [clear]
+    cmds:
+      - >-
+        node --input-type=module -e
+        "import { rmSync } from 'node:fs';
+        for (const path of ['dist', 'playwright-report', 'test-results'])
+        rmSync(path, { recursive: true, force: true });"

@@ -1,0 +1,71 @@
+.places-form-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.places-filters,
+.places-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.place-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.place-description {
+  white-space: pre-wrap;
+}
+
+.place-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  margin: 0;
+}
+
+.place-facts dt {
+  font-size: 0.875rem;
+  color: var(--muted, #57695a);
+}
+
+.place-facts dd {
+  margin: 0.25rem 0 0;
+}
+
+.place-visits ul {
+  padding-left: 1.25rem;
+}
+
+.place-suggestions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.place-suggestions li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--border, #d7ddcf);
+}
+
+.places-warning {
+  padding: 0.75rem 1rem;
+  border-left: 3px solid #87602a;
+  background: #faf0da;
+  color: #60451f;
+}
+
+@media (min-width: 768px) {
+  .places-filters {
+    grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+  }
+}

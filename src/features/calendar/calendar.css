@@ -1,0 +1,65 @@
+.calendar-form-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.calendar-controls,
+.calendar-day-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.calendar-day-navigation .field {
+  flex: 1;
+  min-width: 0;
+}
+
+.calendar-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.calendar-event {
+  border-top: 1px solid var(--border, #d7ddcf);
+  padding: 1.25rem 0;
+}
+
+.calendar-event-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--green, #214a38);
+  margin-bottom: 0.75rem;
+}
+
+.calendar-event-content {
+  min-width: 0;
+  gap: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.calendar-description {
+  white-space: pre-wrap;
+}
+
+.calendar-overlap {
+  padding: 0.75rem 1rem;
+  border-left: 3px solid #87602a;
+  background: #faf0da;
+  color: #60451f;
+}
+
+@media (min-width: 768px) {
+  .calendar-controls {
+    justify-content: space-between;
+  }
+  .calendar-event {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+}

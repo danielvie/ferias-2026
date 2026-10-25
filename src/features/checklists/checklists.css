@@ -1,0 +1,21 @@
+.checklists-page { min-width: 0; }
+.checklists-page input, .checklists-page select, .checklists-page button { min-height: 44px; }
+.checklist-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.checklist-fields legend { font-weight: 650; padding: 0 0 0.75rem; }
+.checklist-items { list-style: none; padding: 0; margin: 0; }
+.checklist-row { padding-block: 1rem; border-block-end: 1px solid var(--border, #c9cebf); min-width: 0; gap: 0.5rem; }
+.checklist-item-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; overflow-wrap: anywhere; }
+.checklist-check { display: flex; align-items: center; gap: 0.75rem; min-height: 44px; cursor: pointer; }
+.checklist-check input { flex: 0 0 auto; width: 1.25rem; min-height: 1.25rem; height: 1.25rem; accent-color: var(--forest, #224d3b); }
+.checklist-done { text-decoration: line-through; }
+.checklist-controls, .checklist-owner { display: flex; align-items: end; flex-wrap: wrap; gap: 0.75rem; }
+.checklist-controls .field, .checklist-owner .field { min-width: 0; flex: 1 1 10rem; }
+.checklist-owner { flex: 1 1 18rem; min-width: 0; }
+.checklist-item-details { min-width: 0; width: 100%; }
+.checklist-item-details summary { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+.checklist-item-details[open] .checklist-owner { padding-block: 0.5rem; }
+.checklists-page progress { width: 100%; height: 0.75rem; accent-color: var(--forest, #224d3b); }
+@media (max-width: 480px) {
+  .checklist-controls, .checklist-owner { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
+  .checklist-item-heading { align-items: flex-start; }
+}

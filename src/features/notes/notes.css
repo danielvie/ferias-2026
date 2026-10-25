@@ -1,0 +1,9 @@
+.notes-page { min-width: 0; }
+.notes-page button, .notes-page select, .notes-page input { min-height: 44px; }
+.notes-page textarea { width: 100%; min-height: 88px; }
+.notes-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.notes-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.notes-comment { border-inline-start: 2px solid currentColor; padding-inline-start: 1rem; }
+.notes-confirm { border: 1px solid currentColor; padding: 1rem; }
+.notes-page .toolbar { flex-wrap: wrap; }
+.notes-page .field { min-width: 0; }

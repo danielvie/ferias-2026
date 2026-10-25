@@ -1,0 +1,14 @@
+.sharing-page { min-width: 0; }
+.sharing-page input, .sharing-page select, .sharing-page button, .sharing-page summary { min-height: 44px; }
+.sharing-fields { min-width: 0; border: 0; padding: 0; margin: 0; }
+.sharing-selection { min-width: 0; border: 1px solid var(--border, #c9cebf); padding: 1rem; }
+.sharing-selection legend { font-weight: 650; padding-inline: 0.25rem; }
+.sharing-check { display: flex; align-items: center; gap: 0.75rem; min-height: 44px; cursor: pointer; overflow-wrap: anywhere; }
+.sharing-check input { flex: 0 0 auto; width: 1.25rem; min-height: 1.25rem; height: 1.25rem; accent-color: var(--forest, #224d3b); }
+.sharing-preview { border-inline-start: 3px solid var(--forest, #224d3b); padding-inline-start: 1rem; }
+.sharing-preview-list { padding-inline-start: 1.25rem; overflow-wrap: anywhere; }
+.sharing-preview-list li { padding-block: 0.5rem; }
+.sharing-invitation { border-block-start: 1px solid var(--border, #c9cebf); padding-block: 1rem; }
+.sharing-page summary { cursor: pointer; padding-block: 0.75rem; }
+.sharing-secret { border: 2px solid var(--forest, #224d3b); }
+.sharing-page .field, .sharing-page input, .sharing-page select { min-width: 0; max-width: 100%; }

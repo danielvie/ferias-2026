@@ -1,0 +1,13 @@
+node_modules/
+dist/
+data/
+playwright-report/
+test-results/
+.env*
+!.env.example
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+supabase/.temp/
+supabase/.branches/
+supabase/snippets/

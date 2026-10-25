@@ -1,0 +1,38 @@
+# Local development only. This does not link to the hosted Supabase project.
+project_id = "ferias-2026"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.migrations]
+enabled = true
+
+[db.seed]
+enabled = false
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[auth]
+enabled = false
+
+[storage]
+enabled = false
+
+[analytics]
+enabled = false
+
+[functions.trip-api]
+# Application capabilities are checked by the handler, not Supabase Auth JWTs.
+verify_jwt = false
