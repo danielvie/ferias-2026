@@ -38,7 +38,7 @@ Weekday initials use the Excalidraw comparison's color-only option, without boxe
 
 Checkpoint selection is local UI state and does not write trip data. Reordering preserves the selected checkpoint's identity even when its route number changes. Existing saved places become activity cards without being recreated.
 
-For local Supabase, run `task db:migrate` to apply the repeat-city migration without resetting data. The hosted database and Edge Function also need an explicitly approved deployment before using this feature online. See ADR-005 for identity and scheduling rules, and ADR-006 for the inline route layout.
+For local Supabase, run `task db:migrate` to apply the repeat-city migration without resetting data. The hosted database and Edge Function also need an explicitly approved deployment before using this feature online. See ADR-006 for identity and scheduling rules, and ADR-007 for the inline route layout.
 
 ## Trip access
 

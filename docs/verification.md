@@ -376,6 +376,20 @@ Final checks passed:
 
 Only related tests were run, as requested. The full unit/API and browser suites, native database/concurrency checks, managed Edge runtime and live Supabase preview were not rerun. No backend, schema, hosting or deployment changes were made.
 
+### Rebase onto member attribution
+
+Rebased the Places branch onto `origin/main` at `b28c26f`, preserving the member-profile and durable-history implementation. Conflict resolutions retain both shared history types and the activity-log entry rename, both local Edge hostname settings, the main branch's duplicate-ID fixture, and both sets of documentation. Renumbered the route decisions to ADR-006 and ADR-007 because main already uses ADR-005 for attribution.
+
+Post-rebase checks passed:
+
+- `npm run build`, including TypeScript.
+- `npm test -- src/features/places/places.test.ts tests/route.test.ts tests/route-migration.test.ts tests/history.test.ts tests/online-api.test.ts`: 30 related tests, including attribution and actual PostgreSQL migration/API integration through PGlite.
+- `DEBUG=pw:webserver PLAYWRIGHT_PORT=5197 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH='C:/Program Files/Google/Chrome/Application/chrome.exe' VITE_BACKEND=sqlite npm run test:e2e -- tests/e2e/places-route.spec.ts`: all 16 Places workflows against the combined code.
+- `npx --no-install deno check supabase/functions/trip-api/index.ts`.
+- `git diff --check` and ancestry verification against the fetched main commit.
+
+The full test suites, native Supabase/concurrency tests and hosted services were not run or changed. The requested source publication targets `feature/places-route`, not `main`; it does not dispatch the manual Pages deployment.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

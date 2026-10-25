@@ -1,8 +1,8 @@
-# ADR-006: Straight checkpoint rail with inline activities
+# ADR-007: Straight checkpoint rail with inline activities
 
 ## Status
 
-Implemented locally. Supersedes ADR-005's alternating route layout and separate checkpoint details presentation. Its identity, command and scheduling rules remain unchanged.
+Implemented locally. Supersedes ADR-006's alternating route layout and separate checkpoint details presentation. Its identity, command and scheduling rules remain unchanged.
 
 ## Context
 

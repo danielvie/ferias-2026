@@ -1,10 +1,10 @@
-# ADR-005: Route visits and movable activities
+# ADR-006: Route visits and movable activities
 
 ## Status
 
 Implemented locally. Hosted migration and deployment are not part of this change.
 
-ADR-006 supersedes the zig-zag layout and sheet/panel presentation below. The identity, command and scheduling decisions still apply.
+ADR-007 supersedes the zig-zag layout and sheet/panel presentation below. The identity, command and scheduling decisions still apply.
 
 ## Context
 
@@ -53,7 +53,7 @@ Restoring the old unique-name index is safe only after repeat visits have been r
 
 The app still stores user-entered locations, not a geographic city catalogue. Moving between differently named cities asks the traveler to check addresses and bookings; it does not relocate the real attraction. The initial drawing's activity drag handles are superseded by the later Move-popup interaction.
 
-Local checkouts can isolate browser tests with `PLAYWRIGHT_PORT`. A separate Deno preview can set `TRIP_HTTP_HOST=127.0.0.1` and `TRIP_HTTP_PORT`, leaving Supabase's default bind unchanged when unset. `LOCAL_TRIP_API_URL` points the native HTTP check at that loopback handler; the check rejects non-local endpoints.
+Local checkouts can isolate browser tests with `PLAYWRIGHT_PORT`. A separate Deno preview can set `TRIP_HTTP_HOST=127.0.0.1` and `TRIP_HTTP_PORT`, leaving Supabase's default bind unchanged when unset. The attribution runner's `TRIP_BIND_HOST` remains a hostname fallback when `TRIP_HTTP_HOST` is unset. `LOCAL_TRIP_API_URL` points the native HTTP check at that loopback handler; the check rejects non-local endpoints.
 
 ## References
 
