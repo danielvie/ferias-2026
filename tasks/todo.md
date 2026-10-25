@@ -122,12 +122,12 @@ hosted deployment is not authorized.
 Approved scope: `docs/simple-sharing-spec.md`. Preserve the unrelated pending
 online acceptance tasks above.
 
-- [ ] S1. Reusable SQLite join link, preview and distinct editor registration.
+- [x] S1. Reusable SQLite join link, preview and distinct editor registration.
   Verify stable links across restarts, validation, attribution and private notes
-  with `npm test -- tests/server.test.ts`. Depends on no new task.
-- [ ] S2. Additive Supabase storage/routines and Edge endpoints with parity.
+  with `npm test -- tests/server.test.ts`. All 20 tests pass; typecheck passes.
+- [x] S2. Additive Supabase storage/routines and Edge endpoints with parity.
   Verify actual migrations and privileges using `tests/online-api.test.ts`,
-  plus the Edge typecheck. Depends on S1's public contract.
+  plus the Edge typecheck. All 18 API tests and Deno typecheck pass.
 - [ ] S3. Browser transport and remembered-identity reuse for join links.
   Verify API tests, failed exchanges and no duplicate return membership.
   Depends on S1–S2.

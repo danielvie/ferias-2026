@@ -78,6 +78,73 @@ describe('online API with actual PostgreSQL migrations', () => {
     return response.json();
   }
 
+  test('shares a reusable join link and registers distinct editors with private notes and attribution', async () => {
+    const response = await call('/share');
+    expect(response.status).toBe(200);
+    const shared = await response.json();
+    expect(shared.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(shared.token).not.toBe(ownerToken);
+    expect(await (await call('/share')).json()).toEqual(shared);
+    expect(await (await call('/join/preview', 'POST', shared, '')).json()).toEqual({
+      tripId: state.data.trip.id, title: input.title,
+    });
+    const travelers: { snapshot: TripSnapshot; sessionToken: string }[] = [];
+    for (let i = 0; i < 2; i++) {
+      const joined = await call('/join', 'POST', { ...shared, name: ' Ana ', role: 'owner' }, '');
+      expect(joined.status).toBe(201);
+      const traveler = await joined.json();
+      expect(traveler.snapshot.session).toMatchObject({ name: 'Ana', role: 'editor' });
+      travelers.push(traveler);
+      expect(await (await call('/share', 'GET', undefined, traveler.sessionToken)).json()).toEqual(shared);
+    }
+    const [ana, other] = travelers;
+    expect(ana.snapshot.session.id).not.toBe(other.snapshot.session.id);
+    await command({ type: 'packing.add', title: 'Ana item', assignee: '' }, ana.sessionToken);
+    await command({ type: 'note.save', note: {
+      id: '', title: 'Only Ana', body: 'Private', visibility: 'private', linkType: 'trip', linkId: '',
+    } }, ana.sessionToken);
+    expect((await load()).data.notes).toEqual([]);
+    expect((await load(other.sessionToken)).data.notes).toEqual([]);
+    expect((await history()).items).toContainEqual(expect.objectContaining({
+      actorId: ana.snapshot.session.id, actorName: 'Ana', target: expect.objectContaining({ type: 'packing' }),
+    }));
+    expect((await load()).members).toHaveLength(3);
+    expect((await call('/session', 'POST', shared, '')).status).toBe(401);
+    expect((await call('/session', 'POST', { token: ownerToken }, '')).status).toBe(200);
+    expect((await db.query<{ permanent: boolean }>(
+      "select bool_and(expires_at = 'infinity'::timestamptz) as permanent from trip_private.sessions")).rows[0].permanent).toBe(true);
+  });
+
+  test('rejects invalid joins and read-only sharing while protecting stored join credentials', async () => {
+    const shared = await (await call('/share')).json();
+    for (const name of ['', ' ', 'x'.repeat(101), '\u0001']) {
+      expect((await call('/join', 'POST', { ...shared, name }, '')).status).toBe(422);
+    }
+    for (const token of ['', 'bad', 'x'.repeat(43)]) {
+      expect((await call('/join/preview', 'POST', { token }, '')).status).toBe(401);
+      expect((await call('/join', 'POST', { token, name: 'No access' }, '')).status).toBe(401);
+    }
+    expect((await load()).members).toHaveLength(1);
+    for (const role of ['viewer', 'family'] as const) {
+      const guest = await invite(role);
+      expect((await call('/share', 'GET', undefined, guest.sessionToken)).status).toBe(403);
+    }
+    expect((await call('/share', 'GET', undefined, '')).status).toBe(401);
+    for (const role of ['anon', 'authenticated', 'service_role']) {
+      await db.exec(`set role ${role}`);
+      try {
+        await expect(db.query('select * from trip_private.join_links')).rejects.toMatchObject({ code: '42501' });
+        if (role !== 'service_role') {
+          await expect(db.query('select public.trip_join_preview($1)', [shared.token])).rejects.toMatchObject({ code: '42501' });
+          await expect(db.query('select public.trip_share($1, $2)', ['', shared.token])).rejects.toMatchObject({ code: '42501' });
+          await expect(db.query('select public.trip_join($1, $2, $3, $4)',
+            [shared.token, 'No access', 'a'.repeat(64), 'b'.repeat(64)])).rejects.toMatchObject({ code: '42501' });
+        }
+      } finally { await db.exec('reset role'); }
+    }
+    expect(JSON.stringify(await load())).not.toContain(shared.token);
+  });
+
   test('keeps remembered sessions without expiry or eviction while preserving sign-out', async () => {
     const result = await db.query<{ permanent: boolean }>(
       "select bool_and(expires_at > clock_timestamp() + interval '100 years') as permanent from trip_private.sessions");
