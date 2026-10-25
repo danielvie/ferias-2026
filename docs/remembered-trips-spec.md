@@ -4,8 +4,9 @@
 
 Requirements confirmed in this thread. The owner selected automatic reopening,
 browser-local trip switching and non-expiring access on trusted devices.
-The proposed 30-day limit was explicitly rejected. Implemented locally;
-verification is recorded in `docs/verification.md`. No push or deployment.
+The proposed 30-day limit was explicitly rejected. Implemented and deployed
+after separate owner approval of the `main` merge/push and Supabase/Pages rollout.
+Verification is recorded in `docs/verification.md`.
 
 ## Objective
 

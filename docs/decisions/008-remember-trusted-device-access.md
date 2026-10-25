@@ -2,8 +2,9 @@
 
 ## Status
 
-Implemented locally. Supersedes ADR-003's expiring, tab-only session policy.
-No shared or hosted migration, publication or deployment was performed.
+Implemented and deployed to Supabase/Pages after separate owner approval.
+Supersedes ADR-003's expiring, tab-only session policy. Hosted migration 005 and
+the matching API/frontend are live; see `docs/verification.md`.
 
 ## Context
 

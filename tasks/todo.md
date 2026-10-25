@@ -137,5 +137,10 @@ online acceptance tasks above.
 - [x] S5. Isolated native online/browser acceptance, responsive accessibility,
   documentation and final diff review. All 71 focused unit/API tests, build and
   Edge typecheck pass. Checked Share/Join at 320/768/1024/1440 pixels with axe
-  and inspected masked screenshots. The running shared local database still
-  needs migration 006 before using this feature. No push or hosted deployment.
+  and inspected masked screenshots. Subsequent local preview repair applied
+  migration 006 and verified joining without changing existing trips.
+- [x] S6. Owner-approved `main` merge/push and Supabase/Pages deployment.
+  Free plan reconfirmed. Private backups saved before hosted migrations 005/006,
+  then API and Pages deployed. Run 40246530711 passes tests, types and build.
+  Hosted API/public-browser checks pass; synthetic fixtures removed. Existing
+  content, members, access links, history and settings match their baseline.

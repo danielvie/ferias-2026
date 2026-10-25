@@ -3,9 +3,9 @@
 ## Status
 
 Approved by the owner in this thread. This replaces the normal per-recipient
-invitation workflow, not the remembered-trips feature. Implementation and
-focused verification are authorized; publication and deployment are not.
-The implementation is in the worktree; evidence is in `docs/verification.md`.
+invitation workflow, not the remembered-trips feature. The owner subsequently
+authorized merging and pushing `main` and deploying Supabase/Pages, and confirmed
+the Free plan. The implementation is deployed; evidence is in `docs/verification.md`.
 
 ## Objective
 

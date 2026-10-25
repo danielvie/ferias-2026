@@ -1,6 +1,24 @@
 # Put the trip online
 
-## What is ready
+## Current deployment
+
+The current application is live at https://danielvie.github.io/ferias-2026/.
+The owner authorized the `main` merge/push and Supabase/Pages deployment, and
+reconfirmed the Free plan. Application commit `97f7741bf4313973b8135866e9e72d6819fd6bac`
+passed [Pages run 40246530711](https://github.com/danielvie/ferias-2026/actions/runs/40246530711).
+
+Hosted project `oljadunrwnagspncclha` has migrations 001 through 006 and the
+matching API/frontend. This includes member attribution, remembered access
+and simple sharing. Private backups preceded migrations 005/006. Hosted API
+and public-browser checks passed; synthetic fixtures were removed. Existing
+content, members, private links, history and settings match their baseline.
+
+The rollout instructions below retain earlier implementation-state notes.
+Their statements about undeployed features, empty hosted data or disabled
+creation describe earlier checkpoints, not current hosted state. Use this
+section and `docs/verification.md` for current release status.
+
+## Earlier deployment notes
 
 The application now runs against local Supabase without sign-in. Calendar, places, private/shared notes, comments, packing, departure checks, invitations, family views, revocation and link replacement use the Edge API. The static frontend is prepared for `https://danielvie.github.io/ferias-2026/`.
 

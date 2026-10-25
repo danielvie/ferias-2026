@@ -137,3 +137,12 @@ The common token is deliberately retrievable for this trusted disposable app.
 It permits new membership, never reopening somebody else's identity. The
 alternative of persisting original member links would retain the wrong shared
 identity model and is rejected. A public trip ID alone is still not a credential.
+
+### Approved release
+
+The owner subsequently authorized merging into `main`, pushing, and deploying
+both Supabase and Pages, and reconfirmed the Free plan. This supersedes the
+implementation-only publication limits above for this release. Migration 005/006,
+the matching API and Pages were deployed in that order after a private backup.
+See `docs/verification.md` for the exact application commit, workflow and hosted
+integrity/browser evidence. Future unrelated releases still need authorization.

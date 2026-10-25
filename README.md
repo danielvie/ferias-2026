@@ -207,20 +207,17 @@ See `belgium-itinerary-layout-v2.excalidraw` and the final section of `tasks/pla
 
 The app is deployed at https://danielvie.github.io/ferias-2026/ with a Supabase Free API/database and no charges permitted. Access is link-only for every role, without application accounts or sign-in. Hosted synthetic-data validation passed and its test trips were deleted. New-trip creation is an operator-controlled setup window; check the hosted setting before creating a trip. No local trip was imported.
 
-The continuous-itinerary redesign is included in the repository source but has not been redeployed to GitHub Pages. The deployment status above describes the previously published version; current hosted trip/creation state must be checked separately before setup.
+The current continuous itinerary, inline Places route, member attribution,
+remembered trips and simple sharing are deployed. The owner authorized merging
+and pushing `main` and deploying Supabase/Pages, and reconfirmed the Free plan.
+[Pages run 40246530711](https://github.com/danielvie/ferias-2026/actions/runs/40246530711)
+passed for application commit `97f7741bf4313973b8135866e9e72d6819fd6bac`.
 
-Member attribution is included in the repository source and is also not deployed.
-It requires a database migration and matching API deployment, not only a Pages
-build. See ADR-005 and the attribution rollout section of `docs/online-setup.md`.
-The previously missing repeat-city migration source was recovered from the local
-database's recorded SQL. Normal `task run` startup can now apply the additive
-attribution migration without resetting existing trip data. Use
-`task attribution:check` for isolated validation instead of migrating a running app.
-
-Remembered trips are implemented locally, not deployed. The online backend needs
-`20260717000500_remembered_sessions.sql` after the preceding migrations, followed
-by frontend publication. Existing valid sessions are adopted; expired or revoked
-ones are not revived. See the remembered-trips rollout in `docs/online-setup.md`.
+The hosted database has migrations 001 through 006, and the matching `trip-api`
+is deployed. Existing content, members, private links, history and creation
+settings were preserved. Public-browser validation covered copying the reusable
+invitation, name-only joining, editor saves and remembered return; its synthetic
+fixtures were removed. See `docs/verification.md` for evidence and limits.
 
 Start with `docs/online-setup.md` for the steps needing owner action. `supabase/README.md` describes local commands and permissions. `tasks/online-plan.md` records rollout status; ADR-002, ADR-003 and ADR-004 record the provider, access and persistence decisions.
 
@@ -228,7 +225,9 @@ Start with `docs/online-setup.md` for the steps needing owner action. `supabase/
 
 Each tab has one active trip, and trusted browser profiles can remember several
 trips and identities. There is no account or cross-device synchronization.
-Invitation links are revocable capabilities, not verified personal identities.
+The common invitation lets anyone holding it join as an editor; it has no
+expiry or rotation control. Legacy private member links remain revocable.
+Names are display labels, not verified personal identities.
 There is no password recovery if the owner loses both their link and saved
 access. Private data is not encrypted at rest by the application.
 

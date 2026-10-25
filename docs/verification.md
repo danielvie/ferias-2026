@@ -486,6 +486,61 @@ The existing shared local app still needs migration 006 and its matching API
 before trying the new Share screen. No real trip content, shared local schema,
 hosted service, source remote or deployment was changed for this implementation.
 
+## Approved main and hosted release, 2026-10-25
+
+The owner explicitly authorized merging into `main`, pushing, and deploying both
+Supabase and Pages, and reconfirmed that Supabase remains on Free. The source
+remote was checked before publication. Remote `main` had no newer changes, so
+the eight feature commits fast-forwarded from `4253510` to application commit
+`97f7741bf4313973b8135866e9e72d6819fd6bac`. The pushed remote SHA was verified.
+
+Before changing the hosted database, complete private-schema and data dumps,
+including session rows, were saved in the Git-ignored
+`data/online-backups/pre-sharing-20261025-234715/` directory. Its Windows ACL is
+restricted to the current user and SYSTEM. No backup content or credentials
+were printed or published. Restore of this specific backup was not rehearsed.
+
+The reviewed dry run contained only migrations
+`20260717000500_remembered_sessions.sql` and
+`20260717000600_simple_sharing.sql`. They were applied to project
+`oljadunrwnagspncclha`, followed by deployment of the matching `trip-api` with
+the existing custom-auth/no-platform-JWT configuration. Hosted migration history
+now matches local migrations 001 through 006. Health returns 200, and invalid
+Share/join credentials return 401 rather than a storage error.
+
+The manual [Pages workflow](https://github.com/danielvie/ferias-2026/actions/runs/40246530711)
+passed for the application commit above, including `npm test`, the Deno entrypoint
+typecheck, production configuration validation, production build and deployment.
+The published site is https://danielvie.github.io/ferias-2026/.
+
+Hosted synthetic API verification passed:
+
+- The common share link remains stable across retrievals.
+- Two names join as distinct editors.
+- Shared writes and trusted member attribution work.
+- Private notes remain invisible to another editor and the owner.
+- The legacy owner link reopens the same owner identity.
+- Newly issued sessions have PostgreSQL infinity expiry.
+
+A separate Chrome check against the actual public Pages site and hosted API
+passed creation, copying its public `/ferias-2026/#join=...` link, name-only
+joining in another browser context, an editor save, root-page resume in a fresh
+tab and retrieving the same share link after reload. No browser page errors
+were observed. No localhost link was offered.
+
+Both synthetic trips were deleted by their exact generated IDs and title guards.
+Before/after fingerprints of the existing trip, city, member, access-link, content,
+history and settings tables matched, and trip/member counts returned to baseline.
+The creation setting was preserved. Migration 005 intentionally upgrades only
+still-valid session expiries; no trip reset, real-data import, billing change or
+paid resource was performed.
+
+The complete browser suites, separate native concurrency suite and physical-device
+acceptance were not repeated for this release. Earlier focused browser evidence
+remains above. This release supersedes the earlier implementation-only and
+not-deployed status notes; the local Share preview repair also applied migration
+006 and passed a browser smoke before the hosted rollout.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

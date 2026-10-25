@@ -2,9 +2,11 @@
 
 ## Status
 
-Accepted and implemented locally. Supersedes ADR-003's normal per-recipient
+Accepted, implemented and deployed after explicit owner approval.
+Supersedes ADR-003's normal per-recipient
 invitation workflow and one-time display policy for ordinary sharing.
-Private member/owner links remain compatible and hashed. No hosted rollout.
+Private member/owner links remain compatible and hashed. Hosted migration 006
+and the matching API/frontend are live; see `docs/verification.md`.
 
 ## Context
 
