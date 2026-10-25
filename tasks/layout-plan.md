@@ -2,9 +2,9 @@
 
 ## Design contract
 
-The Excalidraw home screen is the visual reference, not just a feature list.
+The current page layout follows `belgium-itinerary-layout-v2.excalidraw`. The header follows concept A in `header-directions.excalidraw`. Dashboard-specific notes below describe the earlier layout.
 
-- Use one compact top navigation bar: Belgium, together, Today, Calendar, Places, Notes, Checklists, Share.
+- Use one compact top navigation bar: Belgium, together, Itinerary, Places, Notes, Checklists, Share.
 - Follow concept A in `header-directions.excalidraw`: a white header, muted inactive links and a soft blue rounded selection, without an active-tab underline or bar. Keep the existing sections and session actions.
 - Use `aria-current="page"` for both the visual selection and assistive technology. Keep keyboard focus visible and let navigation scroll within the header on narrow screens.
 - Start directly on the home dashboard, including before a trip exists.

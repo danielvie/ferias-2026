@@ -1,25 +1,28 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TripEvent } from '../../../shared/model';
 import { useTrip } from '../../app/TripContext';
+import { displayDate } from '../../app/dates';
 import { EventForm } from './EventForm';
-import { emptyEvent, formatTripDate, overlappingEvents, shiftTripDate, sortEvents } from './itinerary';
+import { ItineraryEvent } from './ItineraryEvent';
+import { DayRail } from './DayRail';
+import { emptyEvent, sortEvents, tripDates } from './itinerary';
 import './calendar.css';
 
 export function CalendarPage() {
   const { snapshot, canEdit, busy, command, navigate } = useTrip();
-  const { trip, events, places } = snapshot.data;
-  const [selectedDate, setSelectedDate] = useState(trip.startDate);
-  const [view, setView] = useState<'day' | 'agenda'>('day');
+  const { trip, events, transfers } = snapshot.data;
+  const dates = useMemo(() => tripDates(trip), [trip.startDate, trip.endDate]);
+  const days = useMemo(() => {
+    const sorted = sortEvents(events);
+    return dates.map((date) => ({ date, events: sorted.filter((event) => event.date === date) }));
+  }, [dates, events]);
   const [form, setForm] = useState<{ event: TripEvent; editing: boolean } | null>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
   const deleting = useRef(false);
-  const date = selectedDate < trip.startDate ? trip.startDate :
-    selectedDate > trip.endDate ? trip.endDate : selectedDate;
-  const visible = sortEvents(events.filter(event => view === 'agenda' || event.date === date));
-  const dates = [...new Set(visible.map(event => event.date))];
+  const family = snapshot.session.role === 'family';
 
   useEffect(() => {
-    if (!form) trigger.current?.focus();
+    if (!form) trigger.current?.focus({ preventScroll: true });
   }, [form]);
 
   function openForm(event: TripEvent, editing: boolean, button: HTMLButtonElement) {
@@ -41,87 +44,55 @@ export function CalendarPage() {
     }
   }
 
-  return (
-    <div className="stack calendar-page">
-      <header className="page-heading">
-        <div><p className="eyebrow">Your itinerary</p><h1>Make room for Belgium</h1>
-          <p className="muted">Plan the day, leave room to wander. All times use Europe/Brussels.</p></div>
-        {canEdit && <button className="button" disabled={busy || !!form} type="button"
-          onClick={event => openForm(emptyEvent(trip.cities[0]?.id ?? '', date), false, event.currentTarget)}>
-          Add event
-        </button>}
-      </header>
-      {!canEdit && <p className="muted">Read-only itinerary. A trip owner or editor can change these plans.</p>}
-      {canEdit && form && <EventForm key={form.event.id} initial={form.event}
-        editing={form.editing} onClose={closeForm} />}
-      <section className="panel stack" aria-label="Trip calendar">
-        <div className="toolbar calendar-controls">
-          <div className="actions" aria-label="Calendar view">
-            <button className={`button ${view === 'day' ? '' : 'secondary'}`} type="button"
-              aria-pressed={view === 'day'} onClick={() => setView('day')}>Day</button>
-            <button className={`button ${view === 'agenda' ? '' : 'secondary'}`} type="button"
-              aria-pressed={view === 'agenda'} onClick={() => setView('agenda')}>Agenda</button>
-          </div>
-          {view === 'day' && <div className="calendar-day-navigation">
-            <button className="button ghost" type="button" disabled={date <= trip.startDate}
-              aria-label="Previous trip day" onClick={() => setSelectedDate(shiftTripDate(date, -1))}>←</button>
-            <div className="field">
-              <label htmlFor="calendar-selected-date">Trip day</label>
-              <input id="calendar-selected-date" type="date" value={date} min={trip.startDate} max={trip.endDate}
-                onChange={event => {
-                  if (event.target.value >= trip.startDate && event.target.value <= trip.endDate) {
-                    setSelectedDate(event.target.value);
-                  }
-                }} />
-            </div>
-            <button className="button ghost" type="button" disabled={date >= trip.endDate}
-              aria-label="Next trip day" onClick={() => setSelectedDate(shiftTripDate(date, 1))}>→</button>
-          </div>}
-        </div>
-        <p className="muted">{formatTripDate(trip.startDate)} to {formatTripDate(trip.endDate)}</p>
-        {visible.length === 0 ? <div className="empty-state">
-          <h2>{view === 'day' ? 'This day is still open' : 'Your itinerary starts here'}</h2>
-          <p>{canEdit ? 'Add an event or find an idea in your saved places.' : 'No events have been shared here yet.'}</p>
-          <div className="actions">
-            {canEdit && <button className="button" type="button" disabled={busy || !!form}
-              onClick={event => openForm(emptyEvent(trip.cities[0]?.id ?? '', date), false, event.currentTarget)}>
-              Add an event
-            </button>}
-            <button className="button secondary" type="button" onClick={() => navigate('places')}>Browse saved places</button>
-          </div>
-        </div> : dates.map(day => <section className="calendar-day stack" key={day} aria-labelledby={`day-${day}`}>
-          <h2 id={`day-${day}`}>{formatTripDate(day)}</h2>
-          <ol className="calendar-events">
-            {visible.filter(event => event.date === day).map(event => {
-              const city = trip.cities.find(item => item.id === event.cityId);
-              const place = places.find(item => item.id === event.placeId);
-              return <li key={event.id} className="calendar-event">
-                <div className="calendar-event-time"><time dateTime={`${day}T${event.startTime}`}>{event.startTime}</time>
-                  <span> to </span><time dateTime={`${day}T${event.endTime}`}>{event.endTime}</time></div>
-                <div className="stack calendar-event-content">
-                  <div><p className="eyebrow">{city?.name ?? 'City unavailable'} · {event.kind}</p><h3>{event.title}</h3></div>
-                  <div className="actions"><span className="badge">{event.status === 'planned' ? 'Planned' : 'Tentative'}</span>
-                    {overlappingEvents(event, events).length > 0 && <span className="badge">Time overlap</span>}</div>
-                  {event.description && <p className="calendar-description">{event.description}</p>}
-                  {place && <p className="muted">Saved place: {place.title}</p>}
-                  <div className="actions">
-                    {place && <button className="button ghost" type="button" onClick={() => navigate('places')}>View saved places</button>}
-                    {event.kind === 'transport' && snapshot.session.role !== 'family' &&
-                      <button className="button ghost" type="button" onClick={() => navigate('checklists')}>Departure checklists</button>}
-                    {canEdit && <>
-                      <button className="button secondary" type="button" disabled={busy || !!form}
-                        aria-label={`Edit ${event.title}`} onClick={click => openForm(event, true, click.currentTarget)}>Edit</button>
-                      <button className="button ghost" type="button" disabled={busy}
-                        aria-label={`Delete ${event.title}`} onClick={() => void deleteEvent(event)}>Delete</button>
-                    </>}
-                  </div>
-                </div>
-              </li>;
-            })}
-          </ol>
-        </section>)}
-      </section>
-      <p className="muted">Check transport times and opening hours before booking.</p>
+  function jumpToDay(date: string) {
+    if (busy) return false;
+    if (form && !window.confirm('Leave this event form? Unsaved changes will be lost.')) return false;
+    trigger.current = null;
+    setForm(null);
+    requestAnimationFrame(() => {
+      const heading = document.getElementById(`day-${date}`);
+      if (!heading) return;
+      heading?.focus({ preventScroll: true });
+      const edge = (document.querySelector('.topbar')?.getBoundingClientRect().bottom ?? 100) + 24;
+      window.scrollTo({ top: window.scrollY + heading.getBoundingClientRect().top - edge,
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    });
+    return true;
+  }
+
+  return <div className="calendar-page">
+    <header className="itinerary-heading">
+      <p className="muted">{family ? 'Shared itinerary' : 'Your itinerary'}</p>
+      <h1>{trip.title}</h1>
+      <p className="muted">{displayDate(trip.startDate)} to {displayDate(trip.endDate, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+      <p className="itinerary-cities">{trip.cities.map((city) => city.name).join(' / ')}</p>
+      {!canEdit && <p className="fine-print">{family ? 'Selected activities and places, shared by the owner.' : 'Read-only. An owner or editor can change the plans.'}</p>}
+    </header>
+    <div className="itinerary-days">
+      {days.map(({ date, events: dayEvents }) => {
+        const cityNames = [...new Set(dayEvents.map((event) => trip.cities.find((city) => city.id === event.cityId)?.name).filter(Boolean))];
+        const moves = family ? [] : transfers.filter((move) => move.date === date);
+        return <section className="itinerary-day" data-trip-day={date} key={date} aria-labelledby={`day-${date}`}>
+          <header className="day-heading">
+            <div><h2 id={`day-${date}`} tabIndex={-1}>{displayDate(date, { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
+              <p className="muted">{cityNames.join(' / ')}{cityNames.length > 0 && ' · '}{dayEvents.length} {dayEvents.length === 1 ? 'activity' : 'activities'}</p></div>
+            {canEdit && <button className="button ghost" disabled={busy || !!form} aria-label={`Add activity on ${date}`}
+              onClick={(click) => openForm(emptyEvent(dayEvents[0]?.cityId ?? trip.cities[0].id, date), false, click.currentTarget)}>+ Add activity</button>}
+          </header>
+          {canEdit && form && (dates.includes(form.event.date) ? form.event.date : dates[0]) === date &&
+            <EventForm key={form.event.id} initial={form.event} editing={form.editing} onClose={closeForm} />}
+          {dayEvents.length ? <ol className="calendar-events">
+            {dayEvents.map((event) => <ItineraryEvent key={event.id} event={event} editing={Boolean(form)}
+              onEdit={(button) => openForm(event, true, button)} onDelete={() => void deleteEvent(event)} />)}
+          </ol> : <p className="day-empty">{family ? 'No activities shared for this day.' : 'Nothing planned yet. Leave it open, or add an activity.'}</p>}
+          {moves.map((move) => <button className="departure-link" key={move.id} onClick={() => navigate('checklists')}>
+            {move.time} · {trip.cities.find((city) => city.id === move.fromCityId)?.name} → {trip.cities.find((city) => city.id === move.toCityId)?.name}
+            <span>Open departure checklist</span>
+          </button>)}
+        </section>;
+      })}
     </div>
-  );
+    <DayRail days={days} cities={trip.cities} onJump={jumpToDay} />
+    <p className="fine-print">Times in Europe/Brussels. Check transport times and opening hours before booking.</p>
+  </div>;
 }

@@ -61,3 +61,14 @@
   - [x] Validate hosted role isolation, privacy, conflicts, revocation and recovery with synthetic data; delete fixtures and close creation.
   - [ ] Decide whether to create the real trip fresh or request a local-data import.
   - [ ] Verify the intended trip and private links on two physical devices before wider sharing.
+
+## Continuous-itinerary redesign
+
+Approved visual contract and scope are in `belgium-itinerary-layout-v2.excalidraw` and the final section of `tasks/plan.md`.
+
+- [x] L1. Build the continuous day agenda and date grouping; preserve event commands and family filtering. Date/render tests and typecheck passed.
+- [x] L2. Add the accessible day rail and touch preview sheet. Follow-up compacts the rail, scales all markers to fit without scrolling, and adds a full-size date chooser. Browser tests passed for hover growth, focus, scroll tracking, empty days, a 93-day index and draft protection. Depends on L1.
+- [x] L3. Add modal trip settings with ordered city editing and stable IDs. Save/cancel, focus/scroll restoration, linked-plan rejection and conflict-draft tests passed.
+- [x] L4. Apply the Daylight shell and responsive styles. Desktop/phone screenshots inspected; 320/768/1024/1440 overflow and axe checks passed. Depends on L1–L3.
+- [x] L5. `task check` passed 91 tests/build/typecheck; standalone `task test:e2e` passed 16 workflows; `task online:e2e` passed four. Results and limits recorded in `docs/verification.md`. Not deployed. Depends on L4.
+  - Compact-rail follow-up: `task check` passed again; all 17 browser workflows passed with a temporary isolated-port configuration and in-memory SQLite, preserving the user's running app.

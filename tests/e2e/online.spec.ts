@@ -74,7 +74,7 @@ test('Pages-path creation, derived-session reload and separate link-only identit
   try {
     const editor = await editorContext.newPage();
     await editor.goto(editorLink);
-    await expect(editor.getByRole('heading', { name: /Good (morning|afternoon|evening), Editor online\./ })).toBeVisible();
+    await expect(editor.getByRole('heading', { name: 'Online Belgium trip', exact: true })).toBeVisible();
     await expect(editor).not.toHaveURL(/access=/);
     await note(editor, 'Editor private note');
     await expect(editor.getByRole('heading', { name: 'Owner private note', exact: true })).toHaveCount(0);
@@ -102,7 +102,7 @@ test('family UI is redacted and revoked links stop working', async ({ page, brow
   try {
     const family = await familyContext.newPage();
     await family.goto(familyLink);
-    await expect(family.getByRole('heading', { name: 'Trip overview', exact: true })).toBeVisible();
+    await expect(family.getByRole('heading', { name: 'Online Belgium trip', exact: true })).toBeVisible();
     const visible = await snapshot(family);
     expect(visible.data.notes).toEqual([]);
     expect(visible.data.packing).toEqual([]);
@@ -144,7 +144,23 @@ test('owner-link replacement preserves notes, invalidates the previous link and 
     await expect(other.getByRole('alert')).toBeVisible();
     await other.goto(replacement);
     await expect(other).not.toHaveURL(/access=/);
-    await expect(other.getByRole('heading', { name: /Good (morning|afternoon|evening), Daniel\./ })).toBeVisible();
+    await expect(other.getByRole('heading', { name: 'Online Belgium trip', exact: true })).toBeVisible();
     expect((await snapshot(other)).session.id).toBe(memberId);
   } finally { await otherContext.close(); }
+});
+
+test('online trip settings preserve city IDs and update the continuous day index after reload', async ({ page }) => {
+  await create(page);
+  const original = await snapshot(page);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByLabel('City 1', { exact: true }).fill('Brussels Central');
+  await page.getByRole('button', { name: 'Move Brussels Central down', exact: true }).click();
+  await page.getByLabel('End date', { exact: true }).fill('2030-06-08');
+  await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.reload();
+  const saved = await snapshot(page);
+  expect(saved.data.trip.cities[1]).toEqual({ id: original.data.trip.cities[0].id, name: 'Brussels Central' });
+  expect(saved.data.trip.endDate).toBe('2030-06-08');
+  await expect(page.getByRole('navigation', { name: 'Trip days' }).getByRole('button')).toHaveCount(8);
 });

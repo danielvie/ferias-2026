@@ -13,6 +13,21 @@ export function shiftTripDate(date: string, days: number): string {
   return value.toISOString().slice(0, 10);
 }
 
+export function tripWeekday(date: string): { name: string; initial: string; weekend: boolean } {
+  const value = new Date(`${date}T12:00:00Z`);
+  const name = new Intl.DateTimeFormat('en-GB', { weekday: 'long', timeZone: 'UTC' }).format(value);
+  return { name, initial: name[0], weekend: value.getUTCDay() === 0 || value.getUTCDay() === 6 };
+}
+
+export function tripDates(trip: Pick<Trip, 'startDate' | 'endDate'>): string[] {
+  const dates: string[] = [];
+  for (let date = trip.startDate; date <= trip.endDate; date = shiftTripDate(date, 1)) {
+    dates.push(date);
+    if (date === trip.endDate) break;
+  }
+  return dates;
+}
+
 export function validateEventTime(
   event: Pick<TripEvent, 'date' | 'startTime' | 'endTime'>,
   trip: Pick<Trip, 'startDate' | 'endDate'>,

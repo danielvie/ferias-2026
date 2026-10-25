@@ -144,6 +144,79 @@ Hosted checks passed:
 
 The final synthetic trip was deleted and public trip creation was disabled again. A database check confirmed zero trips, thirteen private tables and RLS enabled on all thirteen. No real trip, booking or local database was imported. Separate browser contexts ran on one machine, not two physical devices. Hosted backup/export access and restore were not exercised; the earlier disposable local backup/restore proof remains the evidence for that procedure.
 
+## Continuous-itinerary redesign
+
+Implemented the approved `belgium-itinerary-layout-v2.excalidraw` direction locally, using the Daylight palette and a system font stack with Source Sans 3 when locally installed. No font service or new package dependency is required.
+
+- A continuous itinerary replaces the dashboard/calendar split. Empty days remain present, activities stay chronological, and existing calendar callers navigate to the same itinerary.
+- The fixed day rail previews on hover/focus, tracks scrolling and jumps to/focuses a day heading. Touch users get a native preview sheet with an explicit jump action. Escape dismisses previews; reduced-motion preferences disable smooth jumps.
+- Native modal panes provide inert backgrounds, keyboard focus containment and focus restoration. Settings save/cancel preserves the itinerary scroll position. Save, Cancel and any save error remain visible while the pane scrolls.
+- Trip settings edit dates/name and ordered city rows. Renaming/reordering retains stable city IDs. Server validation still rejects city removal/date changes that orphan plans. Conflicting saves preserve the draft for review.
+- The existing event, note, sharing and checklist workflows remain available. Viewer/family views use the same server-filtered snapshots; settings and edit actions are not offered to read-only roles.
+
+Final local validation:
+
+- `task check`: production build, TypeScript and 91 tests passed.
+- `task test:e2e`: 16 Chromium workflows passed. New coverage includes empty days, hover/focus previews, preview hover persistence, keyboard jumps, rejected draft navigation, touch sheets, settings save/cancel, city identity preservation, linked-plan validation, conflict-draft retention, focus/scroll restoration and a 93-day independently scrollable marker list.
+- `task online:e2e`: four workflows passed against local Supabase under `/ferias-2026/`, including settings/city identity persistence after reload.
+- No horizontal overflow at 320, 768, 1024 and 1440 pixels across the five module screens. Axe checks passed on desktop module states, desktop/phone settings and the phone preview sheet. Desktop/phone itinerary, preview and settings screenshots were inspected against the board.
+
+Some runs performed concurrently with the build/unit suite lost the Vite development server mid-run and then reported connection refusals. The cause was not established. A diagnostic standalone run and the final standalone `task test:e2e` run both passed all sixteen workflows; the final four online workflows also passed. These reruns do not establish that concurrent execution is reliable on this Windows setup.
+
+No schema migration, hosted-data edit, import or deployment was part of this local redesign validation. Tests use isolated SQLite fixtures and synthetic local Supabase trips. Cross-browser, physical-device, full assistive-technology and extreme date-range performance testing remain outside this validation. Source publication was requested separately after these checks.
+
+### Compact day-rail follow-up
+
+The owner found the 44-pixel-per-day rail too tall and requested a smaller scale-to-fit strip with no scrolling. The rail now uses evenly distributed grid rows in a strip capped at 160 CSS pixels, or less on short viewports. Ticks are 7 pixels wide at rest and expand to 22 pixels on hover/focus without changing row positions. Both scrollbars and the active-marker auto-scroll logic were removed.
+
+All markers remain keyboard-navigable. A full-size **Days** button opens a native date chooser and activity summary, providing a precise alternative to dense marker targets on touch screens and longer trips. Existing preview sheets and draft guards remain in place.
+
+`task check` passed the build/typecheck and all 91 tests. `task test:e2e -- --config <temporary-config>` passed all 17 browser workflows on isolated ports 3002/5199 with in-memory SQLite. The temporary config imports the project's actual Vite configuration and changes only the test server/proxy addresses and backend selection. New assertions cover all fourteen days fitting in a compact strip, hover growth without neighbor movement, zero horizontal/vertical rail scrolling, all 93 markers fitting a longer trip, and full-size date selection on a phone-sized viewport. The fourteen-day screenshot was inspected against the owner's reference.
+
+The user's development server on port 5173 was left running, and its trip data was not changed. The local Supabase browser suite was not rerun for this rail-only follow-up. No hosted deployment was performed.
+
+### Three-tick day-rail emphasis
+
+The broad cosine wave felt exaggerated. The owner specified discrete emphasis instead: the hovered tick gets full growth and 100% hover color, immediate neighbors get halfway growth and 20% hover color, and every other tick stays at rest. Size and color now use separate weights; fractional pointer tracking and the radius calculation were removed. Oklab `color-mix()` blends each tick's normal color into the hover accent. Following another visual review, the maximum now shares its width/height tokens with the selected-day indicator: 14 pixels wide by 2 pixels high. Ordinary neighboring ticks are halfway between the normal 7-pixel width and that maximum, at 10.5 pixels. The current itinerary day retains its resting indicator. Keyboard focus uses the same rule; leaving/dismissing resets it, and reduced-motion preferences remove the transitions. Tick positions and the non-scrolling rail dimensions do not change.
+
+`task check` passed the build/typecheck and 93 tests, including two emphasis-profile tests. All 17 Chromium workflows passed with a temporary isolated configuration on ports 3002/5199 and in-memory SQLite. Browser assertions verify that no tick exceeds the selected-day width, exact halfway neighbor widths, both neighbors matching the rendered 20% color mix and differing from both pure gray and pure blue, full hover color, unchanged distant ticks, stable emphasis within a row, fixed positions, reset on exit and disabled transitions under reduced motion. The rendered three-tick screenshot was inspected. The user's running app/data were left untouched; the local Supabase browser suite and hosted deployment were not rerun.
+
+### Weekday badges
+
+Each day marker now has a weekday initial to its right. Saturday and Sunday use warm outlined, heavier-weight badges and an edge mark, and their accessible labels explicitly say "weekend." Classification and initials use UTC date-only formatting rather than the device timezone. Tick sizes and gray-to-blue emphasis are unchanged.
+
+The rail still fits without scrolling. A resize observer checks whether initials would overlap. On dense rails or short viewports, only the previewed/focused badge is shown, or the current day's badge when not previewing; weekend edge marks remain visible for all weekend rows. The full-size date chooser remains available.
+
+`task check` passed build/typecheck and 94 tests. A diagnostic run of `task test:e2e -- --config <temporary-config>` passed all 18 Chromium workflows on isolated ports 3002/5199 with in-memory SQLite. Added coverage checks fourteen weekday initials, exact weekend dates, badge positioning to the right of ticks, distinct weekend styling/labels, phone layout, dense 93-day rails and short viewports. The initial isolated run lost its Vite server mid-suite; the targeted badge tests and full diagnostic rerun passed, without establishing the cause of the server exit. The screenshot was inspected. No hosted deployment or local Supabase browser rerun was performed, and the user's development server/data were not changed.
+
+### Reference-led badge revision and uniform ticks
+
+The owner selected a reference with outlined weekday badges and filled slate weekend badges, then requested identical line widths. Every tick is now 14 by 2 CSS pixels at rest, while selected, and on hover/focus. The size-growth model was removed rather than masked by CSS; only the full hover color and 20% immediate-neighbor color remain.
+
+Weekdays use slate outlines on white. Weekends use slate fill and white initials. Current weekdays have blue outlines; hovered/focused badges fill blue, and selected weekends remain filled. The earlier warm styling and extra weekend edge bar were removed. Badge boxes are 14 pixels square with 16-pixel row spacing, so a fourteen-day rail is 240 pixels high including edge padding. The entire strip is capped at 256 pixels or the available viewport height, without scrolling. Dense rails retain the current/previewed badge fallback and full-size date chooser.
+
+`task check` passed the build/typecheck and all 94 tests. All 18 Chromium workflows passed with a temporary isolated configuration on ports 3002/5199 and in-memory SQLite. Assertions cover weekday outlines, slate weekend fills, blue selected/hovered states, absence of edge shadows, identical tick lengths/thicknesses, retained neighbor color interpolation, dense/short viewport behavior and accessibility/overflow checks. The screenshot was inspected against the supplied reference. The user's trip data and Edge API were not modified or restarted. The local Supabase browser suite was not rerun and no deployment was performed. The runtime wall-clock/early-termination warnings supplied in the conversation were not diagnosed by this visual change.
+
+### Color-only initials, width effect and thicker selection
+
+The owner clarified that hover should vary line width, not thickness, and chose Excalidraw option 1 with bold weekends. Ticks are 7 pixels wide at rest, 10.5 pixels beside the hovered/focused tick, and 14 pixels when hovered/focused. Ordinary ticks remain 2 pixels thick. The selected day follows the same width effect while retaining its 3-pixel thickness and accent blue color. An initial fixed-width override on the selected tick was removed after review. The normalized profile separates width and color; neighbors still receive 20% of the hover color.
+
+Badge containers were removed. Weekday initials remain plain gray; weekend initials use option 1's warm text color and weight 700. Neither selected nor hovered initials gain a fill, outline or shadow. Selection is conveyed by the tick/ordinal rather than another badge treatment. Existing dense-rail fallback and accessible weekend labels remain.
+
+`task check` passed build/typecheck and all 94 tests. A diagnostic `task test:e2e -- --config <temporary-config>` run passed all 19 Chromium workflows on isolated ports 3002/5199 with in-memory SQLite. Assertions cover restored width/neighbor-color changes, invariant ordinary thickness, selected-tick width growth and reset without losing its thicker accent state, keyboard jumps, plain unboxed initials, bold colored weekends, responsive layouts and accessibility. The screenshot was inspected. The user's development server, trip data and Edge API were not changed; the local Supabase browser suite and hosted deployment were not rerun.
+
+### Calendar-date and trip-day numbering
+
+Marker numbers now default to the day of the month, formatted with the existing UTC date-only helper. **Days** toggles between that and ordinal trip-day numbering starting at 1, with an accessible pressed state and a tooltip describing the current mode. An icon beside the label switches between a calendar and a numbered list to show the current mode. It uses the existing local SVG icon component, not an external icon service. The setting is local to the itinerary view and returns to calendar dates after reload. Switching modes does not move the selected day, scroll the itinerary, discard a form or write trip data.
+
+The existing full-size date chooser is preserved on a separate calendar-icon button below the strip. The rail's available-height calculation reserves room for that button on short phone viewports.
+
+`task check` passed build/typecheck and all 94 tests. A diagnostic `task test:e2e -- --config <temporary-config>` run passed all 20 Chromium workflows on isolated ports 3002/5199 with in-memory SQLite. New assertions cover a trip crossing May/June, calendar-date defaults, toggling both ways, mode-icon changes, stable selection/scroll, the separate chooser, its visibility on a short phone viewport and calendar-date defaults after reload. The user's running app and trip data were not changed. The local Supabase browser suite and hosted deployment were not rerun.
+
+### Source publication
+
+The owner requested committing and pushing the reviewed redesign to `origin/main` after local validation. The publication includes source, tests, documentation and the two editable Excalidraw boards, not environment files, trip databases, browser traces or private links. The Pages workflow is manual, so this source push does not deploy the frontend or change the hosted API/database.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

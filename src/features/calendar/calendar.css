@@ -5,19 +5,6 @@
   min-width: 0;
 }
 
-.calendar-controls,
-.calendar-day-navigation {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.calendar-day-navigation .field {
-  flex: 1;
-  min-width: 0;
-}
-
 .calendar-events {
   list-style: none;
   margin: 0;
@@ -25,22 +12,30 @@
 }
 
 .calendar-event {
-  border-top: 1px solid var(--border, #d7ddcf);
+  border-bottom: 1px solid var(--line);
   padding: 1.25rem 0;
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  gap: 1.5rem;
 }
 
 .calendar-event-time {
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--green, #214a38);
-  margin-bottom: 0.75rem;
+  color: var(--muted);
+  font-size: .95rem;
+  padding-top: .2rem;
 }
+.calendar-event-time span { display: block; font-size: .8rem; margin-top: .25rem; }
 
 .calendar-event-content {
   min-width: 0;
-  gap: 0.75rem;
   overflow-wrap: anywhere;
 }
+.calendar-event-content h3 { font-size: 1.25rem; font-weight: 550; margin-bottom: .4rem; }
+.calendar-event-content p { margin-bottom: .5rem; font-size: .9rem; }
+.calendar-event-content .event-meta { color: var(--muted); font-size: .85rem; }
+.event-actions { gap: .25rem; }
+.event-actions .button { min-height: 44px; padding: .5rem; font-size: .8rem; font-weight: 400; }
 
 .calendar-description {
   white-space: pre-wrap;
@@ -53,13 +48,62 @@
   color: #60451f;
 }
 
-@media (min-width: 768px) {
-  .calendar-controls {
-    justify-content: space-between;
-  }
-  .calendar-event {
-    display: grid;
-    grid-template-columns: 10rem minmax(0, 1fr);
-    gap: 1.5rem;
-  }
+.calendar-page { width: min(100%, 860px); margin-inline: auto; padding-right: 2rem; }
+.itinerary-heading { margin-bottom: 3.5rem; }
+.itinerary-heading h1 { font-size: 2.25rem; font-weight: 550; overflow-wrap: anywhere; margin-bottom: .75rem; }
+.itinerary-heading > p { margin-bottom: .5rem; font-size: .9rem; }
+.itinerary-cities { color: var(--muted); overflow-wrap: anywhere; }
+.itinerary-day { padding: 2.5rem 0 3rem; min-height: 260px; border-top: 1px solid var(--line); }
+.itinerary-day:last-child { min-height: calc(100dvh - 12rem); }
+.day-heading { display: flex; align-items: start; justify-content: space-between; gap: 1.5rem; }
+.day-heading > div { min-width: 0; }
+.day-heading h2 { font-size: 1.65rem; font-weight: 550; margin-bottom: .5rem; scroll-margin-top: 170px; }
+.day-heading p { font-size: .9rem; margin-bottom: 1.5rem; }
+.day-heading > .button { flex-shrink: 0; font-weight: 400; }
+.day-empty { color: var(--muted); font-size: .95rem; padding: 1.5rem 0; }
+.departure-link { display: flex; flex-direction: column; align-items: start; gap: .5rem; text-align: left; border: 0; border-left: 2px solid var(--line); border-radius: 0; color: var(--ink); background: transparent; padding: .5rem 1rem; margin-top: 1.5rem; min-height: 44px; }
+.departure-link span { color: var(--accent); font-size: .875rem; }
+.day-rail { --tick-rest-width: 7px; --tick-max-width: 14px; --tick-height: 2px; --weekend-ink: #95621a; position: fixed; right: max(1rem, calc((100vw - 1320px) / 2 + 1rem)); top: 28vh; width: 64px; z-index: 11; }
+.rail-label { display: flex; align-items: center; justify-content: flex-end; gap: .25rem; width: 100%; min-height: 44px; padding: 0 .25rem; border: 0; background: transparent; font-size: .75rem; color: var(--muted); }
+.rail-label svg { width: 14px; height: 14px; }
+.rail-label:hover { color: var(--ink); }
+.rail-date-button { display: grid; place-items: center; width: 44px; min-height: 44px; margin-left: auto; padding: 0; border: 0; background: transparent; color: var(--muted); }
+.rail-date-button:hover { color: var(--accent); }
+.rail-date-button svg { width: 14px; height: 14px; }
+.day-rail nav { position: relative; display: grid; grid-template-rows: repeat(var(--day-count), minmax(0, 1fr)); height: min(16rem, calc(var(--day-count) * 1rem + 1rem), max(0px, calc(100dvh - 19rem))); padding-block: .5rem; overflow: clip; }
+.day-marker { --tick-width: var(--tick-rest-width); --tick-color: var(--muted); position: relative; display: flex; align-items: center; justify-content: flex-end; width: 100%; min-height: 0; padding: 0 1.5rem 0 .25rem; border: 0; border-radius: 0; background: transparent; color: var(--muted); }
+.day-marker:focus-visible { outline-offset: -2px; }
+.marker-number { position: absolute; right: 2.75rem; top: 50%; transform: translateY(-50%); font-size: .65rem; line-height: 1; opacity: 0; }
+.marker-tick { width: calc(var(--tick-width) + (var(--tick-max-width) - var(--tick-width)) * var(--tick-growth, 0)); height: var(--tick-height); background: var(--tick-color); background: color-mix(in oklab, var(--tick-color), var(--accent) calc(var(--tick-tint, 0) * 100%)); flex-shrink: 0; transition: width .14s ease-out, background-color .14s ease-out; }
+.day-marker[aria-current] { --tick-color: var(--accent); color: var(--accent); }
+.day-marker[aria-current] .marker-tick { height: 3px; }
+.day-marker[aria-current] .marker-number, .day-marker:focus-visible .marker-number { opacity: 1; }
+.weekday-badge { position: absolute; right: .125rem; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: .875rem; height: .875rem; border: 0; font-size: .625rem; font-weight: 400; line-height: 1; color: var(--muted); background: transparent; }
+.day-marker[data-weekend] .weekday-badge { color: var(--weekend-ink); font-weight: 700; }
+.day-rail nav[data-dense] .weekday-badge { visibility: hidden; }
+.day-rail nav[data-dense] .day-marker[data-emphasized] .weekday-badge,
+.day-rail nav[data-dense]:not([data-previewing]) .day-marker[aria-current] .weekday-badge { visibility: visible; }
+.day-preview { position: fixed; right: calc(max(1rem, (100vw - 1320px) / 2 + 1rem) + 64px); width: min(22rem, calc(100vw - 7rem)); padding-right: .75rem; }
+.day-preview-card { padding: 1.25rem; background: var(--surface); border: 1px solid #cbd2dd; border-radius: 8px; box-shadow: 0 4px 18px rgb(24 32 48 / 8%); max-height: calc(100dvh - 10rem); overflow-y: auto; overflow-wrap: anywhere; }
+.day-preview-card > strong { display: block; font-weight: 600; margin-bottom: .75rem; }
+.day-preview-card p { font-size: .875rem; margin-bottom: .75rem; }
+.day-preview-card .preview-hint { margin: 1rem 0 0; color: var(--accent); font-size: .8rem; }
+.day-summary { list-style: none; margin: 0; padding: 0; }
+.day-summary li { display: flex; gap: .75rem; align-items: baseline; margin: .75rem 0; font-size: .9rem; }
+.day-summary time { flex-shrink: 0; color: var(--muted); font-variant-numeric: tabular-nums; }
+.day-summary span { overflow-wrap: anywhere; }
+.modal-sheet .day-summary { margin-bottom: 1.5rem; }
+@media (max-width: 640px) {
+  .calendar-page { padding-right: 3.75rem; }
+  .itinerary-heading { margin-bottom: 2.5rem; }
+  .itinerary-heading h1 { font-size: 1.75rem; }
+  .day-heading { flex-direction: column; gap: 0; }
+  .day-heading h2 { font-size: 1.35rem; }
+  .day-heading p { margin-bottom: .5rem; }
+  .day-heading > .button { padding-left: 0; margin-bottom: .5rem; }
+  .calendar-event { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+  .calendar-event-time span { display: inline; margin: 0; font-size: inherit; }
+  .calendar-event-content h3 { font-size: 1.15rem; }
+  .day-rail { right: .25rem; top: 12rem; }
+  .day-preview { display: none; }
 }
