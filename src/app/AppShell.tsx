@@ -27,14 +27,14 @@ export function AppShell({ page, member, busy, mainRef, onNavigate, onRefresh, o
     <a className="skip-link" href="#main-content">Skip to content</a>
     <div className="app-shell">
       <header className="topbar">
-        <button className="brand" onClick={() => onNavigate('today')}>BELGIUM</button>
+        <button className="brand" onClick={() => onNavigate('today')}>Belgium, together</button>
         <nav className="topnav" aria-label="Main navigation">
-          {visibleNav.map((item) => <button key={item.id} className={`nav-item ${page === item.id ? 'active' : ''}`}
+          {visibleNav.map((item) => <button key={item.id} className="nav-item"
             aria-current={page === item.id ? 'page' : undefined} onClick={() => onNavigate(item.id)}>{item.label}</button>)}
         </nav>
         <div className="session-controls">
           {member ? <>
-            <span className="member-label">{member.name} <span className="muted">· {member.role === 'family' ? 'Family' : member.role}</span></span>
+            <span className="member-label">{member.name} <span className="muted">{member.role === 'family' ? 'Family' : member.role}</span></span>
             <button className="button ghost" onClick={onRefresh} disabled={busy}>Refresh</button>
             <button className="button ghost" onClick={onExit} disabled={busy} aria-label="Close this trip session">Exit</button>
           </> : <button className="button ghost" onClick={onOpenLink} disabled={busy}>Open trip link</button>}

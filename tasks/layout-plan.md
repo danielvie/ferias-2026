@@ -4,7 +4,9 @@
 
 The Excalidraw home screen is the visual reference, not just a feature list.
 
-- Use one compact top navigation bar: Belgium, Today, Calendar, Places, Notes, Checklists, Share.
+- Use one compact top navigation bar: Belgium, together, Today, Calendar, Places, Notes, Checklists, Share.
+- Follow concept A in `header-directions.excalidraw`: a white header, muted inactive links and a soft blue rounded selection, without an active-tab underline or bar. Keep the existing sections and session actions.
+- Use `aria-current="page"` for both the visual selection and assistive technology. Keep keyboard focus visible and let navigation scroll within the header on narrow screens.
 - Start directly on the home dashboard, including before a trip exists.
 - Put the greeting and member summary above a green next-plan card and an amber departure card.
 - Show cities in a horizontal route, followed by a compact shared-note and quick-add strip.
@@ -26,3 +28,4 @@ Keep member access, owner recovery, invitation links, private-note filtering, pe
 - Existing invitation, privacy, checklist and conflict workflows still pass.
 - Browser geometry checks verify top navigation, paired cards and a horizontal route.
 - Inspect empty and populated dashboard screenshots against the reference at desktop and phone sizes.
+- Check the soft selection, keyboard navigation and 44px tap targets at 320, 768, 1024 and 1440px. Header state and focus follow the [ARIA current-page guidance](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-current) and [`:focus-visible` guidance](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/:focus-visible).

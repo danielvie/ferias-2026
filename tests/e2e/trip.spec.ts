@@ -57,6 +57,37 @@ test('the dashboard is the landing page and trip details are an optional inline 
   expect(creates).toBe(0);
 });
 
+test('the header uses soft selection and keeps every section keyboard-accessible', async ({ page }) => {
+  await createTrip(page);
+  const header = page.getByRole('banner');
+  const navigation = page.getByRole('navigation', { name: 'Main navigation' });
+  await expect(header.getByRole('button', { name: 'Belgium, together', exact: true })).toBeVisible();
+  await expect(header).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await page.keyboard.press('Tab');
+
+  for (const width of [320, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const name of ['Today', 'Calendar', 'Places', 'Notes', 'Checklists', 'Share']) {
+      const button = navigation.getByRole('button', { name, exact: true });
+      await button.focus();
+      await expect(button).toBeFocused();
+      await expect(button).toBeInViewport();
+      await expect(button).toHaveCSS('outline-style', 'solid');
+      await page.keyboard.press('Enter');
+      await expect(button).toHaveAttribute('aria-current', 'page');
+      await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
+      await expect(button).toHaveCSS('background-color', 'rgb(233, 240, 255)');
+      await expect(button).toHaveCSS('border-bottom-color', 'rgba(0, 0, 0, 0)');
+      await expect(button).toHaveCSS('text-decoration-line', 'none');
+      await expect(button).toHaveCSS('box-shadow', 'none');
+      expect(await button.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
+    }
+    await expect(header.getByRole('button', { name: 'Refresh', exact: true })).toBeInViewport();
+    await expect(header.getByRole('button', { name: 'Close this trip session', exact: true })).toBeInViewport();
+  }
+});
+
 test('trip details can be edited and cancelled on the main page without losing the trip', async ({ page }) => {
   await createTrip(page);
   await page.getByRole('button', { name: 'Edit trip details', exact: true }).click();
