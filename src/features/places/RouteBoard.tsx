@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { closestCenter, DndContext, DragOverlay, KeyboardSensor, PointerSensor, pointerWithin,
   useSensor, useSensors, type CollisionDetection, type DragEndEvent } from '@dnd-kit/core';
 import { verticalListSortingStrategy, SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
@@ -24,8 +24,9 @@ const collisionDetection: CollisionDetection = args => {
   return args.pointerCoordinates ? pointerWithin(args) : closestCenter(args);
 };
 
-export function RouteBoard({ places, selectedId, disabled, actions, onSelect }: {
+export function RouteBoard({ places, selectedId, disabled, actions, onSelect, children }: {
   places: Place[]; selectedId: string | null; disabled: boolean; actions: RouteActions; onSelect: (id: string) => void;
+  children?: ReactNode;
 }) {
   const { snapshot, canEdit } = useTrip();
   const { trip, events } = snapshot.data;
@@ -57,7 +58,9 @@ export function RouteBoard({ places, selectedId, disabled, actions, onSelect }: 
       <SortableContext items={trip.cities.map(city => `visit:${city.id}`)} strategy={verticalListSortingStrategy}>
         {trip.cities.map((city, index) => <CityVisitCard key={city.id} city={city} index={index}
           activityCount={places.filter(place => place.cityId === city.id).length} selected={selectedId === city.id}
-          disabled={disabled} conflict={conflicts.includes(city.id)} actions={actions} onSelect={onSelect} />)}
+          disabled={disabled} conflict={conflicts.includes(city.id)} onSelect={onSelect}>
+          {selectedId === city.id && children}
+        </CityVisitCard>)}
       </SortableContext>
     </ol>
     <DragOverlay dropAnimation={null}>{activeId && <div className="route-drag-preview">{activeTitle}</div>}</DragOverlay>

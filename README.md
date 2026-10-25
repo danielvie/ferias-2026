@@ -25,12 +25,12 @@ Weekday initials use the Excalidraw comparison's color-only option, without boxe
 
 ## Plan your route in Places
 
-`Places` follows option 2 in `checkpoint-route-directions.excalidraw`. Each checkpoint is one city visit, so you can plan `Brussels → Ghent → Brussels` with different activities in each Brussels checkpoint.
+`Places` follows M2, the straight route rail in `checkpoint-mobile-directions.excalidraw`. Each checkpoint is one city visit, so you can plan `Brussels → Ghent → Brussels` with different activities in each Brussels checkpoint.
 
-- Checkpoints alternate down a compact zig-zag. Each shows its route number, city name and activity count, including zero. There is no view toggle or horizontal route scrolling.
-- Click a checkpoint to open its activities beside the route. On narrower screens, they open in a bottom sheet. Only one checkpoint opens at a time; Close or Escape on the sheet returns focus to it.
-- Drag a checkpoint by its handle to move the whole group. Keyboard users can pick up with Space, move with Up/Down and drop with Space. The itinerary's route summary follows the same order; its continuous days and booked times stay chronological.
-- Click `+` on the path to insert a checkpoint, or **Add checkpoint** to append one.
+- Checkpoints follow one straight vertical line, with compact rows showing the route number, city name and activity count, including zero. There is no view toggle, zig-zag or horizontal route scrolling.
+- Tap a checkpoint to expand its activities directly underneath. Tap it again to collapse, or open another checkpoint to switch. The same interaction works on phones and desktop, without a bottom sheet or separate details panel. Enter and Space also toggle the focused checkpoint.
+- Drag a checkpoint by its numbered circle to move the whole group. Keyboard users can pick up with Space, move with Up/Down and drop with Space. The itinerary's route summary follows the same order; its continuous days and booked times stay chronological.
+- Use the expanded checkpoint's `···` menu to insert before or after it, or **Add checkpoint** to append one. On phones the top button is shortened to **+ Add**.
 - Use **Add activity** inside the selected checkpoint. Search, category/status filters and activity ideas belong to that checkpoint. Filters never change the checkpoint counts or hide route stops.
 - An activity's **Move** button opens a popup with its source checkpoint, destination and position. Return checkpoints have distinct stop numbers. Its ID, details, notes and links stay attached. A successful move opens the destination checkpoint.
 - Activities do not use drag-and-drop. Checkpoint `···` menus offer non-drag route moves. **Undo move** reverses the most recent move while its revision remains current.
@@ -38,7 +38,7 @@ Weekday initials use the Excalidraw comparison's color-only option, without boxe
 
 Checkpoint selection is local UI state and does not write trip data. Reordering preserves the selected checkpoint's identity even when its route number changes. Existing saved places become activity cards without being recreated.
 
-For local Supabase, run `task db:migrate` to apply the repeat-city migration without resetting data. The hosted database and Edge Function also need an explicitly approved deployment before using this feature online. See ADR-005 for identity and scheduling rules.
+For local Supabase, run `task db:migrate` to apply the repeat-city migration without resetting data. The hosted database and Edge Function also need an explicitly approved deployment before using this feature online. See ADR-005 for identity and scheduling rules, and ADR-006 for the inline route layout.
 
 ## Trip access
 

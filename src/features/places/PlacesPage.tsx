@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Place, TripCommand } from '../../../shared/model';
 import { routeDateConflicts, visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
@@ -38,7 +38,7 @@ export function PlacesPage() {
       } else if (!form && trigger.current) {
         const button = trigger.current.isConnected ? trigger.current : document.getElementById(trigger.current.id);
         (button ?? document.querySelector<HTMLElement>('.checkpoint-open[aria-expanded="true"]') ??
-          document.querySelector<HTMLElement>('.places-page h1'))?.focus({ preventScroll: true });
+          document.querySelector<HTMLElement>('.places-page h1'))?.focus();
       }
     });
     return () => cancelAnimationFrame(frame);
@@ -51,11 +51,6 @@ export function PlacesPage() {
   function closeForm() {
     setForm(null);
   }
-  function closeCheckpoint() {
-    setCheckpointId(null);
-    requestAnimationFrame(() => document.getElementById(`checkpoint-${checkpointId}`)?.focus({ preventScroll: true }));
-  }
-
   async function move(next: TripCommand, undo: TripCommand, text: string, focusId: string) {
     if (disabled || moving.current || !canEdit) return;
     moving.current = true;
@@ -99,8 +94,9 @@ export function PlacesPage() {
       <header className="page-heading">
         <div className="checkpoint-page-title"><h1 tabIndex={-1}>Places</h1>
           <p className="muted">{trip.cities.length} checkpoints / {places.length} activities</p></div>
-        {canEdit && <button className="button secondary" type="button" disabled={busy || !!form || trip.cities.length >= 30}
-          onClick={event => actions.insert(null, event.currentTarget)}>+ Add checkpoint</button>}
+        {canEdit && <button className="button secondary" type="button" aria-label="Add checkpoint"
+          disabled={busy || !!form || trip.cities.length >= 30}
+          onClick={event => actions.insert(null, event.currentTarget)}>+ Add<span className="checkpoint-add-label"> checkpoint</span></button>}
       </header>
       {!canEdit && <p className="muted">Read-only route. A trip owner or editor can change checkpoints and activities.</p>}
       {notice && <div className="route-notice" role="status"><span>{notice.text}</span>
@@ -133,18 +129,14 @@ export function PlacesPage() {
         <button className="button ghost" type="button" onClick={() => navigate('calendar')}>Review calendar</button>
       </div>}
       <section className="route-workspace" aria-label="Your route">
-        <p className="route-instructions">Click a checkpoint to plan activities.{canEdit && ' Drag its handle to reorder.'}</p>
-        <div className="checkpoint-layout" style={{ '--selected-row': Math.max(0, checkpointIndex) } as CSSProperties}>
-          <RouteBoard places={places} selectedId={checkpoint?.id ?? null} disabled={disabled} actions={actions}
-            onSelect={id => id === checkpointId ? closeCheckpoint() : setCheckpointId(id)} />
-          {checkpoint && <div className="checkpoint-details-slot">
-            <CheckpointDetails key={checkpoint.id} city={checkpoint} index={checkpointIndex}
-              places={places.filter(place => place.cityId === checkpoint.id)} disabled={!!form}
-              notice={notice?.text} onUndo={notice?.undo && notice.revision === snapshot.revision ? () => void undoMove() : undefined}
-              conflict={dateConflicts.includes(checkpoint.id)} actions={actions} onClose={closeCheckpoint} />
-          </div>}
-        </div>
-        <p className="route-footnote">Same city, separate checkpoints. Reordering never changes scheduled dates or times.</p>
+        <RouteBoard places={places} selectedId={checkpoint?.id ?? null} disabled={disabled} actions={actions}
+          onSelect={id => setCheckpointId(id === checkpointId ? null : id)}>
+          {checkpoint && <CheckpointDetails key={checkpoint.id} city={checkpoint} index={checkpointIndex}
+            places={places.filter(place => place.cityId === checkpoint.id)} disabled={!!form}
+            conflict={dateConflicts.includes(checkpoint.id)} actions={actions} />}
+        </RouteBoard>
+        <p className="route-footnote">Tap a checkpoint to expand or collapse its activities.{canEdit && ' Drag the numbered handle to reorder.'}{' '}
+          Same city, separate checkpoints. Reordering never changes scheduled dates or times.</p>
       </section>
     </div>
   );

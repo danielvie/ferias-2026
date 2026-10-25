@@ -4,6 +4,8 @@
 
 Implemented locally. Hosted migration and deployment are not part of this change.
 
+ADR-006 supersedes the zig-zag layout and sheet/panel presentation below. The identity, command and scheduling decisions still apply.
+
 ## Context
 
 The agreed reference is `places-route-exploration.excalidraw`. Places becomes an ordered route of city visits with movable activity cards. Brussels can appear at both the start and end of a trip, with different activities in each visit.

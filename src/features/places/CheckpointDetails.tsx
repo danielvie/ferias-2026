@@ -1,55 +1,61 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { City, Place } from '../../../shared/model';
 import { useTrip } from '../../app/TripContext';
-import { ModalPane } from '../../components/ModalPane';
 import { formatTripDate, sortEvents } from '../calendar/itinerary';
 import { ActivityCard } from './ActivityCard';
 import { PlaceSuggestions } from './PlaceSuggestions';
 import type { RouteActions } from './RouteBoard';
 
-export function CheckpointDetails({ city, index, places, conflict, disabled, actions, onClose, notice, onUndo }: {
+export function CheckpointDetails({ city, index, places, conflict, disabled, actions }: {
   city: City; index: number; places: Place[]; conflict: boolean; disabled: boolean;
-  actions: RouteActions; onClose: () => void; notice?: string; onUndo?: () => void;
+  actions: RouteActions;
 }) {
   const { snapshot, canEdit, busy } = useTrip();
-  const [desktop, setDesktop] = useState(() => window.matchMedia('(min-width: 1000px)').matches);
+  const cities = snapshot.data.trip.cities;
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('');
-  const heading = useRef<HTMLHeadingElement>(null);
   const events = sortEvents(snapshot.data.events.filter(event => event.cityId === city.id));
   const filtering = !!(search.trim() || category || status);
   const visible = places.filter(place =>
     `${place.title} ${place.description} ${place.address}`.toLowerCase().includes(search.trim().toLowerCase()) &&
     (!category || place.category === category) && (!status || place.status === status));
-  const title = `${index + 1}. ${city.name}`;
-
-  // Keep the JS sheet/panel switch in step with CSS, including live resizing.
-  // https://developer.mozilla.org/en-US/docs/Web/API/MediaQueryList/change_event
-  useEffect(() => {
-    const media = window.matchMedia('(min-width: 1000px)');
-    const update = () => setDesktop(media.matches);
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
-  useEffect(() => {
-    if (desktop) heading.current?.focus({ preventScroll: true });
-  }, [city.id, desktop]);
-
-  // Inline edit/scheduling forms and the Move dialog temporarily replace the
-  // phone sheet, rather than leaving those forms behind an inert backdrop.
-  if (!desktop && disabled) return null;
-
-  const content = <div id="checkpoint-details" className="checkpoint-details-content" data-checkpoint-id={city.id}>
-    {!desktop && notice && <div className="route-notice checkpoint-sheet-notice" role="status">
-      <span>{notice}</span>
-      {onUndo && <button className="button ghost" type="button" disabled={busy} onClick={onUndo}>Undo move</button>}
-    </div>}
-    <div className="checkpoint-facts">
-      <span>{places.length} {places.length === 1 ? 'activity' : 'activities'}</span>
+  // The panel stays beside its controlling heading in the same list item.
+  // https://www.w3.org/WAI/ARIA/apg/patterns/accordion/
+  return <section id="checkpoint-details" className="checkpoint-details" data-checkpoint-id={city.id}
+    aria-labelledby={`checkpoint-${city.id}`}>
+    {(events.length > 0 || conflict) && <div className="checkpoint-facts">
       {events.length > 0 && <span>{formatTripDate(events[0].date)}</span>}
       {conflict && <span className="route-date-warning">Review dates</span>}
+    </div>}
+    <div className="visit-activities">
+      {visible.map(place => <ActivityCard key={place.id} place={place} disabled={disabled || busy} actions={actions} />)}
+      {!visible.length && <p className="checkpoint-empty">{filtering ? 'No matching activities in this checkpoint.' :
+        canEdit ? 'No activities yet.' : 'No activities shared for this checkpoint.'}</p>}
     </div>
+    {canEdit && <div className="checkpoint-actions">
+      <button type="button" className="button secondary visit-add-activity" disabled={disabled || busy}
+        id={`checkpoint-add-${city.id}`} onClick={event => actions.addActivity(city.id, event.currentTarget)}>+ Add activity</button>
+      <details className="route-menu">
+        <summary aria-label={`Actions for checkpoint ${index + 1}: ${city.name}`}>···</summary>
+        <div className="route-menu-content">
+          <button type="button" className="button ghost" disabled={disabled || busy || index === 0}
+            onClick={event => {
+              event.currentTarget.closest('details')?.removeAttribute('open');
+              actions.moveVisit(city.id, cities[index - 1].id);
+            }}>Move earlier</button>
+          <button type="button" className="button ghost" disabled={disabled || busy || index === cities.length - 1}
+            onClick={event => {
+              event.currentTarget.closest('details')?.removeAttribute('open');
+              actions.moveVisit(city.id, cities[index + 2]?.id ?? null);
+            }}>Move later</button>
+          <button type="button" className="button ghost" disabled={disabled || busy || cities.length >= 30}
+            onClick={event => actions.insert(city.id, event.currentTarget)}>Insert checkpoint before</button>
+          <button type="button" className="button ghost" disabled={disabled || busy || cities.length >= 30}
+            onClick={event => actions.insert(cities[index + 1]?.id ?? null, event.currentTarget)}>Insert checkpoint after</button>
+        </div>
+      </details>
+    </div>}
     {places.length > 0 && <details className="checkpoint-filters">
       <summary>Find an activity</summary>
       <div className="checkpoint-filter-fields">
@@ -74,26 +80,9 @@ export function CheckpointDetails({ city, index, places, conflict, disabled, act
         }}>Clear filters</button>
       </div>}
     </details>}
-    <div className="visit-activities">
-      {visible.map(place => <ActivityCard key={place.id} place={place} disabled={disabled || busy} actions={actions} />)}
-      {!visible.length && <p className="checkpoint-empty">{filtering ? 'No matching activities in this checkpoint.' :
-        canEdit ? 'No activities yet.' : 'No activities shared for this checkpoint.'}</p>}
-    </div>
-    {canEdit && <button type="button" className="button secondary visit-add-activity" disabled={disabled || busy}
-      id={`checkpoint-add-${city.id}`} onClick={event => actions.addActivity(city.id, event.currentTarget)}>+ Add activity</button>}
     {canEdit && <details className="checkpoint-ideas">
       <summary>Activity ideas</summary>
       <PlaceSuggestions cityId={city.id} formOpen={disabled} />
     </details>}
-  </div>;
-
-  if (!desktop) return <ModalPane title={title} variant="sheet" onClose={onClose} busy={busy}>{content}</ModalPane>;
-  return <section className="checkpoint-details" aria-labelledby="checkpoint-details-heading">
-    <header className="checkpoint-details-heading">
-      <h2 ref={heading} id="checkpoint-details-heading" tabIndex={-1}>{title}</h2>
-      <button className="button ghost" type="button" disabled={busy} onClick={onClose}
-        aria-label="Close checkpoint details">Close</button>
-    </header>
-    {content}
   </section>;
 }

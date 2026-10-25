@@ -12,10 +12,12 @@ export function ActivityCard({ place, disabled, actions }: {
   return <article className="route-activity" data-activity-id={place.id}>
     <div className="route-activity-heading">
       <h3><button type="button" className="activity-title" disabled={disabled}
-        id={`activity-details-${place.id}`}
-        onClick={event => actions.details(place, event.currentTarget)}>{place.title}</button></h3>
+        id={`activity-details-${place.id}`} aria-label={place.title} aria-describedby={`activity-meta-${place.id}`}
+        onClick={event => actions.details(place, event.currentTarget)}>
+        <span>{place.title}</span>
+        <span className="activity-meta" id={`activity-meta-${place.id}`}>{status} <span aria-hidden="true">/</span> {place.durationMinutes} min</span>
+      </button></h3>
     </div>
-    <p className="activity-meta">{status} <span aria-hidden="true">/</span> {place.durationMinutes} min</p>
     {dates.length > 0 && <p className="activity-calendar">{dates.length} scheduled {dates.length === 1 ? 'plan' : 'plans'}</p>}
     {canEdit && <div className="actions">
       <button className="button ghost activity-move" type="button" disabled={disabled}

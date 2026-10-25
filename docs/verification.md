@@ -360,6 +360,22 @@ Final checks passed:
 
 The backend command contract and database schema are unchanged. Native database/concurrency and managed Edge-runtime suites were not repeated for this UI change. Existing local services and sample trip data were left intact. No hosted migration, push or deployment was performed.
 
+### Straight checkpoint rail, M2
+
+The owner selected M2 in `checkpoint-mobile-directions.excalidraw`. Compact checkpoint rows now follow a straight numbered rail and expand their activities inline at every viewport width. The selected region stays in its checkpoint's list item. The numbered circle is the drag handle; insertion before/after and non-drag route moves are in the expanded checkpoint menu. Separate details panels, checkpoint sheets and large insertion gaps are removed.
+
+Final checks passed:
+
+- `npm run build`, including TypeScript.
+- `npm test -- src/features/places/places.test.ts tests/route.test.ts`: eight related tests.
+- `DEBUG=pw:webserver PLAYWRIGHT_PORT=5197 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH='C:/Program Files/Google/Chrome/Application/chrome.exe' VITE_BACKEND=sqlite npm run test:e2e -- tests/e2e/places-route.spec.ts`: all 16 related Chromium workflows. One earlier attempt lost its local dev-server connection midway; the final run with server logging completed successfully.
+- Compact and expanded states at 320/390/768/1024/1440px, axe WCAG A/AA checks, no horizontal document overflow, 60-pixel compact rows and all eight sample checkpoints visible in an 844-pixel-high viewport.
+- Inline region placement, one-open-at-a-time behavior, Enter/Space expansion and collapse, stable selection through resizing/reordering, and focus return after activity details, add, scheduling and Move forms.
+- Pointer, keyboard and touch reordering; insertion at both route ends and between repeated cities; activity Move, retry, Undo and unchanged booked times; filters, return-checkpoint ideas, read-only access, and the 30-checkpoint limit with a long city name.
+- Inspected generated Chromium screenshots at phone and desktop widths. The expanded activities remain beneath their own checkpoint without a modal backdrop or nested scroll container.
+
+Only related tests were run, as requested. The full unit/API and browser suites, native database/concurrency checks, managed Edge runtime and live Supabase preview were not rerun. No backend, schema, hosting or deployment changes were made.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.
