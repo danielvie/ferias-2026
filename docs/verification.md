@@ -108,6 +108,25 @@ Three implementation workers owned backend, itinerary and collaboration modules.
 
 Desktop and phone screenshots were inspected. Packing rows were made more compact on phones, and low-contrast secondary text was corrected following the accessibility check.
 
+## Windows validation
+
+Verified on Windows with Node 24.15.0, npm 11.0.0, Task 3.50.0, Docker 28.0.1 and Playwright's downloaded Chromium. Initial Supabase startup failed when C: ran out of space. After space was freed and Docker restarted, startup and both migrations succeeded. Docker inspection confirmed the published ports bind to `127.0.0.1`.
+
+Two Windows blockers were fixed:
+
+- `task run` failed with `spawnSync npx ENOENT`. The runner now invokes the pinned Supabase and Vite JavaScript entrypoints with `process.execPath`, without npm/npx shell wrappers. Vite refuses an occupied port rather than silently changing the configured frontend origin. Launch failures stop sibling processes; Windows cleanup targets each owned process tree.
+- The static-file security fixture required privileged file-symlink creation. It now uses a directory junction on Windows and a directory symlink elsewhere. The test proves the linked private file exists, then requires GET and HEAD to reject access outside the built-client directory. No security test is skipped.
+
+Checks passed:
+
+- `task check`: production build, TypeScript and all 90 tests, including two new runner regressions.
+- `task test:e2e`: all eleven SQLite browser workflows.
+- `task online:e2e`: all three local Supabase browser workflows.
+- An actual `task run` browser smoke: frontend startup, synthetic trip creation through local Supabase, owner recovery-link display and session reload. The fixture was deleted and the smoke-test process tree stopped afterward.
+- Before the runner/test changes, `task db:test` passed 37 pgTAP assertions and four concurrency tests; `task online:test` and `task backup:check` also passed.
+
+These checks used synthetic data only. No hosted deployment or real-data import was performed. Runner cleanup has automated regression coverage; an interactive Ctrl+C shutdown was not manually verified.
+
 ## Not verified or delivered
 
 No public deployment, TLS/reverse-proxy configuration, hosted persistence, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

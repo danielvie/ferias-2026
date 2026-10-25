@@ -367,18 +367,26 @@ describe('trip API', () => {
     await writeFile(join(dist, 'index.html'), '<h1>Trip app</h1>');
     await writeFile(join(dist, 'client.js'), 'console.log("app")');
     await writeFile(join(dist, 'trips.sqlite'), 'secret database');
-    await writeFile(join(root, 'secret.js'), 'private token');
-    await symlink(join(root, 'secret.js'), join(dist, 'escape.js'));
+    const outside = join(root, 'private');
+    await mkdir(outside);
+    await writeFile(join(outside, 'secret.js'), 'private token');
+    // NTFS directory junctions do not require file-symlink privileges.
+    // https://nodejs.org/docs/latest-v24.x/api/fs.html#fspromisessymlinktarget-path-type
+    await symlink(outside, join(dist, 'escape'), process.platform === 'win32' ? 'junction' : 'dir');
+    expect(await readFile(join(dist, 'escape', 'secret.js'), 'utf8')).toBe('private token');
     const app = await start({ distPath: dist });
     expect(await (await fetch(`${app.base}/calendar/day`)).text()).toBe('<h1>Trip app</h1>');
     expect((await fetch(`${app.base}/client.js`)).headers.get('content-type')).toContain('javascript');
     expect((await fetch(`${app.base}/client.js`, { method: 'HEAD' })).status).toBe(200);
-    for (const path of ['/server/app.ts', '/data/trips.sqlite', '/trips.sqlite', '/.env', '/assets/missing.js', '/escape.js', '/src', '/api/missing']) {
+    for (const path of ['/server/app.ts', '/data/trips.sqlite', '/trips.sqlite', '/.env', '/assets/missing.js', '/escape/secret.js', '/src', '/api/missing']) {
       const response = await fetch(`${app.base}${path}`);
       expect(response.status, path).toBe(404);
       expect(response.headers.get('content-type')).toContain('application/json');
-      expect(await response.text()).not.toContain('Trip app');
+      const body = await response.text();
+      expect(body).not.toContain('Trip app');
+      expect(body).not.toContain('private token');
     }
+    expect((await fetch(`${app.base}/escape/secret.js`, { method: 'HEAD' })).status).toBe(404);
   });
 
   it('rechecks access after a delayed request body when an invitation is revoked', async () => {
