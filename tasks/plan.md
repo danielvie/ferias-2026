@@ -88,3 +88,23 @@ Reference: `places-route-exploration.excalidraw`, confirmed by the owner in this
 4. Verify persistence, pointer/touch/keyboard movement, repeated names, undo, failed/conflicting writes and read-only access. Check 320, 768, 1024 and 1440px layouts and accessibility.
 
 Use the current white/slate/blue design tokens and soft-selection header from main. Desktop uses a horizontally scrollable connected route, phones use a vertical route. Do not restore the old dashboard/calendar tabs, replace the page with a geographic map, create a second activity store, shift dates, deploy hosted changes or import real trip data.
+
+## Remembered trips on trusted devices
+
+Approved specification: `docs/remembered-trips-spec.md`. Implement without another
+product approval gate; the owner explicitly requested implementation.
+
+1. Remove server timeouts without reviving invalid legacy access. Use PostgreSQL
+   infinity and SQLite's zero-expiry sentinel. Keep SQLite credentials HttpOnly
+   in identity-specific cookies, with a public selector per tab and no fallback
+   to another identity. Verify server/API tests before browser integration.
+2. Add a browser-local registry scoped to backend/project/base path. Keep one
+   entry per trip/member, a last-selected pointer and tab-local active access.
+   Use separate entry keys so different tabs do not overwrite whole registries.
+   Guard stale responses and forgotten entries; test storage and API behavior.
+3. Add the Trips pane and root fallback using existing UI patterns. Preserve
+   draft guards, role isolation and failed-switch state. Add creation from the
+   switcher without signing out the current trip.
+4. Verify browser restart, switching, invalidation, forgetting, offline recovery,
+   concurrent tabs and responsive accessibility. Record actual results and
+   rollout requirements. Do not push, deploy or migrate shared/hosted services.

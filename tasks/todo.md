@@ -103,3 +103,14 @@ hosted deployment is not authorized.
 - [x] R5. Add Compact/Details city-card views and replace activity drag-and-drop with a contextual Move popup. Build, 102 unit/API tests and all 32 browser workflows pass, including compact city pointer/touch dragging, long-distance activity moves, placement, failure/conflict retry and Undo.
 - [x] R6. Implement checkpoint design 2: alternating vertical zig-zag, always-compact activity counts, adjacent desktop details and a phone sheet. Build, 102 unit/API tests and all 36 browser workflows pass. Verified insertion, pointer/keyboard/touch dragging, Move and phone-sheet Undo, responsive accessibility, stable selection, focus return, return-checkpoint suggestions and the 30-checkpoint limit.
 - [x] R7. Replace the zig-zag and separate details with M2's straight numbered rail and single-open inline activities at every width. Keep numbered-handle sorting and move insertion/non-drag controls into the expanded menu. Production build, eight related unit tests and all 16 Places browser workflows pass, including 320/390/768/1024/1440 layouts and axe checks. Full suites were not run, as requested.
+
+## Remembered trips on trusted devices
+
+- [x] T1. Non-expiring server sessions and selected HttpOnly SQLite cookies.
+  Verify: TypeScript and 33 focused server/online API tests pass.
+- [ ] T2. Browser registry, tab-local transport and stale-response protection.
+  Verify: focused storage/API tests, existing-session adoption and invalidation.
+- [ ] T3. Trips pane, root fallback, creation, switching and forgetting.
+  Verify: browser flows, draft guards, role isolation and focus return.
+- [ ] T4. Restart/concurrency, expiry migration and responsive checks.
+  Verify: related unit/API/browser tests, build, Edge types and screenshots.

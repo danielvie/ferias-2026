@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { once } from 'node:events';
 import { request as httpRequest } from 'node:http';
 import { mkdtemp, readFile, rm, symlink, writeFile, mkdir } from 'node:fs/promises';
@@ -99,6 +99,45 @@ function note(overrides: Partial<Pick<Note, 'id' | 'title' | 'body' | 'visibilit
 }
 
 describe('trip API', () => {
+  it('keeps trusted sessions valid after long inactivity until explicitly signed out', async () => {
+    const app = await start(), owner = app.client();
+    await owner.create();
+    const now = Date.now();
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(now + 100 * 365 * 24 * 60 * 60 * 1000);
+    try {
+      expect((await owner.load()).session.role).toBe('owner');
+      await owner.request('/session', 'DELETE');
+      expect((await owner.request('/trip')).response.status).toBe(401);
+    } finally { clock.mockRestore(); }
+  });
+
+  it('selects separate HttpOnly trip cookies without falling back to another identity', async () => {
+    const app = await start(), client = app.client();
+    const first = await client.create({ title: 'First' });
+    const firstIdentity = `${client.snapshot.data.trip.id}:${client.snapshot.session.id}`;
+    const second = await client.create({ title: 'Second' });
+    const secondIdentity = `${client.snapshot.data.trip.id}:${client.snapshot.session.id}`;
+    const jar = new Map<string, string>();
+    for (const response of [first.response, second.response]) {
+      for (const header of response.headers.getSetCookie()) {
+        expect(header).toContain('HttpOnly; SameSite=Strict');
+        const pair = header.split(';')[0];
+        jar.set(pair.slice(0, pair.indexOf('=')), pair);
+      }
+    }
+    client.cookie = [...jar.values()].join('; ');
+    expect((await client.request('/trip', 'GET', undefined, { 'X-Trip-Identity': firstIdentity })).body.data.trip.title).toBe('First');
+    client.cookie = [...jar.values()].join('; ');
+    expect((await client.request('/trip', 'GET', undefined, { 'X-Trip-Identity': secondIdentity })).body.data.trip.title).toBe('Second');
+    client.cookie = [...jar.values()].join('; ');
+    expect((await client.request('/trip', 'GET', undefined, { 'X-Trip-Identity': `${firstIdentity}x` })).response.status).toBe(401);
+    expect((await client.request('/trip', 'GET', undefined, { 'X-Trip-Identity': 'none' })).response.status).toBe(401);
+    expect((await client.request('/session', 'DELETE', undefined, { 'X-Trip-Identity': firstIdentity })).response.status).toBe(200);
+    client.cookie = [...jar.values()].join('; ');
+    expect((await client.request('/trip', 'GET', undefined, { 'X-Trip-Identity': firstIdentity })).response.status).toBe(401);
+    expect((await client.request('/trip', 'GET', undefined, { 'X-Trip-Identity': secondIdentity })).response.status).toBe(200);
+  });
+
   it('validates self-only profile edits and denies unauthenticated or revoked history', async () => {
     const app = await start(), owner = app.client();
     await owner.create();

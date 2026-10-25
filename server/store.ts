@@ -11,7 +11,6 @@ import { check, HttpError } from './validation';
 
 const hash = (token: string) => createHash('sha256').update(token).digest('hex');
 const token = () => randomBytes(32).toString('base64url');
-const SESSION_MS = 30 * 24 * 60 * 60 * 1000;
 
 interface MemberRow {
   id: string; trip_id: string; name: string; role: Member['role'];
@@ -50,6 +49,9 @@ export class Store {
       ) STRICT;
       CREATE INDEX IF NOT EXISTS history_trip ON history(trip_id, sequence DESC);
     `);
+    // Zero denotes trusted-device access with no timeout. Adopt only sessions
+    // that are still valid when upgrading; never revive expired credentials.
+    this.db.prepare('UPDATE sessions SET expires_at = 0 WHERE expires_at > ?').run(Date.now());
   }
 
   close() { this.db.close(); }
@@ -77,7 +79,7 @@ export class Store {
     if (!sessionToken) throw new HttpError(401, 'Open your invitation or recovery link to continue.');
     const row = this.db.prepare(`
       SELECT members.* FROM sessions JOIN members ON members.id = sessions.member_id
-      WHERE sessions.token_hash = ? AND sessions.expires_at > ?
+      WHERE sessions.token_hash = ? AND (sessions.expires_at = 0 OR sessions.expires_at > ?)
     `).get(hash(sessionToken), Date.now()) as unknown as MemberRow | undefined;
     if (!row) throw new HttpError(401, 'This session has expired or its invitation was revoked.');
     return this.access(row);
@@ -85,9 +87,9 @@ export class Store {
 
   private session(memberId: string, oldSession?: string): string {
     if (oldSession) this.logout(oldSession);
-    this.db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(Date.now());
+    this.db.prepare('DELETE FROM sessions WHERE expires_at > 0 AND expires_at <= ?').run(Date.now());
     const secret = token();
-    this.db.prepare('INSERT INTO sessions (token_hash, member_id, expires_at) VALUES (?, ?, ?)').run(hash(secret), memberId, Date.now() + SESSION_MS);
+    this.db.prepare('INSERT INTO sessions (token_hash, member_id, expires_at) VALUES (?, ?, 0)').run(hash(secret), memberId);
     return secret;
   }
 

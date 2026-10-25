@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { createHash } from 'node:crypto';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { Store } from './store';
@@ -21,13 +22,20 @@ function send(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
-function cookie(req: IncomingMessage) {
-  const value = req.headers.cookie?.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
+function cookie(req: IncomingMessage, name = COOKIE) {
+  const value = req.headers.cookie?.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${name}=`))?.slice(name.length + 1);
   return value && /^[A-Za-z0-9_-]{43}$/.test(value) ? value : undefined;
 }
 
-function setCookie(res: ServerResponse, value: string, secure: boolean, expired = false) {
-  res.setHeader('Set-Cookie', `${COOKIE}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${expired ? 0 : 2592000}${secure ? '; Secure' : ''}`);
+const identityCookie = (identity: string) => `${COOKIE}_${createHash('sha256').update(identity).digest('hex').slice(0, 24)}`;
+
+function setCookie(res: ServerResponse, value: string, secure: boolean, expired = false, name = COOKIE) {
+  const previous = res.getHeader('Set-Cookie') as string[] | undefined;
+  // Browsers cap persistent cookie lifetimes. Refresh on use; the server has no
+  // application timeout. Credentials remain HttpOnly, including per-trip cookies.
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie
+  res.setHeader('Set-Cookie', [...(previous ?? []),
+    `${name}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${expired ? 0 : 34560000}${secure ? '; Secure' : ''}`]);
 }
 
 function protectWrite(req: IncomingMessage, publicOrigin?: string) {
@@ -147,45 +155,66 @@ export function createApp(options: AppOptions = {}) {
         (method === 'POST' && ['/api/trips', '/api/session', '/api/commands', '/api/invites', '/api/profile', '/api/history'].includes(path)) ||
         (method === 'DELETE' && path === '/api/session') || revoke;
       if (!known) throw new HttpError(404, 'API route not found.');
-      const oldSession = cookie(req);
+      const identity = req.headers['x-trip-identity'];
+      if (identity !== undefined && (typeof identity !== 'string' ||
+        (identity !== 'none' && !/^[A-Za-z0-9_-]{1,100}:[A-Za-z0-9_-]{1,100}$/.test(identity)))) {
+        throw new HttpError(401, 'Invalid trip selection.');
+      }
+      // The selector is public, not a credential. A missing selected cookie must
+      // never fall back to another tab's current identity.
+      const oldSession = identity === 'none' ? undefined : cookie(req, identity ? identityCookie(identity) : COOKIE);
+      const authenticate = () => {
+        const access = store.authenticate(oldSession);
+        if (identity && `${access.tripId}:${access.member.id}` !== identity) throw new HttpError(401, 'Invalid trip selection.');
+        return access;
+      };
+      const rememberCookie = (secret: string, tripId: string, memberId: string) =>
+        setCookie(res, secret, secure, false, identityCookie(`${tripId}:${memberId}`));
       if (method !== 'GET') protectWrite(req, publicOrigin);
       if (method === 'POST' && path === '/api/trips') {
-        const result = store.create(createTripInput(await json(req)), oldSession);
+        const result = store.create(createTripInput(await json(req)));
         setCookie(res, result.sessionToken, secure);
+        rememberCookie(result.sessionToken, result.snapshot.data.trip.id, result.snapshot.session.id);
         return send(res, 201, { snapshot: result.snapshot, ownerToken: result.ownerToken });
       }
       if (method === 'POST' && path === '/api/session') {
         const body = object(await json(req));
-        const result = store.join(text(body.token, 'Token', 200), oldSession);
+        const result = store.join(text(body.token, 'Token', 200));
         setCookie(res, result.sessionToken, secure);
+        rememberCookie(result.sessionToken, result.snapshot.data.trip.id, result.snapshot.session.id);
         return send(res, 200, result.snapshot);
       }
       if (method === 'DELETE' && path === '/api/session') {
         store.logout(oldSession);
-        setCookie(res, '', secure, true);
+        if (!identity || cookie(req) === oldSession) setCookie(res, '', secure, true);
+        if (identity && identity !== 'none') setCookie(res, '', secure, true, identityCookie(identity));
         return send(res, 200, { ok: true });
       }
 
-      const access = store.authenticate(oldSession);
-      if (method === 'GET' && path === '/api/trip') return send(res, 200, store.snapshot(access));
+      const access = authenticate();
+      if (method === 'GET' && path === '/api/trip') {
+        if (!identity) setCookie(res, oldSession!, secure);
+        rememberCookie(oldSession!, access.tripId, access.member.id);
+        return send(res, 200, store.snapshot(access));
+      }
       if (method === 'GET' && path === '/api/invites') return send(res, 200, store.invites(access));
       if (method === 'POST' && path === '/api/invites') {
         const input = inviteInput(await json(req));
-        return send(res, 201, store.invite(store.authenticate(oldSession), input));
+        return send(res, 201, store.invite(authenticate(), input));
       }
       if (revoke) return send(res, 200, store.revoke(access, id(path.slice('/api/invites/'.length))));
       if (method === 'POST' && path === '/api/history') {
         const before = historyInput(await json(req));
-        return send(res, 200, store.history(store.authenticate(oldSession), before));
+        return send(res, 200, store.history(authenticate(), before));
       }
       if (method === 'POST' && path === '/api/profile') {
         const input = profileInput(await json(req));
-        return send(res, 200, store.rename(store.authenticate(oldSession), input.previousName, input.name));
+        return send(res, 200, store.rename(authenticate(), input.previousName, input.name));
       }
       const body = object(await json(req));
       check(typeof body.revision === 'number' && Number.isSafeInteger(body.revision) && body.revision >= 0, 'Invalid revision.');
       // The body can arrive slowly. An invite may have been revoked while awaiting it.
-      return send(res, 200, store.command(store.authenticate(oldSession), body.revision, commandInput(body.command)));
+      return send(res, 200, store.command(authenticate(), body.revision, commandInput(body.command)));
     })().catch((error: unknown) => {
       // Deliberately do not log request bodies, tokens, cookies, or database exceptions.
       if (!res.headersSent) send(res, error instanceof HttpError ? error.status : 500, {

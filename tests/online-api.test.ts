@@ -78,6 +78,19 @@ describe('online API with actual PostgreSQL migrations', () => {
     return response.json();
   }
 
+  test('keeps remembered sessions without expiry or eviction while preserving sign-out', async () => {
+    const result = await db.query<{ permanent: boolean }>(
+      "select bool_and(expires_at > clock_timestamp() + interval '100 years') as permanent from trip_private.sessions");
+    expect(result.rows[0].permanent).toBe(true);
+    const { hash } = await import('../supabase/functions/trip-api/handler.ts');
+    for (let i = 0; i < 22; i++) {
+      await db.query('select public.trip_open_online($1, $2)', [await hash(ownerToken), String(i).padStart(64, '0')]);
+    }
+    expect((await load()).session.id).toBe(state.session.id);
+    expect((await call('/session', 'DELETE')).status).toBe(200);
+    expect((await call('/trip')).status).toBe(401);
+  });
+
   test('renames only the authenticated member and keeps stable identity and past attribution', async () => {
     const editor = await invite('editor');
     await command({ type: 'packing.add', title: 'Adapter', assignee: '' }, editor.sessionToken);
