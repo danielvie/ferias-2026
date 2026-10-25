@@ -49,6 +49,18 @@ async function places(page: Page) {
 const visit = (page: Page, id: string) => page.locator(`[data-visit-id="${id}"]`);
 const order = (page: Page) => page.locator('[data-visit-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-visit-id')));
 
+async function openCheckpoint(page: Page, id: string) {
+  const button = visit(page, id).locator('.checkpoint-open');
+  if (await button.getAttribute('aria-expanded') !== 'true') await button.click();
+  await expect(page.locator('#checkpoint-details')).toHaveAttribute('data-checkpoint-id', id);
+  await expect(page.locator('#checkpoint-details')).toBeVisible();
+}
+
+async function closeCheckpoint(page: Page) {
+  await page.getByRole('button', { name: /^Close (checkpoint details|\d+\.)/ }).click();
+  await expect(page.locator('#checkpoint-details')).toHaveCount(0);
+}
+
 async function drag(page: Page, handle: Locator, target: Locator) {
   await handle.scrollIntoViewIfNeeded();
   const from = await handle.boundingBox();
@@ -64,22 +76,25 @@ async function drag(page: Page, handle: Locator, target: Locator) {
 
 test('inserts a separate visit from the connecting path and keeps its activities empty', async ({ page }) => {
   const ids = await setup(page);
-  await page.getByRole('button', { name: 'Insert visit after Brussels · stop 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Insert checkpoint after Brussels · stop 1', exact: true }).click();
   await page.getByLabel('City name', { exact: true }).fill('Brussels');
   await expect(page.getByText(/This city is already on your route/)).toBeVisible();
-  await page.getByRole('button', { name: 'Add visit', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Add city visit', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Add checkpoint', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Add checkpoint', exact: true })).toHaveCount(0);
   const saved = await state(page);
   const inserted = saved.data.trip.cities[1];
   expect(inserted.name).toBe('Brussels');
   expect(ids).not.toContain(inserted.id);
   expect(saved.data.places.filter(place => place.cityId === inserted.id)).toEqual([]);
   expect(await order(page)).toEqual([ids[0], inserted.id, ...ids.slice(1)]);
-  await visit(page, inserted.id).getByRole('button', { name: '+ Add activity', exact: true }).click();
+  await expect(visit(page, inserted.id).locator('.checkpoint-count')).toHaveText('0 activities');
+  await expect(page.locator('#checkpoint-details')).toContainText('No activities yet.');
+  await page.getByRole('button', { name: '+ Add activity', exact: true }).click();
   await page.getByLabel('Title', { exact: true }).fill('Return walk');
-  await expect(page.getByRole('combobox', { name: 'City visit', exact: true })).toHaveValue(inserted.id);
+  await expect(page.getByRole('combobox', { name: 'Checkpoint', exact: true })).toHaveValue(inserted.id);
   await page.getByRole('button', { name: 'Save activity', exact: true }).click();
-  await expect(visit(page, inserted.id).getByRole('heading', { name: 'Return walk', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Return walk', exact: true })).toBeVisible();
+  await expect(visit(page, inserted.id).locator('.checkpoint-count')).toHaveText('1 activity');
   await page.reload(); await places(page);
   expect(await order(page)).toEqual(saved.data.trip.cities.map(city => city.id));
   await page.getByRole('navigation').getByRole('button', { name: 'Itinerary', exact: true }).click();
@@ -93,7 +108,7 @@ test('inserts a separate visit from the connecting path and keeps its activities
 test('drags a whole visit, undoes it, and uses the same order in the itinerary after reload', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const ids = await setup(page);
-  await drag(page, visit(page, ids[0]).getByRole('button', { name: /Drag visit/ }), visit(page, ids[1]).locator('.route-visit-heading'));
+  await drag(page, visit(page, ids[0]).getByRole('button', { name: /Drag checkpoint/ }), visit(page, ids[1]).locator('.route-visit'));
   await expect.poll(() => order(page)).toEqual([ids[1], ids[0], ids[2], ids[3]]);
   expect((await state(page)).data.places.find(place => place.id === 'walk')?.cityId).toBe(ids[0]);
   // Pointer drags briefly suppress clicks to prevent accidental activation.
@@ -101,7 +116,7 @@ test('drags a whole visit, undoes it, and uses the same order in the itinerary a
     await page.getByRole('button', { name: 'Undo move', exact: true }).click();
     await expect.poll(() => order(page), { timeout: 250 }).toEqual(ids);
   }).toPass({ timeout: 5000 });
-  await visit(page, ids[0]).getByLabel('Actions for visit Brussels · stop 1', { exact: true }).click();
+  await visit(page, ids[0]).getByLabel('Actions for checkpoint 1: Brussels', { exact: true }).click();
   await visit(page, ids[0]).getByRole('button', { name: 'Move later', exact: true }).click();
   await expect.poll(() => order(page)).toEqual([ids[1], ids[0], ids[2], ids[3]]);
   await page.reload();
@@ -116,6 +131,7 @@ test('drags a whole visit, undoes it, and uses the same order in the itinerary a
 test('moves activities within and between visits without copying or moving booked times', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const ids = await setup(page);
+  await openCheckpoint(page, ids[0]);
   const activity = page.locator('[data-activity-id="walk"]');
   const dialog = page.getByRole('dialog', { name: 'Move activity', exact: true });
   await expect(page.getByRole('button', { name: /^Drag activity/ })).toHaveCount(0);
@@ -128,59 +144,78 @@ test('moves activities within and between visits without copying or moving booke
     .toEqual(['trail', 'walk']);
   const before = await state(page);
   await activity.getByRole('button', { name: 'Move', exact: true }).click();
-  await dialog.getByLabel('Destination visit', { exact: true }).selectOption(ids[3]);
+  await dialog.getByLabel('Destination checkpoint', { exact: true }).selectOption(ids[3]);
   await expect(dialog.getByRole('option', { name: '4. Brussels', exact: true })).toHaveCount(1);
   await dialog.getByLabel('Position', { exact: true }).selectOption('museum');
   await expect(dialog).toContainText('Scheduled dates and times stay unchanged');
   await dialog.getByRole('button', { name: 'Move activity', exact: true }).click();
-  await expect(visit(page, ids[3]).locator('[data-activity-id="walk"]')).toBeVisible();
+  await expect(page.locator('#checkpoint-details [data-activity-id="walk"]')).toBeVisible();
+  await expect(visit(page, ids[0]).locator('.checkpoint-count')).toHaveText('1 activity');
+  await expect(visit(page, ids[3]).locator('.checkpoint-count')).toHaveText('2 activities');
   const after = await state(page);
   expect(after.data.places).toHaveLength(before.data.places.length);
   expect(after.data.places.filter(place => place.cityId === ids[3]).map(place => place.id)).toEqual(['walk', 'museum']);
   expect(after.data.events[0]).toEqual({ ...before.data.events[0], cityId: ids[3] });
   expect(after.data.places.find(place => place.id === 'walk')).toEqual({ ...before.data.places.find(place => place.id === 'walk'), cityId: ids[3] });
   await page.getByRole('button', { name: 'Undo move', exact: true }).click();
-  await expect(visit(page, ids[0]).locator('[data-activity-id="walk"]')).toBeVisible();
+  await expect(page.locator('#checkpoint-details')).toHaveAttribute('data-checkpoint-id', ids[0]);
+  await expect(activity).toBeVisible();
   await activity.getByRole('button', { name: 'Move', exact: true }).click();
-  await dialog.getByLabel('Destination visit', { exact: true }).selectOption(ids[1]);
+  await dialog.getByLabel('Destination checkpoint', { exact: true }).selectOption(ids[1]);
   await expect(dialog).toContainText('This is a different city');
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
   expect((await state(page)).data.events[0].cityId).toBe(ids[0]);
   await activity.getByRole('button', { name: 'Move', exact: true }).click();
-  await dialog.getByLabel('Destination visit', { exact: true }).selectOption(ids[1]);
+  await dialog.getByLabel('Destination checkpoint', { exact: true }).selectOption(ids[1]);
   await dialog.getByRole('button', { name: 'Move activity', exact: true }).click();
-  await expect(visit(page, ids[1]).locator('[data-activity-id="walk"]')).toBeVisible();
+  await expect(page.locator('#checkpoint-details')).toHaveAttribute('data-checkpoint-id', ids[1]);
+  await expect(activity).toBeVisible();
   expect((await state(page)).data.events[0].date).toBe('2030-06-02');
 });
 
-test('shows the connected reference layout at desktop and phone sizes without accessibility violations', async ({ page }, testInfo) => {
+test('shows compact zig-zag checkpoints and click-open details without overflow or accessibility violations', async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await setup(page);
+  const ids = await setup(page);
+  for (const name of ['Antwerp', 'Leuven', 'Namur', 'Dinant']) {
+    await command(page, { type: 'visit.add', visit: { id: `extra-${name}`, name }, beforeId: null });
+  }
+  await page.reload(); await places(page);
   const before = await state(page);
-  const view = page.getByRole('group', { name: 'City card view', exact: true });
   for (const width of [320, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
-    const boxes = await page.locator('[data-visit-id]').evaluateAll(nodes => nodes.map(node => {
+    await expect(page.getByRole('group', { name: 'City card view', exact: true })).toHaveCount(0);
+    await expect(page.locator('[data-activity-id]')).toHaveCount(0);
+    await expect(page.locator('.checkpoint-count')).toHaveText([
+      '2 activities', '1 activity', '1 activity', '1 activity', '0 activities', '0 activities', '0 activities', '0 activities',
+    ]);
+    const boxes = await page.locator('.route-visit').evaluateAll(nodes => nodes.map(node => {
       const rect = node.getBoundingClientRect(); return { x: rect.x, y: rect.y };
     }));
-    if (width < 768) expect(boxes[1].y).toBeGreaterThan(boxes[0].y);
-    else expect(boxes[1].x).toBeGreaterThan(boxes[0].x);
+    expect(boxes[1].x).toBeGreaterThan(boxes[0].x);
+    expect(boxes[2].x).toEqual(boxes[0].x);
+    expect(boxes[1].y).toBeGreaterThan(boxes[0].y);
+    const heights = await page.locator('.route-visit').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().height));
+    expect(heights.every(height => height <= 76)).toBeTruthy();
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     expect(result.violations.map(violation => violation.id)).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath(`places-${width}.png`), fullPage: true });
-    await view.getByRole('button', { name: 'Compact', exact: true }).click();
-    await expect(view.getByRole('button', { name: 'Compact', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('[data-activity-id], .visit-dates, .visit-caption, .visit-add-activity')).toHaveCount(0);
-    const heights = await page.locator('.route-visit').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().height));
-    expect(heights.every(height => height <= 76)).toBeTruthy();
+    await openCheckpoint(page, ids[1]);
+    await expect(page.locator('[data-activity-id]')).toHaveCount(1);
+    await expect(page.getByRole('heading', { name: 'Gravensteen', exact: true })).toBeVisible();
+    if (width < 1000) await expect(page.getByRole('dialog', { name: '2. Ghent', exact: true })).toBeVisible();
+    else {
+      const route = (await page.locator('#places-route').boundingBox())!;
+      const details = (await page.locator('.checkpoint-details').boundingBox())!;
+      expect(details.x).toBeGreaterThan(route.x + route.width);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
-    const compactResult = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
-    expect(compactResult.violations.map(violation => violation.id)).toEqual([]);
-    await page.screenshot({ path: testInfo.outputPath(`places-compact-${width}.png`), fullPage: true });
-    await view.getByRole('button', { name: 'Details', exact: true }).click();
-    await expect(page.locator('[data-activity-id]')).toHaveCount(5);
+    const detailsResult = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+    expect(detailsResult.violations.map(violation => violation.id)).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath(`places-details-${width}.png`), fullPage: true });
+    await closeCheckpoint(page);
+    await expect(visit(page, ids[1]).locator('.checkpoint-open')).toBeFocused();
   }
   expect(await state(page)).toEqual(before);
   expect(errors).toEqual([]);
@@ -188,29 +223,30 @@ test('shows the connected reference layout at desktop and phone sizes without ac
 
 test('keeps a visit draft on conflicts and permits activity details while filtering', async ({ page }) => {
   const ids = await setup(page);
-  await page.getByRole('button', { name: '+ Add city visit', exact: true }).click();
+  await page.getByRole('button', { name: '+ Add checkpoint', exact: true }).click();
   await page.getByLabel('City name', { exact: true }).fill('Antwerp');
   await command(page, { type: 'visit.move', id: ids[0], beforeId: null });
-  await page.getByRole('button', { name: 'Add visit', exact: true }).click();
+  await page.getByRole('button', { name: 'Add checkpoint', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Someone changed the trip');
   await expect(page.getByLabel('City name', { exact: true })).toHaveValue('Antwerp');
-  await page.getByRole('button', { name: 'Add visit', exact: true }).click();
+  await page.getByRole('button', { name: 'Add checkpoint', exact: true }).click();
   await expect(page.getByLabel('City name', { exact: true })).toHaveCount(0);
+  await openCheckpoint(page, ids[0]);
   await page.getByText('Find an activity', { exact: true }).click();
   await page.getByLabel('Search activities', { exact: true }).fill('Grand Place');
   await expect(page.getByRole('button', { name: /^Drag activity/ })).toHaveCount(0);
   await expect(page.locator('[data-activity-id="walk"]').getByRole('button', { name: 'Move', exact: true })).toBeEnabled();
-  const view = page.getByRole('group', { name: 'City card view', exact: true });
-  await view.getByRole('button', { name: 'Compact', exact: true }).click();
-  await expect(page.getByRole('button', { name: /^Drag visit/ }).first()).toBeEnabled();
-  await view.getByRole('button', { name: 'Details', exact: true }).click();
-  await expect(page.locator('[data-activity-id]')).toHaveCount(5);
+  await expect(page.getByRole('button', { name: /^Drag checkpoint/ }).first()).toBeEnabled();
+  await expect(visit(page, ids[0]).locator('.checkpoint-count')).toHaveText('2 activities');
+  await expect(page.locator('[data-activity-id]')).toHaveCount(1);
   await page.getByRole('button', { name: 'Grand Place walk', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Close activity details', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close activity details', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Grand Place walk', exact: true })).toBeFocused();
 });
 
 test('keeps viewer routes read-only', async ({ page, browser }) => {
-  await setup(page);
+  const ids = await setup(page);
   const response = await page.request.post('/api/invites', { data: { name: 'Viewer', role: 'viewer', eventIds: [], placeIds: [] } });
   const link = await response.json();
   const context = await browser.newContext();
@@ -220,27 +256,29 @@ test('keeps viewer routes read-only', async ({ page, browser }) => {
     await reader.goto(new URL('/', page.url()).href); await places(reader);
     await expect(reader.getByText('Read-only route.', { exact: false })).toBeVisible();
     await expect(reader.locator('.route-drag-handle, .route-insert, .visit-add-activity')).toHaveCount(0);
-    await expect(reader.getByRole('button', { name: '+ Add city visit', exact: true })).toHaveCount(0);
+    await expect(reader.getByRole('button', { name: '+ Add checkpoint', exact: true })).toHaveCount(0);
     await expect(reader.getByRole('button', { name: 'Move', exact: true })).toHaveCount(0);
+    await openCheckpoint(reader, ids[0]);
     await expect(reader.getByRole('heading', { name: 'Grand Place walk', exact: true })).toBeVisible();
+    await expect(reader.locator('.visit-add-activity')).toHaveCount(0);
   } finally { await context.close(); }
 });
 
 test('supports keyboard visit dragging and cancels a failed save without changing the board', async ({ page }) => {
   const ids = await setup(page);
-  const handle = visit(page, ids[0]).getByRole('button', { name: /Drag visit/ });
+  const handle = visit(page, ids[0]).getByRole('button', { name: /Drag checkpoint/ });
   await handle.focus(); await page.keyboard.press('Space');
   const preview = page.locator('.route-drag-preview');
   await expect(preview).toBeVisible();
-  const startX = (await preview.boundingBox())!.x;
-  await page.keyboard.press('ArrowRight');
-  await expect.poll(async () => (await preview.boundingBox())?.x ?? startX).toBeGreaterThan(startX + 20);
+  const startY = (await preview.boundingBox())!.y;
+  await page.keyboard.press('ArrowDown');
+  await expect.poll(async () => (await preview.boundingBox())?.y ?? startY).toBeGreaterThan(startY + 20);
   await page.keyboard.press('Space');
   await expect.poll(() => order(page)).toEqual([ids[1], ids[0], ids[2], ids[3]]);
   await page.getByRole('button', { name: 'Undo move', exact: true }).click();
   await expect.poll(() => order(page)).toEqual(ids);
   await page.route('**/api/commands', route => route.abort());
-  await visit(page, ids[0]).getByLabel('Actions for visit Brussels · stop 1', { exact: true }).click();
+  await visit(page, ids[0]).getByLabel('Actions for checkpoint 1: Brussels', { exact: true }).click();
   await visit(page, ids[0]).getByRole('button', { name: 'Move later', exact: true }).click();
   await expect(page.getByRole('alert')).toBeVisible();
   expect(await order(page)).toEqual(ids);
@@ -252,25 +290,36 @@ test('moves an activity to the last offscreen city using a popup on a phone', as
   try {
     const page = await context.newPage();
     const ids = await setup(page);
-    await expect(visit(page, ids[3])).not.toBeInViewport();
+    for (let i = 0; i < 6; i++) {
+      await command(page, { type: 'visit.add', visit: { id: `far-${i}`, name: 'Brussels' }, beforeId: null });
+    }
+    await page.reload(); await places(page);
+    await expect(visit(page, 'far-5')).not.toBeInViewport();
+    await openCheckpoint(page, ids[0]);
     await page.locator('[data-activity-id="walk"]').getByRole('button', { name: 'Move', exact: true }).tap();
     const dialog = page.getByRole('dialog', { name: 'Move activity', exact: true });
     await expect(dialog).toBeInViewport();
-    await dialog.getByLabel('Destination visit', { exact: true }).selectOption(ids[3]);
+    await dialog.getByLabel('Destination checkpoint', { exact: true }).selectOption('far-5');
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     expect(result.violations.map(violation => violation.id)).toEqual([]);
     await dialog.getByRole('button', { name: 'Move activity', exact: true }).tap();
     await expect(dialog).toHaveCount(0);
-    expect((await state(page)).data.places.find(place => place.id === 'walk')?.cityId).toBe(ids[3]);
+    expect((await state(page)).data.places.find(place => place.id === 'walk')?.cityId).toBe('far-5');
+    await expect(page.getByRole('dialog', { name: '10. Brussels', exact: true })).toBeVisible();
+    await expect(page.locator('#checkpoint-details [data-activity-id="walk"]')).toBeVisible();
+    await page.getByRole('dialog', { name: '10. Brussels', exact: true }).getByRole('button', { name: 'Undo move', exact: true }).tap();
+    await expect(page.getByRole('dialog', { name: '1. Brussels', exact: true })).toBeVisible();
+    expect((await state(page)).data.places.find(place => place.id === 'walk')?.cityId).toBe(ids[0]);
   } finally { await context.close(); }
 });
 
 test('keeps move choices through a conflicting save and supports retry and undo', async ({ page }) => {
   const ids = await setup(page);
   const before = await state(page);
+  await openCheckpoint(page, ids[0]);
   await page.locator('[data-activity-id="walk"]').getByRole('button', { name: 'Move', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Move activity', exact: true });
-  await dialog.getByLabel('Destination visit', { exact: true }).selectOption(ids[3]);
+  await dialog.getByLabel('Destination checkpoint', { exact: true }).selectOption(ids[3]);
   await dialog.getByLabel('Position', { exact: true }).selectOption('museum');
   await page.route('**/api/commands', route => route.abort());
   await dialog.getByRole('button', { name: 'Move activity', exact: true }).click();
@@ -280,45 +329,43 @@ test('keeps move choices through a conflicting save and supports retry and undo'
   await command(page, { type: 'visit.move', id: ids[1], beforeId: ids[0] });
   await dialog.getByRole('button', { name: 'Move activity', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('Your choices are kept');
-  await expect(dialog.getByLabel('Destination visit', { exact: true })).toHaveValue(ids[3]);
+  await expect(dialog.getByLabel('Destination checkpoint', { exact: true })).toHaveValue(ids[3]);
   await expect(dialog.getByLabel('Position', { exact: true })).toHaveValue('museum');
   await dialog.getByRole('button', { name: 'Move activity', exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(visit(page, ids[3]).locator('[data-activity-id="walk"]')).toBeVisible();
+  await expect(page.locator('#checkpoint-details')).toHaveAttribute('data-checkpoint-id', ids[3]);
+  await expect(page.locator('[data-activity-id="walk"]')).toBeVisible();
   await page.getByRole('button', { name: 'Undo move', exact: true }).click();
-  await expect(visit(page, ids[0]).locator('[data-activity-id="walk"]')).toBeVisible();
+  await expect(page.locator('#checkpoint-details')).toHaveAttribute('data-checkpoint-id', ids[0]);
+  await expect(page.locator('[data-activity-id="walk"]')).toBeVisible();
 });
 
-test('compact cards fit on a phone and can drag the first city directly to the last', async ({ page }) => {
+test('checkpoints fit on a phone and can drag the first city directly to the last without opening it', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 1000 });
   const ids = await setup(page);
   const before = await state(page);
-  const view = page.getByRole('group', { name: 'City card view', exact: true });
-  await view.getByRole('button', { name: 'Compact', exact: true }).focus();
-  await page.keyboard.press('Enter');
   await expect(visit(page, ids[3])).toBeInViewport();
-  await drag(page, visit(page, ids[0]).getByRole('button', { name: /^Drag visit/ }),
-    visit(page, ids[3]).locator('.route-visit-heading'));
+  await drag(page, visit(page, ids[0]).getByRole('button', { name: /^Drag checkpoint/ }),
+    visit(page, ids[3]).locator('.route-visit'));
   await expect.poll(() => order(page)).toEqual([ids[1], ids[2], ids[3], ids[0]]);
   const after = await state(page);
   expect(after.data.places).toEqual(before.data.places);
   expect(after.data.events).toEqual(before.data.events);
-  await expect(view.getByRole('button', { name: 'Compact', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#checkpoint-details')).toHaveCount(0);
   await expect(async () => {
-    await view.getByRole('button', { name: 'Details', exact: true }).click();
-    await expect(visit(page, ids[0]).locator('[data-activity-id="walk"]')).toBeVisible({ timeout: 250 });
+    await visit(page, ids[0]).locator('.checkpoint-open').click();
+    await expect(page.locator('[data-activity-id="walk"]')).toBeVisible({ timeout: 250 });
   }).toPass({ timeout: 5000 });
 });
 
-test('supports touch dragging city visits in compact mode', async ({ browser, baseURL }) => {
+test('supports touch dragging compact checkpoints', async ({ browser, baseURL }) => {
   const context = await browser.newContext({ baseURL, hasTouch: true, isMobile: true, viewport: { width: 390, height: 1000 } });
   try {
     const page = await context.newPage();
     const ids = await setup(page);
-    await page.getByRole('group', { name: 'City card view' }).getByRole('button', { name: 'Compact', exact: true }).tap();
-    const handle = visit(page, ids[0]).getByRole('button', { name: /^Drag visit/ });
+    const handle = visit(page, ids[0]).getByRole('button', { name: /^Drag checkpoint/ });
     const from = (await handle.boundingBox())!;
-    const to = (await visit(page, ids[3]).locator('.route-visit-heading').boundingBox())!;
+    const to = (await visit(page, ids[3]).locator('.route-visit').boundingBox())!;
     await expect(visit(page, ids[3])).toBeInViewport();
     const cdp = await context.newCDPSession(page);
     const point = (x: number, y: number) => [{ x, y, id: 1 }];
@@ -329,4 +376,98 @@ test('supports touch dragging city visits in compact mode', async ({ browser, ba
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect.poll(() => order(page)).toEqual([ids[1], ids[2], ids[3], ids[0]]);
   } finally { await context.close(); }
+});
+
+test('keeps checkpoint selection through resizing and restores focus after phone activity forms', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const ids = await setup(page);
+  const before = await state(page);
+  await visit(page, ids[1]).locator('.checkpoint-open').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: '2. Ghent', exact: true })).toBeFocused();
+  await openCheckpoint(page, ids[0]);
+  await expect(page.locator('.checkpoint-open[aria-expanded="true"]')).toHaveCount(1);
+  await expect(page.locator('[data-activity-id]')).toHaveCount(2);
+  await page.setViewportSize({ width: 390, height: 1000 });
+  const sheet = page.getByRole('dialog', { name: '1. Brussels', exact: true });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Close 1. Brussels', exact: true })).toBeFocused();
+  await sheet.getByRole('button', { name: '+ Add activity', exact: true }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByLabel('Title', { exact: true })).toBeFocused();
+  await page.getByLabel('Title', { exact: true }).fill('Discard this draft');
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole('button', { name: '+ Add activity', exact: true })).toBeFocused();
+  await sheet.locator('[data-activity-id="trail"]').getByRole('button', { name: 'Add to calendar', exact: true }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByLabel('Date', { exact: true })).toBeFocused();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(sheet.locator('[data-activity-id="trail"]').getByRole('button', { name: 'Add to calendar', exact: true })).toBeFocused();
+  await sheet.locator('[data-activity-id="walk"]').getByRole('button', { name: 'Move', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Move activity', exact: true }).getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(sheet.locator('[data-activity-id="walk"]').getByRole('button', { name: 'Move', exact: true })).toBeFocused();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('body')).toHaveCSS('overflow', 'visible');
+  await expect(page.getByRole('heading', { name: '1. Brussels', exact: true })).toBeFocused();
+  await page.setViewportSize({ width: 390, height: 1000 });
+  await expect(sheet).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(sheet).toHaveCount(0);
+  await expect(visit(page, ids[0]).locator('.checkpoint-open')).toBeFocused();
+  expect(await state(page)).toEqual(before);
+});
+
+test('keeps the selected checkpoint by ID when its route number changes', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const ids = await setup(page);
+  await openCheckpoint(page, ids[0]);
+  await drag(page, visit(page, ids[0]).getByRole('button', { name: /^Drag checkpoint/ }),
+    visit(page, ids[3]).locator('.route-visit'));
+  await expect.poll(() => order(page)).toEqual([ids[1], ids[2], ids[3], ids[0]]);
+  await expect(page.locator('#checkpoint-details')).toHaveAttribute('data-checkpoint-id', ids[0]);
+  await expect(page.getByRole('heading', { name: '4. Brussels', exact: true })).toBeVisible();
+  await expect(page.locator('[data-activity-id]')).toHaveCount(2);
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Undo move', exact: true }).click();
+    await expect(page.getByRole('heading', { name: '1. Brussels', exact: true })).toBeVisible({ timeout: 250 });
+  }).toPass({ timeout: 5000 });
+});
+
+test('saves an idea into the selected return checkpoint without merging same-name checkpoints', async ({ page }) => {
+  const ids = await setup(page);
+  await openCheckpoint(page, ids[3]);
+  await page.getByText('Activity ideas', { exact: true }).click();
+  await page.getByRole('button', { name: 'Save suggestion: Grand Place', exact: true }).click();
+  await expect(page.locator('#checkpoint-details').getByRole('heading', { name: 'Grand Place', exact: true })).toBeVisible();
+  await expect(visit(page, ids[0]).locator('.checkpoint-count')).toHaveText('2 activities');
+  await expect(visit(page, ids[3]).locator('.checkpoint-count')).toHaveText('2 activities');
+  const saved = (await state(page)).data.places.find(place => place.title === 'Grand Place');
+  expect(saved?.cityId).toBe(ids[3]);
+  await page.getByText('Find an activity', { exact: true }).click();
+  await page.getByLabel('Search activities', { exact: true }).fill('Not in this checkpoint');
+  await expect(page.locator('#checkpoint-details')).toContainText('No matching activities in this checkpoint.');
+  await expect(visit(page, ids[3]).locator('.checkpoint-count')).toHaveText('2 activities');
+});
+
+test('handles 30 checkpoints and a long city name without sideways scrolling', async ({ page }) => {
+  await setup(page);
+  for (let i = 4; i < 30; i++) {
+    await command(page, { type: 'visit.add', visit: { id: `limit-${i}`,
+      name: i === 29 ? 'A long checkpoint name with a very long unbroken suffix '.padEnd(100, 'x') : `Checkpoint ${i + 1}`,
+    }, beforeId: null });
+  }
+  await page.reload(); await places(page);
+  await expect(page.getByRole('button', { name: '+ Add checkpoint', exact: true })).toBeDisabled();
+  await expect(page.locator('[data-visit-id]')).toHaveCount(30);
+  await expect(page.locator('.route-insert:enabled')).toHaveCount(0);
+  for (const width of [320, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
+    await expect(visit(page, 'limit-29').locator('.checkpoint-count')).toHaveText('0 activities');
+  }
+  await openCheckpoint(page, 'limit-29');
+  await expect(page.locator('#checkpoint-details')).toContainText('No activities yet.');
+  await expect(page.getByRole('button', { name: '+ Add activity', exact: true })).toBeEnabled();
 });

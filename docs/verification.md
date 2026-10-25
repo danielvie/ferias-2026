@@ -343,6 +343,23 @@ Keyboard collision detection retains the active visit, following the standard so
 
 The live Deno/PostgreSQL preview was inspected on desktop and phone, including the move popup and its axe check, without saving changes to its sample plans. The backend command contract and database schema did not change in this iteration, so native database and managed Edge-runtime suites were not rerun. Nothing was pushed or deployed.
 
+### Alternating checkpoint route, design 2
+
+The owner selected option 2 in `checkpoint-route-directions.excalidraw` after rejecting the horizontal route's space use. Places now uses always-compact checkpoints alternating down a vertical zig-zag. Each shows its number, city and activity count, including zero. The Compact/Details toggle and horizontal route scrolling are removed. Clicking one checkpoint opens its activities beside the route at desktop widths, or in a native bottom sheet below 1000px.
+
+Selection follows the checkpoint ID through reordering and live resizing. Close restores focus to the checkpoint; opening and cancelling existing activity forms returns to the source control, including after the phone sheet is recreated. Search, category/status filters and suggestions belong to the selected checkpoint and do not change route counts. Suggestions can save into a return checkpoint without merging it with the first visit. Moves open their destination; Undo opens the original checkpoint. The phone sheet includes Undo because its backdrop makes the page-level action unavailable.
+
+Final checks passed:
+
+- `npm run build`, including TypeScript.
+- `npm test`: 102 tests across 21 files.
+- `PLAYWRIGHT_PORT=5197 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH='C:/Program Files/Google/Chrome/Application/chrome.exe' VITE_BACKEND=sqlite npm run test:e2e`: all 36 Chromium workflows. This includes 15 checkpoint workflows and 21 itinerary/settings/sharing regressions.
+- Closed and open states at 320/768/1024/1440px, axe WCAG A/AA checks, no document overflow, and no trip writes from selection/closing/resizing. Selected checkpoint counts use the darker secondary navigation color to meet contrast on the blue fill.
+- Pointer, keyboard and touch reordering; stable selection after renumbering; empty and repeated checkpoints; count updates; filters; activity Move/Cancel, position, retry, Undo and unchanged booked times; read-only access; 30 checkpoints and a 100-character wrapping city name.
+- Live local Deno/PostgreSQL preview on 5187: desktop details, phone sheet, Move/Cancel and Escape/focus. Axe reported no violations in the checked desktop/phone details states. The inspection made no POST requests after loading the trip and produced no browser errors. Screenshots were inspected.
+
+The backend command contract and database schema are unchanged. Native database/concurrency and managed Edge-runtime suites were not repeated for this UI change. Existing local services and sample trip data were left intact. No hosted migration, push or deployment was performed.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

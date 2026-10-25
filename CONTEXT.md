@@ -6,7 +6,7 @@ A shared trip brings together the plans and practical details for a group visiti
 
 **Trip**: A named journey with dates, an ordered route of city visits, and invited members.
 
-**City visit**: One stop on the route with its own activities. A trip can visit the same city more than once.
+**Checkpoint**, also called a **city visit**: One stop on the route with its own activities. A trip can visit the same city more than once, as separate checkpoints.
 _Avoid_: Treating a city name as the identity of a visit.
 
 **Trip member**: A named role in a trip, reached through a private member link. It is not a verified personal account.

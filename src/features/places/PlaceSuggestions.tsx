@@ -2,13 +2,13 @@ import { useRef, useState } from 'react';
 import { useTrip } from '../../app/TripContext';
 import { newPlace, suggestionCity, suggestions } from './suggestions';
 
-export function PlaceSuggestions({ formOpen }: { formOpen: boolean }) {
+export function PlaceSuggestions({ formOpen, cityId }: { formOpen: boolean; cityId: string }) {
   const { snapshot, canEdit, busy, command } = useTrip();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const submitting = useRef(false);
   const available = suggestions.flatMap(suggestion => {
-    const city = suggestionCity(suggestion, snapshot.data.trip.cities);
+    const city = suggestionCity(suggestion, snapshot.data.trip.cities.filter(city => city.id === cityId));
     if (!city || snapshot.data.places.some(place => place.cityId === city.id &&
       place.title.trim().toLowerCase() === suggestion.title.toLowerCase())) return [];
     return [{ suggestion, city }];

@@ -58,12 +58,12 @@ export function PlaceForm({ initial, editing, onClose }: {
                 onChange={event => patch({ title: event.target.value })} />
             </div>
             <div className="field">
-              <label htmlFor={`${id}-city`}>City visit</label>
+              <label htmlFor={`${id}-city`}>Checkpoint</label>
               <select id={`${id}-city`} name="cityId" required value={draft.cityId}
                 onChange={event => patch({ cityId: event.target.value })}>
                 {snapshot.data.trip.cities.map(city => <option key={city.id} value={city.id}>{visitLabel(snapshot.data.trip.cities, city.id)}</option>)}
               </select>
-              <small>Changing visits keeps scheduled dates and times. Check the activity's address before moving it to another city.</small>
+              <small>Changing checkpoints keeps scheduled dates and times. Check the activity's address before moving it to another city.</small>
             </div>
           </div>
           <div className="form-grid">

@@ -10,6 +10,8 @@ The agreed reference is `places-route-exploration.excalidraw`. Places becomes an
 
 Later owner feedback replaces activity drag-and-drop with a contextual Move popup and adds Compact/Details city-card views. Long-distance activity drags are awkward when the destination is far down the route.
 
+The owner then rejected the horizontal layout's space use and selected option 2 in `checkpoint-route-directions.excalidraw`. This replaces the Compact/Details toggle with a compact alternating vertical route and click-open details. The UI calls each city visit a checkpoint; this is the same entity, not another domain record.
+
 Existing trips already have stable city and place IDs. Calendar entries, notes and family selections refer to those IDs. Replacing those entities would lose context or require a migration of every reference.
 
 ## Decision
@@ -24,7 +26,11 @@ Moving an activity also updates the visit reference on its linked calendar entri
 
 Use main's stable-ID city rows in the trip settings pane. Remove the obsolete comma-separated name reconciliation; repeated names are allowed and each row keeps its own ID. Repeated visits are labelled with their route stop number in selectors.
 
-Use dnd-kit core 6.3.1 and sortable 10.0.0 for city visits only, with stable IDs, handle-only pointer activation, touch support, keyboard sensors and a drag overlay. Details is the default local view. Compact shows only the city name, route number, drag handle and city menu. Activity filters and suggestions are hidden, and active filters are cleared, to keep route reordering available without hidden constraints. Changing the view does not write trip data.
+Use dnd-kit core 6.3.1 and sortable 10.0.0 for city visits only, with stable IDs, handle-only pointer activation, touch support, keyboard sensors and a drag overlay. The initial Details/Compact views are superseded by the selected checkpoint layout.
+
+Keep every checkpoint compact and alternate its position down a vertical zig-zag. Show the city name, route number, total visible activity count, handle and menu. Use the vertical-list sorting strategy and Up/Down keyboard moves; visual alternation does not change the underlying list order. Clicking the body selects one checkpoint by ID. Desktop details open beside the route, with a capped row offset and sticky panel so a long route remains usable. Below 1000px, reuse the native modal sheet. Resize without losing selection, return focus on close, and temporarily replace the sheet when opening existing edit/scheduling forms or the Move popup.
+
+Activity filters and ideas live inside the selected checkpoint. Filters do not affect counts, hide checkpoints or block route reordering. Ideas save to that checkpoint, including a return to the same city. Successful activity moves select the destination; undo selects the original checkpoint. Selection and disclosure do not write trip data.
 
 Activities have a Move button instead of a drag handle or drop area. Reuse the native modal pane to show the activity's source visit, an ordered destination list with stop numbers, and its position before another activity or at the end. This also supports reordering within the current visit. A different-city warning asks the traveler to check addresses and bookings. The popup states that calendar dates and times stay unchanged. Failed/conflicting saves retain the destination and position for review and retry.
 
@@ -33,7 +39,7 @@ Move undo sends the inverse narrow command. It is available only while the resul
 ## Alternatives
 
 - A second activity collection would duplicate the existing place identity and split notes, calendar links and sharing permissions. Rejected.
-- A geographic map would suggest dragging coordinates rather than editing sequence. Use a connected ordered path, horizontal on desktop and vertical on phones.
+- A geographic map would suggest dragging coordinates rather than editing sequence. Use a connected ordered path. The earlier horizontal desktop layout was rejected for wasted space and sideways scrolling; the selected vertical zig-zag grows down the page.
 - Automatically shifting calendar dates would silently change bookings. Keep scheduling explicit.
 - Native HTML drag-and-drop would need a separate touch interaction. Use the existing React state model with a small pinned drag library rather than maintaining pointer geometry and keyboard handling ourselves.
 
@@ -51,6 +57,8 @@ Local checkouts can isolate browser tests with `PLAYWRIGHT_PORT`. A separate Den
 
 - https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key
 - https://docs.dndkit.com/presets/sortable
+- https://docs.dndkit.com/presets/sortable#sorting-strategies
 - https://docs.dndkit.com/api-documentation/sensors/pointer#touch-action
 - https://docs.dndkit.com/api-documentation/context-provider/collision-detection-algorithms
+- https://developer.mozilla.org/en-US/docs/Web/API/MediaQueryList/change_event
 - https://docs.deno.com/api/deno/~/Deno.serve

@@ -50,16 +50,16 @@ export function MoveActivityForm({ place, onClose, onMoved }: {
     <fieldset className="places-form-fields stack" disabled={busy || saving || !canEdit}>
       <legend className="visually-hidden">Activity destination</legend>
       <div className="field">
-        <label htmlFor={`${id}-visit`}>Destination visit</label>
+        <label htmlFor={`${id}-visit`}>Destination checkpoint</label>
         <select id={`${id}-visit`} value={cityId} required autoFocus onChange={event => {
           setCityId(event.target.value); setBeforeId(null);
         }}>
-          {!destination && <option value={cityId} disabled>Visit no longer available</option>}
+          {!destination && <option value={cityId} disabled>Checkpoint no longer available</option>}
           {trip.cities.map((city, index) => <option key={city.id} value={city.id}>
-            {index + 1}. {city.name}{city.id === current?.cityId ? ' / current visit' : ''}
+            {index + 1}. {city.name}{city.id === current?.cityId ? ' / current checkpoint' : ''}
           </option>)}
         </select>
-        <small>{destinationActivities.length} {destinationActivities.length === 1 ? 'other activity' : 'other activities'} in this visit.</small>
+        <small>{destinationActivities.length} {destinationActivities.length === 1 ? 'other activity' : 'other activities'} in this checkpoint.</small>
       </div>
       <div className="field">
         <label htmlFor={`${id}-position`}>Position</label>
@@ -71,15 +71,15 @@ export function MoveActivityForm({ place, onClose, onMoved }: {
             Before {index + 1}. {activity.title}
           </option>)}
         </select>
-        {missingPosition && <small>Choose a new position in this visit.</small>}
+        {missingPosition && <small>Choose a new position in this checkpoint.</small>}
       </div>
       {differentCity && <div className="places-warning">
         This is a different city. Check the activity's address and bookings before moving it.
         {place.address && <p>Address stays: {place.address}</p>}
       </div>}
-      <p className="muted">{scheduled ? `${scheduled} calendar ${scheduled === 1 ? 'plan follows' : 'plans follow'} this activity to the destination visit. ` : ''}
+      <p className="muted">{scheduled ? `${scheduled} calendar ${scheduled === 1 ? 'plan follows' : 'plans follow'} this activity to the destination checkpoint. ` : ''}
         Scheduled dates and times stay unchanged. Details, notes and links stay attached.</p>
-      {unchanged && <p className="fine-print">Choose another visit or a different position to move this activity.</p>}
+      {unchanged && <p className="fine-print">Choose another checkpoint or a different position to move this activity.</p>}
       {error && <p className="inline-error" role="alert">{error}</p>}
       <div className="actions">
         <button className="button" type="submit" disabled={!current || !destination || missingPosition || unchanged}>

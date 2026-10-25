@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { closestCenter, DndContext, DragOverlay, KeyboardSensor, PointerSensor, pointerWithin,
   useSensor, useSensors, type CollisionDetection, type DragEndEvent } from '@dnd-kit/core';
-import { rectSortingStrategy, SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { verticalListSortingStrategy, SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { Place } from '../../../shared/model';
 import { routeDateConflicts } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
@@ -24,8 +24,8 @@ const collisionDetection: CollisionDetection = args => {
   return args.pointerCoordinates ? pointerWithin(args) : closestCenter(args);
 };
 
-export function RouteBoard({ places, compact, disabled, reorderingDisabled, actions }: {
-  places: Place[]; compact: boolean; disabled: boolean; reorderingDisabled: boolean; actions: RouteActions;
+export function RouteBoard({ places, selectedId, disabled, actions, onSelect }: {
+  places: Place[]; selectedId: string | null; disabled: boolean; actions: RouteActions; onSelect: (id: string) => void;
 }) {
   const { snapshot, canEdit } = useTrip();
   const { trip, events } = snapshot.data;
@@ -38,7 +38,7 @@ export function RouteBoard({ places, compact, disabled, reorderingDisabled, acti
 
   function drop({ active: dragged, over }: DragEndEvent) {
     setActiveId(null);
-    if (!over || reorderingDisabled || !canEdit || dragged.id === over.id) return;
+    if (!over || disabled || !canEdit || dragged.id === over.id) return;
     const source = dragged.data.current;
     const target = over.data.current;
     if (!source || !target) return;
@@ -53,11 +53,11 @@ export function RouteBoard({ places, compact, disabled, reorderingDisabled, acti
   return <DndContext sensors={sensors} collisionDetection={collisionDetection}
     onDragStart={({ active }) => setActiveId(active.data.current?.id)}
     onDragCancel={() => setActiveId(null)} onDragEnd={drop}>
-    <ol id="places-route" className={`places-route${compact ? ' places-route-compact' : ''}`} aria-label="City visits in route order">
-      <SortableContext items={trip.cities.map(city => `visit:${city.id}`)} strategy={rectSortingStrategy}>
+    <ol id="places-route" className="places-route" aria-label="Checkpoints in route order">
+      <SortableContext items={trip.cities.map(city => `visit:${city.id}`)} strategy={verticalListSortingStrategy}>
         {trip.cities.map((city, index) => <CityVisitCard key={city.id} city={city} index={index}
-          places={places.filter(place => place.cityId === city.id)} compact={compact} disabled={disabled}
-          reorderingDisabled={reorderingDisabled} conflict={conflicts.includes(city.id)} actions={actions} />)}
+          activityCount={places.filter(place => place.cityId === city.id).length} selected={selectedId === city.id}
+          disabled={disabled} conflict={conflicts.includes(city.id)} actions={actions} onSelect={onSelect} />)}
       </SortableContext>
     </ol>
     <DragOverlay dropAnimation={null}>{activeId && <div className="route-drag-preview">{activeTitle}</div>}</DragOverlay>
