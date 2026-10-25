@@ -9,11 +9,13 @@ A shared trip brings together the plans and practical details for a group visiti
 **Checkpoint**, also called a **city visit**: One stop on the route with its own activities. A trip can visit the same city more than once, as separate checkpoints.
 _Avoid_: Treating a city name as the identity of a visit.
 
-**Trip member**: A named role in a trip, reached through a private member link. It is not a verified personal account.
+**Trip member**: A named participant with a stable identity and role within a trip. Joining through the trip join link creates a new member. It is not a verified personal account.
 
 **Member name**: A member's editable display label. Renaming a member does not make them a different member, and two members can have the same name.
 
 **Change history**: A record of who added, changed or removed trip data, under the name they used at the time. Recording an action does not mean that member paid for it or owes its cost.
+
+**Trip join link**, also called a **trip invitation link**: A reusable URL allowing each visitor to enter a name and join as an editor. People use the same invitation but get separate member identities. It does not reopen an existing member merely because their name matches.
 
 **Member link**: A private URL granting its holder a particular trip role. People sharing the same member link share that member's identity and access.
 
@@ -32,7 +34,7 @@ _Avoid_: Using "place" for a scheduled appointment.
 
 **Departure checklist**: Checks to resolve before one transfer. Each transfer starts unchecked, independently of earlier transfers.
 
-**Private note**: A note only its author's member identity can read, even if another member owns the trip. Anyone holding that same member link shares this access.
+**Private note**: A note only its author's member identity can read, even if another member owns the trip. Joining through the common trip join link does not grant another member's private notes. Anyone holding an identity-specific member link shares that identity's access.
 
 **Shared note**: A note visible to trip members. Family links do not include notes.
 

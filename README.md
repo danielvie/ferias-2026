@@ -42,7 +42,22 @@ For local Supabase, run `task db:migrate` to apply the repeat-city migration wit
 
 ## Trip access
 
-Save the private owner recovery link shown after creation. It is the way back from another browser or after signing out. Do not send it to other travelers. Use **Share** to create editor, viewer or family invitation links instead.
+Open **Share** and click **Copy link**. Send the same invitation link to everyone.
+Each traveler enters their own name and clicks **Join trip**, then can edit plans,
+write notes and use checklists. There are no accounts or permission choices.
+The invitation does not expire, and Share shows the same link whenever you return.
+Owners and editors can both copy it.
+
+Each join creates a distinct member identity. Returning on a remembered browser
+reuses that identity; joining on a new browser creates another one, even with the
+same name. Names are labels, not identity recovery. Private notes remain with
+their author. Old identity-specific viewer/family/member links still work.
+
+Private owner recovery is separate, under **Settings → Private owner recovery**.
+The initial owner link is available there while its creation page remains open;
+online owners can replace a lost owner link from an active owner session.
+Do not share that identity-specific link as the group invitation. There is no
+mandatory save-link banner or confirmation in the normal creation/sharing flow.
 
 The root page automatically reopens the last trip used in this browser. **Trips**
 lists previously opened trips and lets you switch, open another link or create
@@ -71,8 +86,9 @@ IDs and the group tying automatic related changes to the same write.
 History starts with this feature; older actions have no invented attribution.
 Earlier records retain the name used at the time. Private-note history is restricted
 to its author, including earlier records when a shared note becomes private.
-Family links cannot read history. Use a separate private link for each person:
-sharing a link means sharing an identity.
+Family links cannot read history. The common trip invitation creates separate
+identities, so edits are credited to the person who joined under that name.
+Legacy private member links still share one identity if passed to another person.
 
 This feature does not add payments or calculate balances. The member entering a
 future expense must be distinguished from its payer and beneficiaries.

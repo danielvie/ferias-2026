@@ -132,6 +132,31 @@ SQLite requires the matching Node API and frontend together. Its selected cookie
 protocol keeps credentials HttpOnly; do not serve the new client against an old
 API that does not understand trip selection.
 
+## Simple-sharing rollout
+
+This feature is implemented locally, not deployed. It requires
+`20260717000600_simple_sharing.sql`, the matching Edge handler and frontend.
+ADR-009 records the deliberate retrievable-token and trusted-group policy.
+
+After approval of the target and deployment, apply the additive migration after
+the preceding migrations, deploy `trip-api`, then publish the frontend. No trip
+needs recreating. The first owner/editor visit to Share creates its stable join
+link without changing existing membership or content.
+
+Verify Share can copy the same link after reload, two new browsers join under
+separate identities, editing works, private notes remain separate, and remembered
+return reuses the same member. Check old owner/viewer/family links as well.
+Private owner recovery is now under Settings, not ordinary Share.
+
+For isolated native validation without migrating the shared local database:
+
+```sh
+TRIP_TEST_GREP='simple sharing|remembered' node scripts/test-attribution.mjs
+```
+
+Rollback the UI/API together while keeping the additive join-links table and new
+member/session/history rows. Do not delete memberships to undo a UI change.
+
 ## 4. Create the online trip, then close creation
 
 Creation is disabled by default. In the hosted project's SQL editor, after backend deployment:
@@ -140,7 +165,10 @@ Creation is disabled by default. In the hosted project's SQL editor, after backe
 update trip_private.settings set creation_enabled = true where singleton;
 ```
 
-Open the Pages website, add trip details, and save the one-time owner link securely. Create a different invitation for each traveler. Test an editor and family link on another browser/device before sharing widely.
+Open the Pages website and add trip details. Open Share, copy its invitation and
+send the same link to the group. Travelers enter their own names and join as
+editors. Test on another browser/device before sharing widely. Optional private
+owner recovery is separate under Settings.
 
 After the intended trip is created, disable public creation:
 
@@ -148,7 +176,11 @@ After the intended trip is created, disable public creation:
 update trip_private.settings set creation_enabled = false where singleton;
 ```
 
-Existing links, edits, invitations and owner recovery continue working. There is no sign-in, payment flow or email recovery. A lost/exposed link can be replaced from an active owner session in **Share**. Replacement preserves note ownership and invalidates the old link and its sessions.
+Existing links, editing and name-only joining continue working when trip creation
+is disabled. There is no sign-in, payment flow or email recovery. A private owner
+link can be replaced from an active owner session in **Settings → Private owner
+recovery**. Replacement preserves the owner identity and invalidates its old
+link/sessions; it does not replace the common invitation.
 
 Private notes are separated by link identity, not verified person. An owner who retains or replaces a member link can act as that member. Trust the link issuer and project administrator with personal notes; this model does not provide end-to-end privacy against them.
 
@@ -163,7 +195,10 @@ Private notes are separated by link identity, not verified person. An owner who 
 
 ## Private manual backups and restore
 
-Free automatic backups are not assumed. Before the trip and important changes, save a manual export to an encrypted/private location, never Git or Pages. This export contains private notes and credential hashes.
+Free automatic backups are not assumed. Before the trip and important changes,
+save a manual export to an encrypted/private location, never Git or Pages. This
+export contains private notes, credential hashes and the retrievable common join
+credential.
 
 After securely linking the intended hosted project:
 
@@ -172,7 +207,13 @@ mkdir -p data
 npx --no-install supabase db dump --linked --data-only --use-copy --schema trip_private --exclude trip_private.sessions,trip_private.request_limits,trip_private.settings --file data/trip-backup.sql
 ```
 
-The file is ignored by Git, but it still needs private storage and a separate protected copy. Excluding sessions makes recipients reopen their private links after a restore. Excluding settings leaves new creation disabled on a fresh installation.
+The file is ignored by Git, but still needs private storage and a separate
+protected copy. Excluding sessions makes legacy recipients reopen their private
+member links after restore. Self-joined travelers do not retain such a link:
+the common invitation would create a new identity, not recover their old private
+notes. A session-preserving backup/recovery procedure needs separate review if
+that recovery is required. Excluding settings leaves new creation disabled on a
+fresh installation.
 
 Restore into a new, empty, approved project/database: apply the same migrations first, then import the private data dump with secure database tooling. Do not reset or truncate the live project as a shortcut. Check stable note authorship and links, then rotate exposed links and verify permissions before any cutover.
 

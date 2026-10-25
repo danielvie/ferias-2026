@@ -6,6 +6,9 @@ Accepted for the Supabase online target. Database, Edge API and browser integrat
 
 ADR-008 supersedes the expiring, tab-only session policy below. Link-only
 identities, role enforcement, private-note ownership and revocation still apply.
+ADR-009 supersedes normal per-recipient invitations and the hash-only policy
+specifically for the new common trip join credential. Legacy private member and
+owner links remain identity-specific and hashed.
 
 ## Context
 

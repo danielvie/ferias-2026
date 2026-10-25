@@ -5,6 +5,7 @@
 Approved by the owner in this thread. This replaces the normal per-recipient
 invitation workflow, not the remembered-trips feature. Implementation and
 focused verification are authorized; publication and deployment are not.
+The implementation is in the worktree; evidence is in `docs/verification.md`.
 
 ## Objective
 
@@ -67,8 +68,8 @@ over one-time secret display and per-recipient invitation management.
 - **Member link** and **owner link** retain their existing identity-specific
   meaning for compatibility. They are not the common invitation link.
 
-Update `CONTEXT.md` and record the access-policy change in a new ADR when this
-scope is approved. Unlike the current hash-only member-link policy, the common
+`CONTEXT.md` and ADR-009 record the changed access model.
+Unlike the previous hash-only member-link policy, the common
 join credential must be retrievable so Share can show it repeatedly. This does
 not authorize storing retrievable private owner/member links.
 

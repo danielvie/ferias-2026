@@ -131,7 +131,11 @@ online acceptance tasks above.
 - [x] S3. Browser transport and remembered-identity reuse for join links.
   Verify API tests, failed exchanges and no duplicate return membership.
   All 25 related API/registry tests and TypeScript pass. Depends on S1–S2.
-- [ ] S4. Compact Share, name-only Join trip and separate owner recovery.
-  Verify rendering, production build and SQLite browser flows. Depends on S3.
-- [ ] S5. Isolated native online/browser acceptance, responsive accessibility,
-  documentation and final diff review. Depends on S4. Do not push or deploy.
+- [x] S4. Compact Share, name-only Join trip and separate owner recovery.
+  Rendering/build checks, 27 related SQLite workflows and 12 native online
+  workflows pass. No save-link banner remains in normal creation/sharing.
+- [x] S5. Isolated native online/browser acceptance, responsive accessibility,
+  documentation and final diff review. All 71 focused unit/API tests, build and
+  Edge typecheck pass. Checked Share/Join at 320/768/1024/1440 pixels with axe
+  and inspected masked screenshots. The running shared local database still
+  needs migration 006 before using this feature. No push or hosted deployment.

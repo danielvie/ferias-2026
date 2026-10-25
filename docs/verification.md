@@ -425,6 +425,67 @@ Supabase database was not migrated. Full suites and separate native
 pgTAP/concurrency checks were not run; the managed Edge sandbox, hosted deployment
 and physical-device acceptance were not repeated. No real trip data were changed.
 
+## One reusable trip invitation
+
+Implemented `docs/simple-sharing-spec.md`. Share shows the same common invitation
+whenever an owner/editor returns. Travelers enter their own names and receive
+separate editor identities. Remembered return reuses an existing identity, while
+new browsers do not recover identities by matching names.
+
+The common join credential is retrievable by design. Private owner/member links
+and derived sessions remain separate. Normal creation and Share no longer show
+the one-time owner-link banner or per-recipient invitation controls. Optional
+private owner recovery is collapsed under Settings. ADR-009 records the policy.
+
+Final source checks passed:
+
+```sh
+npm test -- tests/server.test.ts tests/online-api.test.ts src/app/api.test.ts src/app/remembered-trips.test.ts src/features/sharing/SharingPage.test.tsx
+npm run build
+npx --no-install deno check supabase/functions/trip-api/index.ts
+git diff --check
+```
+
+The focused suite passes 71 tests, including persisted SQLite links, distinct
+same-name members, invalid-name/token rejection, privacy and trusted attribution,
+actual PostgreSQL migration/API execution, direct-table/RPC privilege denial,
+legacy access, and remembered/legacy-session adoption without duplicate joining.
+
+The following exact browser checks passed with installed Chrome:
+
+```sh
+DEBUG=pw:webserver PLAYWRIGHT_PORT=5197 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH='C:/Program Files/Google/Chrome/Application/chrome.exe' VITE_BACKEND=sqlite npm run test:e2e -- tests/e2e/simple-sharing.spec.ts tests/e2e/remembered-trips.spec.ts tests/e2e/trip.spec.ts --grep 'simple sharing|legacy family sharing|delayed shared invitation|remember|resumes|switch|forgets|Exit forgets|explicit member links|draft|access|storage' --trace off --max-failures=1
+TRIP_TEST_GREP='simple sharing|remembered' PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH='C:/Program Files/Google/Chrome/Application/chrome.exe' node scripts/test-attribution.mjs
+```
+
+- 27 related SQLite workflows pass. They cover seven new sharing/join workflows,
+  all 13 remembered-access workflows, and seven related draft/settings/header/
+  legacy-family regressions.
+- 12 online workflows pass at `/ferias-2026/`, including the same seven sharing
+  workflows plus remembered roles/privacy/revocation, owner recovery in Settings,
+  trip switching and independent tab writes.
+- Actual clipboard readback, selectable manual-copy fallback, repeated copying
+  after reload, pasted invitations, protected drafts, pending-submit locking,
+  name preservation/retry and another trip's saved access are covered.
+- Share and Join pass axe WCAG A/AA checks and no document overflow at
+  320/768/1024/1440 pixels. Masked phone/desktop screenshots were inspected.
+- The online fixture uses fresh native PostgreSQL migrations, PostgREST and the
+  standalone Deno entry point. Its database, role and REST container were removed
+  afterward. It does not migrate the shared local app database.
+
+Initial browser attempts exposed test-fixture assumptions rather than new
+application failures: a membership change correctly caused a stale-write conflict,
+an accepted draft remained protected when opening another pane, and a delayed
+intercept needed to finish before removing its route. Those tests now explicitly
+exercise the intended behavior. Two runs also lost their local dev-server
+connection; the final sequential runs above completed without retries.
+
+Only related checks were run. Full suites, separate native pgTAP/concurrency
+checks, managed Edge sandbox, physical devices and hosted rollout were not run.
+The existing shared local app still needs migration 006 and its matching API
+before trying the new Share screen. No real trip content, shared local schema,
+hosted service, source remote or deployment was changed for this implementation.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.
