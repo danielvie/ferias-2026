@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { CreateTripInput, TripCommand, TripSnapshot } from '../../shared/model';
-import { api, ApiError, tripLink } from './api';
+import { api, ApiError, rememberedTrips, tripLink } from './api';
+import { tripIdentity } from './remembered-trips';
 
 export function useTripSession() {
   const [snapshot, setSnapshot] = useState<TripSnapshot | null>(null);
@@ -9,10 +10,25 @@ export function useTripSession() {
   const [error, setError] = useState('');
   const [recoveryLink, setRecoveryLink] = useState('');
   const [pendingAccess, setPendingAccess] = useState('');
+  const [accessLost, setAccessLost] = useState(false);
+  const saved = useSyncExternalStore(rememberedTrips.subscribe, rememberedTrips.getSnapshot);
   const locked = useRef(false);
   const generation = useRef(0);
   const current = useRef(snapshot);
   current.current = snapshot;
+
+  function opened(next: TripSnapshot) {
+    setAccessLost(false);
+    setSnapshot(next);
+  }
+
+  useEffect(() => {
+    if (snapshot && !saved.activeId && rememberedTrips.capture().credential === '') {
+      generation.current += 1;
+      setAccessLost(true);
+      setError('This access was forgotten, signed out or revoked. Your open draft is kept, but saving is disabled. Use Trips to continue.');
+    }
+  }, [saved.activeId, snapshot]);
 
   const refresh = useCallback(async () => {
     if (locked.current) return;
@@ -25,8 +41,8 @@ export function useTripSession() {
     } catch (cause) {
       if (generation.current !== startedAt) return;
       if (cause instanceof ApiError && cause.status === 401) {
-        setSnapshot(null);
-        setError('This session has expired or its invitation was revoked. Open a valid trip link to continue.');
+        setAccessLost(true);
+        setError('This access is no longer valid. Open a valid trip link from Trips to continue.');
       } else setError('Could not refresh the trip. Check your connection and try again.');
     }
   }, []);
@@ -46,7 +62,7 @@ export function useTripSession() {
     }
     const initial = token ? api.join(token) : api.load();
     void initial.then((next) => {
-      setSnapshot(next);
+      opened(next);
       setPendingAccess('');
     }).catch((cause: unknown) => {
       if (cause instanceof ApiError && cause.status === 401) setPendingAccess('');
@@ -92,22 +108,47 @@ export function useTripSession() {
       if (cause instanceof ApiError && cause.status === 409) {
         try { setSnapshot(await api.load()); } catch { /* Preserve the original conflict message. */ }
         setError('Someone changed the trip while you were editing. The latest plan is loaded. Your form is kept; review it and save again.');
-      } else if (cause instanceof ApiError && cause.status === 401) {
-        setSnapshot(null);
+      } else if (cause instanceof ApiError && cause.status === 401 && cause.sessionExpired) {
+        setAccessLost(true);
         setError('Your access is no longer valid. Open a current trip link to continue.');
       } else setError(cause instanceof Error ? cause.message : 'Could not save. Please try again.');
       return false;
     } finally { locked.current = false; setBusy(false); }
   }
 
+  async function forget(id?: string) {
+    if (locked.current) return false;
+    locked.current = true;
+    generation.current += 1;
+    setBusy(true);
+    setError('');
+    try {
+      if (id) await api.forget(id);
+      else await api.logout();
+    } catch {
+      setError('Saved access was removed from this browser. The server sign-out could not be confirmed; check your connection.');
+    } finally {
+      if (!id || (current.current && tripIdentity(current.current) === id)) {
+        setSnapshot(null);
+        setRecoveryLink('');
+        setPendingAccess('');
+        setAccessLost(false);
+      }
+      locked.current = false;
+      setBusy(false);
+    }
+    return true;
+  }
+
   return {
-    snapshot, loading, busy, error, recoveryLink, pendingAccess,
+    snapshot, loading, busy, error, recoveryLink, pendingAccess, accessLost,
+    remembered: saved.entries, storageWarning: saved.warning,
     dismissError: () => setError(''),
     dismissRecovery: () => setRecoveryLink(''),
     refresh,
     create: async (input: CreateTripInput) => {
       return run(() => api.create(input), (result) => {
-        setSnapshot(result.snapshot);
+        opened(result.snapshot);
         setPendingAccess('');
         setRecoveryLink(tripLink(result.ownerToken));
       });
@@ -120,18 +161,20 @@ export function useTripSession() {
           if (cause instanceof ApiError && cause.status === 401) setPendingAccess('');
           throw cause;
         }
-      }, (next) => { setSnapshot(next); setPendingAccess(''); setRecoveryLink(''); });
+      }, (next) => { opened(next); setPendingAccess(''); setRecoveryLink(''); });
     },
+    resume: (id: string) => run(() => api.resume(id), next => {
+      opened(next); setPendingAccess(''); setRecoveryLink('');
+    }),
     command: (command: TripCommand) => {
-      if (!current.current) return Promise.resolve(false);
+      if (!current.current || accessLost) return Promise.resolve(false);
       return run(() => api.command(current.current!.revision, command), setSnapshot);
     },
     rename: (name: string) => {
-      if (!current.current) return Promise.resolve(false);
+      if (!current.current || accessLost) return Promise.resolve(false);
       return run(() => api.profile(current.current!.session.name, name), setSnapshot);
     },
-    logout: async () => {
-      await run(() => api.logout(), () => { setSnapshot(null); setRecoveryLink(''); });
-    },
+    forget,
+    logout: () => forget(snapshot ? tripIdentity(snapshot) : undefined),
   };
 }
