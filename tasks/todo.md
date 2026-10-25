@@ -116,3 +116,22 @@ hosted deployment is not authorized.
   Build, Edge types, 56 focused tests, 13 remembered-trip browser workflows,
   two Places regressions and five isolated online browser workflows pass.
   Chrome profile restart and responsive screenshots verified. Not deployed.
+
+## Simple trip sharing
+
+Approved scope: `docs/simple-sharing-spec.md`. Preserve the unrelated pending
+online acceptance tasks above.
+
+- [ ] S1. Reusable SQLite join link, preview and distinct editor registration.
+  Verify stable links across restarts, validation, attribution and private notes
+  with `npm test -- tests/server.test.ts`. Depends on no new task.
+- [ ] S2. Additive Supabase storage/routines and Edge endpoints with parity.
+  Verify actual migrations and privileges using `tests/online-api.test.ts`,
+  plus the Edge typecheck. Depends on S1's public contract.
+- [ ] S3. Browser transport and remembered-identity reuse for join links.
+  Verify API tests, failed exchanges and no duplicate return membership.
+  Depends on S1–S2.
+- [ ] S4. Compact Share, name-only Join trip and separate owner recovery.
+  Verify rendering, production build and SQLite browser flows. Depends on S3.
+- [ ] S5. Isolated native online/browser acceptance, responsive accessibility,
+  documentation and final diff review. Depends on S4. Do not push or deploy.

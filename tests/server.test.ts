@@ -99,6 +99,76 @@ function note(overrides: Partial<Pick<Note, 'id' | 'title' | 'body' | 'visibilit
 }
 
 describe('trip API', () => {
+  it('shares one reusable join link and gives each named traveler their own editor identity', async () => {
+    const app = await start(), owner = app.client();
+    const created = await owner.create();
+    await owner.command({ type: 'note.save', note: note() });
+    const shared = await owner.request('/share');
+    expect(shared.response.status).toBe(200);
+    expect(shared.body.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(shared.body.token).not.toBe(created.body.ownerToken);
+    expect((await owner.request('/share')).body).toEqual(shared.body);
+    const anna = app.client(), bob = app.client();
+    const preview = await anna.request('/join/preview', 'POST', { token: shared.body.token });
+    expect(preview.body).toEqual({ tripId: owner.snapshot.data.trip.id, title: 'Belgium' });
+    expect(JSON.stringify(preview.body)).not.toContain('Private');
+    for (const traveler of [anna, bob]) {
+      const joined = await traveler.request('/join', 'POST', { token: shared.body.token, name: ' Anna ', role: 'owner' });
+      expect(joined.response.status).toBe(201);
+      expect(joined.response.headers.get('set-cookie')).toContain('HttpOnly; SameSite=Strict');
+      traveler.snapshot = joined.body;
+      expect(traveler.snapshot.session).toMatchObject({ name: 'Anna', role: 'editor' });
+      expect(traveler.snapshot.data.notes).toEqual([]);
+      expect((await traveler.request('/share')).body).toEqual(shared.body);
+    }
+    expect(anna.snapshot.session.id).not.toBe(bob.snapshot.session.id);
+    await anna.load();
+    await anna.command({ type: 'packing.add', title: 'Anna item', assignee: '' });
+    await bob.load();
+    await bob.command({ type: 'note.save', note: note({ id: '', title: 'Bob only' }) });
+    expect((await anna.load()).data.notes).toEqual([]);
+    const history = (await owner.request('/history', 'POST', {})).body.items;
+    expect(history).toContainEqual(expect.objectContaining({
+      actorId: anna.snapshot.session.id, actorName: 'Anna', target: expect.objectContaining({ type: 'packing' }),
+    }));
+    expect((await owner.load()).members).toHaveLength(3);
+    expect((await app.client().request('/session', 'POST', { token: shared.body.token })).response.status).toBe(401);
+    expect((await app.client().request('/session', 'POST', { token: created.body.ownerToken })).body.session.role).toBe('owner');
+  });
+
+  it('rejects invalid joins without modifying membership or the current session', async () => {
+    const app = await start(), owner = app.client();
+    await owner.create();
+    const shared = (await owner.request('/share')).body;
+    for (const name of ['', ' ', 'x'.repeat(101), '\u0001']) {
+      expect((await owner.request('/join', 'POST', { token: shared.token, name })).response.status).toBe(422);
+    }
+    for (const token of ['', 'bad', 'x'.repeat(43)]) {
+      expect((await owner.request('/join/preview', 'POST', { token })).response.status).toBe(401);
+      expect((await owner.request('/join', 'POST', { token, name: 'Bad join' })).response.status).toBe(401);
+    }
+    expect((await app.client().request('/share')).response.status).toBe(401);
+    expect((await owner.load()).members).toHaveLength(1);
+    for (const role of ['viewer', 'family'] as const) {
+      const { client } = await owner.invite(role);
+      expect((await client.request('/share')).response.status).toBe(403);
+    }
+    expect((await owner.load()).session.role).toBe('owner');
+  });
+
+  it('keeps the same join link after reopening a persisted pre-sharing trip', async () => {
+    const dbPath = join(await directory(), 'trip.sqlite');
+    const first = await start({ dbPath }), owner = first.client();
+    const created = await owner.create();
+    // No join link exists until Share is first opened, including for old trips.
+    const shared = (await owner.request('/share')).body;
+    await first.close();
+    const second = await start({ dbPath }), restored = second.client();
+    await restored.request('/session', 'POST', { token: created.body.ownerToken });
+    expect((await restored.request('/share')).body).toEqual(shared);
+    expect((await second.client().request('/join', 'POST', { token: shared.token, name: 'New traveler' })).response.status).toBe(201);
+  });
+
   it('keeps trusted sessions valid after long inactivity until explicitly signed out', async () => {
     const app = await start(), owner = app.client();
     await owner.create();

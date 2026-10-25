@@ -90,6 +90,13 @@ export function profileInput(value: unknown) {
   return { previousName: text(v.previousName, 'Previous name', 100), name: text(v.name, 'Name', 100) };
 }
 
+export function joinToken(value: unknown): string {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(value)) {
+    throw new HttpError(401, 'This trip join link is invalid.');
+  }
+  return value;
+}
+
 export function historyInput(value: unknown): string | null {
   const v = object(value);
   return v.before === undefined || v.before === null ? null : id(v.before);

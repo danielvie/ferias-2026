@@ -108,3 +108,32 @@ product approval gate; the owner explicitly requested implementation.
 4. Verify browser restart, switching, invalidation, forgetting, offline recovery,
    concurrent tabs and responsive accessibility. Record actual results and
    rollout requirements. Do not push, deploy or migrate shared/hosted services.
+
+## Simple trip sharing
+
+Approved scope: `docs/simple-sharing-spec.md`. Keep all unfinished online import
+and physical-device acceptance tasks above. The owner confirmed implementation
+of one reusable join link, name-only registration and editor participation.
+
+1. Add a separate, retrievable trip join token. Keep private identity links hashed.
+   SQLite creates its table additively; Supabase adds migration 006 with private
+   RLS-protected storage and backend-only share/preview/register routines.
+   Lazily create the token so existing trips work without data replacement.
+2. Expose GET `/share`, POST `/join/preview` and POST `/join`. Preview returns only
+   trip ID/title. Registration creates a distinct editor, link-derived session and
+   history record under the trip lock. Preserve legacy endpoints and cookie rules.
+3. Connect join URLs using `#join=...`, while retaining `#access=...` compatibility.
+   Preview before registering, validate matching remembered owner/editor access,
+   and activate new access only on success. Do not equate names with identities.
+4. Replace ordinary Share with a selectable link and Copy link. Reuse native
+   modal panes for joining, and keep owner recovery separate in Settings.
+   Retain the existing compact style, draft guards and current-browser sessions.
+5. Verify related unit/API suites and actual multi-browser SQLite/online flows.
+   Test repeated copying, separate identities/private notes, failed joins,
+   remembered return, old links, keyboard/focus and responsive accessibility.
+   Record the policy decision and rollout order. No shared/hosted migration.
+
+The common token is deliberately retrievable for this trusted disposable app.
+It permits new membership, never reopening somebody else's identity. The
+alternative of persisting original member links would retain the wrong shared
+identity model and is rejected. A public trip ID alone is still not a credential.

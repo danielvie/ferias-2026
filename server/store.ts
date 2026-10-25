@@ -48,6 +48,10 @@ export class Store {
         note_id TEXT NOT NULL, private_to TEXT NOT NULL, payload TEXT NOT NULL
       ) STRICT;
       CREATE INDEX IF NOT EXISTS history_trip ON history(trip_id, sequence DESC);
+      CREATE TABLE IF NOT EXISTS join_links (
+        trip_id TEXT PRIMARY KEY REFERENCES trips(id) ON DELETE CASCADE,
+        token TEXT NOT NULL UNIQUE
+      ) STRICT;
     `);
     // Zero denotes trusted-device access with no timeout. Adopt only sessions
     // that are still valid when upgrading; never revive expired credentials.
@@ -197,6 +201,35 @@ export class Store {
       if (!row) throw new HttpError(401, 'This invitation is invalid or has been revoked.');
       const sessionToken = this.session(row.id, oldSession);
       return { snapshot: this.snapshot(this.access(row)), sessionToken };
+    });
+  }
+
+  share(access: Access) {
+    requirePermission(access.member, 'mutate');
+    return this.transaction(() => {
+      this.db.prepare('INSERT INTO join_links (trip_id, token) VALUES (?, ?) ON CONFLICT (trip_id) DO NOTHING')
+        .run(access.tripId, token());
+      return this.db.prepare('SELECT token FROM join_links WHERE trip_id = ?').get(access.tripId) as { token: string };
+    });
+  }
+
+  previewJoin(secret: string) {
+    const row = this.db.prepare('SELECT trip_id FROM join_links WHERE token = ?').get(secret) as { trip_id: string } | undefined;
+    if (!row) throw new HttpError(401, 'This trip join link is invalid.');
+    const { data } = this.load(row.trip_id);
+    return { tripId: row.trip_id, title: data.trip.title };
+  }
+
+  joinTrip(secret: string, name: string) {
+    return this.transaction(() => {
+      const { tripId } = this.previewJoin(secret);
+      const member = this.insertMember(tripId, { name, role: 'editor', eventIds: [], placeIds: [] });
+      const sessionToken = this.session(member.id);
+      const access = this.authenticate(sessionToken);
+      const { data, revision } = this.load(tripId);
+      this.record(access, [memberChange('added', 'member', member.id, name)]);
+      this.write(tripId, revision + 1, data);
+      return { snapshot: this.snapshot(access), sessionToken };
     });
   }
 
