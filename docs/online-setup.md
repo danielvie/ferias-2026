@@ -4,11 +4,13 @@
 
 The application now runs against local Supabase without sign-in. Calendar, places, private/shared notes, comments, packing, departure checks, invitations, family views, revocation and link replacement use the Edge API. The static frontend is prepared for `https://danielvie.github.io/ferias-2026/`.
 
-Source publication to the public GitHub repository is approved. This does not deploy the hosted database/API or run the manual Pages workflow. `.env.local` and the existing SQLite trip are unchanged. The initial online trip will be created separately unless an import is explicitly requested.
+The owner authorized deployment and confirmed the Free organization in the dashboard. Both migrations and `trip-api` are deployed to `oljadunrwnagspncclha`. The [manual Pages workflow](https://github.com/danielvie/ferias-2026/actions/runs/40212635375) passed for source commit `26ba75994a17f7c2ef9eb5388775ff1f770fd5d8`. The site is live at https://danielvie.github.io/ferias-2026/.
+
+Hosted synthetic-data validation passed, including separate role contexts, privacy, revocation and recovery. The fixture was deleted; the hosted database has no trips and new-trip creation is disabled. Follow section 4 when the owner is ready to create the real trip, then disable creation again. `.env.local` and the existing SQLite trip are unchanged. No real-data import was requested. The steps below remain the deployment/redeployment runbook; see `docs/verification.md` for evidence and limits.
 
 ## 1. Owner checks and deployment login
 
-In Supabase, confirm that project `oljadunrwnagspncclha` belongs to a **Free** organization/project. Do not upgrade, add paid services or start a paid trial. Check the project is active. We have not verified the hosted plan from this workspace.
+In Supabase, confirm that project `oljadunrwnagspncclha` belongs to a **Free** organization/project. Do not upgrade, add paid services or start a paid trial. Check the project is active. The owner supplied dashboard confirmation for this deployment; recheck before future deployments.
 
 In your own terminal, from the project directory:
 

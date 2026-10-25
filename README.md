@@ -122,7 +122,7 @@ See `tasks/plan.md` for the parallel ownership plan, `tasks/layout-plan.md` for 
 
 ## Online version
 
-GitHub Pages is the static frontend target and Supabase Free is the API/database target, with no charges permitted. Access is link-only for every role, without application accounts or sign-in. The integration is implemented and locally verified. Source publication to GitHub is approved; hosted deployment and real-data import remain pending.
+The app is deployed at https://danielvie.github.io/ferias-2026/ with a Supabase Free API/database and no charges permitted. Access is link-only for every role, without application accounts or sign-in. Hosted synthetic-data validation passed. The test trip was deleted and new-trip creation is disabled until the owner is ready to create the real trip. No local trip was imported.
 
 Start with `docs/online-setup.md` for the steps needing owner action. `supabase/README.md` describes local commands and permissions. `tasks/online-plan.md` records rollout status; ADR-002, ADR-003 and ADR-004 record the provider, access and persistence decisions.
 

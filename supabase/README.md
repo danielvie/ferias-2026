@@ -4,7 +4,7 @@
 
 The database migrations, Edge API and browser transport are implemented and locally verified. They preserve calendar, places, notes/comments, checklists, family redaction and link-only roles without Supabase Auth users or application sign-in.
 
-`task run` starts the online-target stack locally. The separate `task run:sqlite` runner preserves the original application. Hosted deployment is pending owner authentication, the Free-plan check and publication approval. See `docs/online-setup.md`.
+`task run` starts the online-target stack locally. The separate `task run:sqlite` runner preserves the original application. The hosted backend and Pages frontend are deployed and passed synthetic-data validation after owner approval and Free-plan confirmation. New-trip creation is disabled until real-trip setup. See `docs/online-setup.md`.
 
 Existing SQLite data and `.env.local` are unchanged. This migration does not import the existing trip.
 
@@ -92,7 +92,7 @@ Apply both migrations in order and deploy the Edge Function as described in `doc
 
 Deployment will need authenticated Supabase CLI access through secure tooling. A publishable key is not a migration credential. Never send a database password, secret/service-role key or CLI access token in chat.
 
-The owner has approved saving the source to the public GitHub repository. Hosted cutover still needs authentication and confirmation of the actual Free plan. No hosted writes or data imports have happened. The import decision is still open.
+The owner approved source publication and hosted deployment, authenticated securely and confirmed the Free organization. Both migrations, the API and Pages frontend are deployed. Hosted synthetic trips were removed after validation. No local data was imported; the import decision remains open.
 
 To pause local work, stop the stack and use `task run:sqlite` for the old trip. Preserve both stores rather than deleting volumes. There is no automatic synchronization or fallback between them.
 

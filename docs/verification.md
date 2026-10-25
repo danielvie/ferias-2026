@@ -127,6 +127,23 @@ Checks passed:
 
 These checks used synthetic data only. No hosted deployment or real-data import was performed. Runner cleanup has automated regression coverage; an interactive Ctrl+C shutdown was not manually verified.
 
+## Hosted validation
+
+After the owner authorized publication, logged in through secure tooling and supplied a dashboard screenshot confirming the Free organization, project `oljadunrwnagspncclha` was verified active on PostgreSQL 17. Inspection found no application tables in `public` or `trip_private`. The migration dry-run listed only the two reviewed migrations. Both were applied, `TRIP_ALLOWED_ORIGINS` was set to `https://danielvie.github.io`, and `trip-api` was deployed with its application-managed authorization.
+
+The Windows fixes were published at source commit `26ba75994a17f7c2ef9eb5388775ff1f770fd5d8`. The [manual Pages workflow](https://github.com/danielvie/ferias-2026/actions/runs/40212635375) passed, including all 90 tests, Edge typechecking and the production build. Only public frontend configuration was added to GitHub build variables. The HTTPS site is live at https://danielvie.github.io/ferias-2026/.
+
+Hosted checks passed:
+
+- API health returned 200; missing/invalid sessions returned 401 and unrelated origins returned 403.
+- The publishable key could not access the private schema, direct trip table or privileged RPC, returning 406, 404 and 401 respectively.
+- A separate Chromium smoke against the actual Pages site and hosted API verified creation, persistence after reload, base-aware recovery/invitation links and isolated owner/editor/viewer/family browser contexts.
+- Owner/editor private notes remained isolated. Viewer mutation returned 403, stale writes returned 409, family responses excluded private content and revocation invalidated the family session.
+- Owner-link replacement preserved identity/private notes, rejected the previous link and reopened access through the replacement.
+- The sharing screen had no horizontal overflow at 320, 768, 1024 and 1440 pixels and no axe WCAG A/AA violations in the checked state.
+
+The final synthetic trip was deleted and public trip creation was disabled again. A database check confirmed zero trips, thirteen private tables and RLS enabled on all thirteen. No real trip, booking or local database was imported. Separate browser contexts ran on one machine, not two physical devices. Hosted backup/export access and restore were not exercised; the earlier disposable local backup/restore proof remains the evidence for that procedure.
+
 ## Not verified or delivered
 
-No public deployment, TLS/reverse-proxy configuration, hosted persistence, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.
+No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

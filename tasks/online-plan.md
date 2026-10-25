@@ -6,7 +6,7 @@
 - D2: GitHub Pages hosts only the built React frontend.
 - D3: Supabase is the selected online backend. Firebase and Cloudflare are no longer deployment candidates for this plan.
 - D4: Link-only access for the small travel group. No application accounts, Google/email sign-in, passwords or hidden Supabase Auth users.
-- Online setup is requested. Both migrations, the Edge API, all feature commands, browser session transport, link rotation and a manual Pages workflow are implemented. Local database/API/browser and backup/restore checks pass. `task run` now uses local Supabase; `task run:sqlite` preserves the old application. Committing and pushing the source to the public GitHub repository on `main` is approved. Hosted deployment still waits for secure authentication and confirmation of the actual Free plan.
+- Both migrations, the Edge API, all feature commands, browser session transport, link rotation and a manual Pages workflow are implemented. Local database/API/browser and backup/restore checks pass. `task run` uses local Supabase; `task run:sqlite` preserves the old application. The owner authorized source publication and hosted deployment, authenticated securely and supplied dashboard confirmation of the Free organization. The backend and Pages frontend are deployed and hosted synthetic-data validation passed. Test trips were deleted and new-trip creation is disabled until real-trip setup. Real-data import and two-physical-device validation remain pending.
 
 ADR-002 records the provider target and ADR-003 records link-only access. ADR-001 still describes the running local Node/SQLite application until cutover.
 
@@ -21,7 +21,7 @@ ADR-002 records the provider target and ADR-003 records link-only access. ADR-00
 | Frontend repository base path | `/ferias-2026/` |
 | Planned frontend origin | `https://danielvie.github.io` |
 
-These public identifiers were supplied by the user. GitHub's public API confirms the repository is public and its default branch is `main`. Hosted Supabase plan/region, Pages build settings and deployment credentials have not been verified. The Pages URL is the expected app URL, not a claim that this implementation is deployed.
+These public identifiers were supplied by the user. Authenticated checks confirm the repository is public, its default branch is `main` and Pages uses GitHub Actions. Supabase reports `mado-trip` active in `us-east-1` on PostgreSQL 17. The owner confirmed the Free organization in the dashboard. The Pages URL is now live; see `docs/verification.md` for the deployed source/workflow and test scope.
 
 No database password, secret key or deployment token is needed in chat. Obtain the publishable frontend key through the project's Connect dialog when implementation reaches hosted configuration; keep all backend credentials in secure tooling.
 
@@ -186,7 +186,7 @@ Verification: `task check`, `task db:test` and `task test:e2e`, with the new tas
 
 After the owner creates the intended Free project and authorizes deployment: apply reviewed migrations, configure custom-auth endpoints and allowed origins, deploy functions and the frontend, import approved data, and verify link-only access on two devices. Check actual plan status, private-note isolation, revocation, owner-link recovery/rotation, pause/error handling and rollback.
 
-The user must authenticate through secure tooling, not chat or committed files. The current request authorizes preparing online setup. Do not enable billing or change repository visibility. Confirm the Free plan, inspect the migration target and obtain specific source/push/publication approval before hosted cutover. `docs/online-setup.md` records the owner steps. No hosted writes or publication have happened.
+The user must authenticate through secure tooling, not chat or committed files. Do not enable billing or change repository visibility. For this deployment, the owner authorized publication, supplied Free-plan confirmation and logged in securely. Inspection found no existing application tables before the two reviewed migrations were applied. The backend and frontend were published and tested with synthetic data only. `docs/online-setup.md` records the deployment and remaining owner steps. Real-data import still requires a separate decision.
 
 ## Parallel work after the shared proof
 

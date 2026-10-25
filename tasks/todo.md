@@ -19,7 +19,7 @@
 
 ## Supabase online plan
 
-`tasks/online-plan.md` defines acceptance criteria, file boundaries, dependencies and checkpoints. Supabase Free, no charges, a GitHub Pages frontend and link-only access are confirmed. Local migration implementation is authorized and the foundation schema is prepared. The full backend cutover and publication remain pending.
+`tasks/online-plan.md` defines acceptance criteria, file boundaries, dependencies and checkpoints. Supabase Free, no charges, a GitHub Pages frontend and link-only access are confirmed. The backend and frontend are deployed and hosted synthetic-data validation passed. Real-trip setup, the optional import decision and two-device acceptance remain pending.
 
 - [x] O1. Confirm link-only member/family access without enabling billing.
   - [x] Select Supabase Free and GitHub Pages.
@@ -51,9 +51,13 @@
   - [x] O6b. Family projection, revision-probe denial and link revocation.
   - [x] Checkpoint C. Local privacy/revocation and multi-browser tests pass before hosting.
 - [ ] O7. Prepare and verify an optional local-trip import.
-- [ ] O8. Prepare CI and verify an approved preview deployment.
+- [x] O8. Prepare CI and verify an approved preview deployment.
   - [x] Prepare a manual Pages workflow, production env guard and base-aware private links.
   - [x] Pass three online Chrome workflows under `/ferias-2026/`; retain eleven SQLite browser regressions.
   - [x] Verify manual private-note/authorship backup/restore on disposable local databases.
-  - [ ] Authenticate, verify the Free plan, approve source publication and test the hosted deployment.
+  - [x] Authenticate, verify the Free plan, approve source publication and test the hosted deployment.
 - [ ] O9. Deploy and migrate production data only after explicit approval.
+  - [x] Deploy the reviewed migrations, custom-auth API and Pages frontend after owner approval and Free-plan confirmation.
+  - [x] Validate hosted role isolation, privacy, conflicts, revocation and recovery with synthetic data; delete fixtures and close creation.
+  - [ ] Decide whether to create the real trip fresh or request a local-data import.
+  - [ ] Verify the intended trip and private links on two physical devices before wider sharing.
