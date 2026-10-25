@@ -2,17 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 import type { Place, TripCommand } from '../../../shared/model';
 import { routeDateConflicts, visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
+import { ModalPane } from '../../components/ModalPane';
 import { PlaceCard } from './PlaceCard';
 import { PlaceForm } from './PlaceForm';
 import { PlaceSuggestions } from './PlaceSuggestions';
 import { SchedulePlaceForm } from './SchedulePlaceForm';
 import { RouteBoard, type RouteActions } from './RouteBoard';
 import { VisitForm } from './VisitForm';
+import { MoveActivityForm } from './MoveActivityForm';
 import { newPlace } from './suggestions';
 import './places.css';
 
 type ActiveForm = { kind: 'edit'; place: Place; editing: boolean } |
-  { kind: 'schedule' | 'details'; placeId: string } | { kind: 'visit'; beforeId: string | null };
+  { kind: 'schedule' | 'details' | 'move'; placeId: string } | { kind: 'visit'; beforeId: string | null };
 
 export function PlacesPage() {
   const { snapshot, canEdit, busy, command, navigate } = useTrip();
@@ -21,6 +23,7 @@ export function PlacesPage() {
   const [city, setCity] = useState('');
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('');
+  const [compact, setCompact] = useState(false);
   const [form, setForm] = useState<ActiveForm | null>(null);
   const [notice, setNotice] = useState<{ text: string; undo?: TripCommand; revision?: number } | null>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
@@ -33,7 +36,7 @@ export function PlacesPage() {
     return text.includes(search.trim().toLowerCase()) && (!city || city === place.cityId) &&
       (!category || category === place.category) && (!status || status === place.status);
   });
-  const selected = form?.kind === 'schedule' || form?.kind === 'details' ? places.find(place => place.id === form.placeId) : undefined;
+  const selected = form && 'placeId' in form ? places.find(place => place.id === form.placeId) : undefined;
   const dateConflicts = routeDateConflicts(trip.cities, snapshot.data.events);
 
   useEffect(() => {
@@ -78,25 +81,11 @@ export function PlacesPage() {
       void move({ type: 'visit.move', id, beforeId }, { type: 'visit.move', id, beforeId: oldNext },
         'Route and itinerary order updated. Scheduled dates are unchanged.', `visit-handle-${id}`);
     },
-    moveActivity: (id, cityId, beforeId) => {
-      const place = places.find(item => item.id === id);
-      if (!place || beforeId === id) return;
-      const siblings = places.filter(item => item.cityId === place.cityId);
-      const oldNext = siblings[siblings.findIndex(item => item.id === id) + 1]?.id ?? null;
-      if (place.cityId === cityId && beforeId === oldNext) return;
-      const from = trip.cities.find(item => item.id === place.cityId);
-      const to = trip.cities.find(item => item.id === cityId);
-      if (!to) return;
-      if (from?.name.toLowerCase() !== to.name.toLowerCase() &&
-        !window.confirm(`Move "${place.title}" to ${to.name}? Check its address and bookings. Scheduled dates and times will stay unchanged.`)) return;
-      void move({ type: 'place.move', id, cityId, beforeId },
-        { type: 'place.move', id, cityId: place.cityId, beforeId: oldNext },
-        'Activity moved with its details and links. Scheduled dates are unchanged.', `activity-handle-${id}`);
-    },
+    moveActivity: (place, button) => openForm({ kind: 'move', placeId: place.id }, button),
   };
 
   async function undoMove() {
-    if (disabled || moving.current || !notice?.undo || notice.revision !== snapshot.revision) return;
+    if (busy || form || moving.current || !notice?.undo || notice.revision !== snapshot.revision) return;
     moving.current = true;
     try {
       if (await command(notice.undo)) setNotice({ text: 'Move undone. Scheduled dates are unchanged.' });
@@ -113,9 +102,9 @@ export function PlacesPage() {
       {!canEdit && <p className="muted">Read-only route. A trip owner or editor can change visits and activities.</p>}
       {notice && <div className="route-notice" role="status"><span>{notice.text}</span>
         {notice.undo && notice.revision === snapshot.revision &&
-          <button className="button ghost" type="button" disabled={disabled} onClick={() => void undoMove()}>Undo move</button>}</div>}
+          <button className="button ghost" type="button" disabled={busy || !!form} onClick={() => void undoMove()}>Undo move</button>}</div>}
       {canEdit && form?.kind === 'visit' && <VisitForm beforeId={form.beforeId} onClose={closeForm}
-        onSaved={name => { closeForm(); setNotice({ text: `${name} added as a separate visit. Add its first activity below.` }); }} />}
+        onSaved={name => { closeForm(); setNotice({ text: `${name} added as a separate visit.` }); }} />}
       {canEdit && form?.kind === 'edit' && <PlaceForm key={form.place.id} initial={form.place}
         editing={form.editing} onClose={closeForm} />}
       {form?.kind === 'details' && selected && <div className="stack">
@@ -125,21 +114,35 @@ export function PlacesPage() {
       </div>}
       {canEdit && form?.kind === 'schedule' && selected &&
         <SchedulePlaceForm key={selected.id} place={selected} onClose={closeForm} />}
-      {(form?.kind === 'details' || form?.kind === 'schedule') && !selected &&
+      {canEdit && form?.kind === 'move' && selected && <ModalPane title="Move activity" onClose={closeForm} busy={busy}>
+        <MoveActivityForm place={selected} onClose={closeForm} onMoved={({ undo, revision, destinationId }) => {
+          closeForm();
+          setNotice({ text: `${selected.title} moved to ${visitLabel(trip.cities, destinationId)}. Scheduled dates are unchanged.`, undo, revision });
+        }} />
+      </ModalPane>}
+      {form && 'placeId' in form && !selected &&
         <div className="panel"><p>This activity is no longer available.</p><button className="button secondary" onClick={closeForm}>Close</button></div>}
       {dateConflicts.length > 0 && <div className="places-warning">
         Some scheduled dates run against your route order. No bookings were moved.{' '}
         <button className="button ghost" type="button" onClick={() => navigate('calendar')}>Review calendar</button>
       </div>}
       <section className="route-workspace" aria-label="Your route">
-        <div className="route-workspace-heading"><p>{canEdit ? 'Drag a visit or an activity by its handle. Click + on the path to add a stop.' :
-          'Each stop is a separate visit, even when the city name repeats.'}</p>
+        <div className="route-workspace-heading">
+          <div className="actions route-view-controls" role="group" aria-label="City card view">
+            <button className="button secondary" type="button" aria-pressed={!compact} aria-controls="places-route"
+              disabled={busy || !!form} onClick={() => setCompact(false)}>Details</button>
+            <button className="button secondary" type="button" aria-pressed={compact} aria-controls="places-route"
+              disabled={busy || !!form} onClick={() => { clearFilters(); setCompact(true); }}>Compact</button>
+          </div>
           <span>{trip.cities.length} visits / {places.length} activities</span></div>
-        {filtering && <p className="muted">Clear filters to reorder visits and activities.</p>}
-        <RouteBoard places={visible} disabled={busy || !!form} reorderingDisabled={disabled} actions={actions} />
+        <p className="route-instructions">{!canEdit ? 'Each stop is a separate visit, even when the city name repeats.' :
+          compact ? 'Drag city visits to reorder your route. Switch to Details to plan activities.' :
+            'Drag city visits to reorder your route. Use Move on an activity to choose its visit and position.'}</p>
+        {filtering && <p className="muted">Clear filters to reorder city visits.</p>}
+        <RouteBoard places={visible} compact={compact} disabled={busy || !!form} reorderingDisabled={disabled} actions={actions} />
         <p className="route-footnote">Same city, separate visits. Reordering never changes scheduled dates or times.</p>
       </section>
-      <details className="panel activity-filters">
+      {!compact && <details className="panel activity-filters">
         <summary>Find an activity</summary>
         <div className="places-filters">
           <div className="field"><label htmlFor="places-search">Search activities</label>
@@ -160,8 +163,8 @@ export function PlacesPage() {
         </div>
         <p className="muted" role="status">{visible.length} of {places.length} activities{filtering && !visible.length ? '. No matches.' : ''}</p>
         {filtering && <button className="button ghost" type="button" onClick={clearFilters}>Clear filters</button>}
-      </details>
-      <PlaceSuggestions formOpen={!!form} />
+      </details>}
+      {!compact && <PlaceSuggestions formOpen={!!form} />}
     </div>
   );
 }

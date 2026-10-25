@@ -96,8 +96,11 @@ test('drags a whole visit, undoes it, and uses the same order in the itinerary a
   await drag(page, visit(page, ids[0]).getByRole('button', { name: /Drag visit/ }), visit(page, ids[1]).locator('.route-visit-heading'));
   await expect.poll(() => order(page)).toEqual([ids[1], ids[0], ids[2], ids[3]]);
   expect((await state(page)).data.places.find(place => place.id === 'walk')?.cityId).toBe(ids[0]);
-  await page.getByRole('button', { name: 'Undo move', exact: true }).click();
-  await expect.poll(() => order(page)).toEqual(ids);
+  // Pointer drags briefly suppress clicks to prevent accidental activation.
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Undo move', exact: true }).click();
+    await expect.poll(() => order(page), { timeout: 250 }).toEqual(ids);
+  }).toPass({ timeout: 5000 });
   await visit(page, ids[0]).getByLabel('Actions for visit Brussels · stop 1', { exact: true }).click();
   await visit(page, ids[0]).getByRole('button', { name: 'Move later', exact: true }).click();
   await expect.poll(() => order(page)).toEqual([ids[1], ids[0], ids[2], ids[3]]);
@@ -113,30 +116,39 @@ test('drags a whole visit, undoes it, and uses the same order in the itinerary a
 test('moves activities within and between visits without copying or moving booked times', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const ids = await setup(page);
-  await drag(page, page.getByRole('button', { name: 'Drag activity Grand Place walk', exact: true }),
-    page.locator('[data-activity-id="trail"]'));
+  const activity = page.locator('[data-activity-id="walk"]');
+  const dialog = page.getByRole('dialog', { name: 'Move activity', exact: true });
+  await expect(page.getByRole('button', { name: /^Drag activity/ })).toHaveCount(0);
+  await activity.getByRole('button', { name: 'Move', exact: true }).click();
+  await expect(dialog).toContainText('From Brussels · stop 1');
+  await expect(dialog.getByRole('button', { name: 'Move activity', exact: true })).toBeDisabled();
+  await dialog.getByLabel('Position', { exact: true }).selectOption('');
+  await dialog.getByRole('button', { name: 'Move activity', exact: true }).click();
   await expect.poll(async () => (await state(page)).data.places.filter(place => place.cityId === ids[0]).map(place => place.id))
     .toEqual(['trail', 'walk']);
   const before = await state(page);
-  await drag(page, page.getByRole('button', { name: 'Drag activity Grand Place walk', exact: true }),
-    visit(page, ids[3]).locator('.activity-drop-placeholder'));
+  await activity.getByRole('button', { name: 'Move', exact: true }).click();
+  await dialog.getByLabel('Destination visit', { exact: true }).selectOption(ids[3]);
+  await expect(dialog.getByRole('option', { name: '4. Brussels', exact: true })).toHaveCount(1);
+  await dialog.getByLabel('Position', { exact: true }).selectOption('museum');
+  await expect(dialog).toContainText('Scheduled dates and times stay unchanged');
+  await dialog.getByRole('button', { name: 'Move activity', exact: true }).click();
   await expect(visit(page, ids[3]).locator('[data-activity-id="walk"]')).toBeVisible();
   const after = await state(page);
   expect(after.data.places).toHaveLength(before.data.places.length);
+  expect(after.data.places.filter(place => place.cityId === ids[3]).map(place => place.id)).toEqual(['walk', 'museum']);
   expect(after.data.events[0]).toEqual({ ...before.data.events[0], cityId: ids[3] });
   expect(after.data.places.find(place => place.id === 'walk')).toEqual({ ...before.data.places.find(place => place.id === 'walk'), cityId: ids[3] });
-  // The pointer sensor briefly suppresses clicks following a drag. Retry the
-  // action until its result is visible, rather than sleeping for that interval.
-  await expect(async () => {
-    await page.getByRole('button', { name: 'Undo move', exact: true }).click();
-    await expect(visit(page, ids[0]).locator('[data-activity-id="walk"]')).toBeVisible({ timeout: 250 });
-  }).toPass({ timeout: 5000 });
-  await page.getByLabel('Actions for Grand Place walk', { exact: true }).click();
-  page.once('dialog', dialog => dialog.dismiss());
-  await page.locator('[data-activity-id="walk"]').getByLabel('Move to visit', { exact: true }).selectOption(ids[1]);
+  await page.getByRole('button', { name: 'Undo move', exact: true }).click();
+  await expect(visit(page, ids[0]).locator('[data-activity-id="walk"]')).toBeVisible();
+  await activity.getByRole('button', { name: 'Move', exact: true }).click();
+  await dialog.getByLabel('Destination visit', { exact: true }).selectOption(ids[1]);
+  await expect(dialog).toContainText('This is a different city');
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
   expect((await state(page)).data.events[0].cityId).toBe(ids[0]);
-  page.once('dialog', dialog => dialog.accept());
-  await page.locator('[data-activity-id="walk"]').getByLabel('Move to visit', { exact: true }).selectOption(ids[1]);
+  await activity.getByRole('button', { name: 'Move', exact: true }).click();
+  await dialog.getByLabel('Destination visit', { exact: true }).selectOption(ids[1]);
+  await dialog.getByRole('button', { name: 'Move activity', exact: true }).click();
   await expect(visit(page, ids[1]).locator('[data-activity-id="walk"]')).toBeVisible();
   expect((await state(page)).data.events[0].date).toBe('2030-06-02');
 });
@@ -145,6 +157,8 @@ test('shows the connected reference layout at desktop and phone sizes without ac
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await setup(page);
+  const before = await state(page);
+  const view = page.getByRole('group', { name: 'City card view', exact: true });
   for (const width of [320, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
@@ -156,7 +170,19 @@ test('shows the connected reference layout at desktop and phone sizes without ac
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     expect(result.violations.map(violation => violation.id)).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath(`places-${width}.png`), fullPage: true });
+    await view.getByRole('button', { name: 'Compact', exact: true }).click();
+    await expect(view.getByRole('button', { name: 'Compact', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-activity-id], .visit-dates, .visit-caption, .visit-add-activity')).toHaveCount(0);
+    const heights = await page.locator('.route-visit').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().height));
+    expect(heights.every(height => height <= 76)).toBeTruthy();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
+    const compactResult = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+    expect(compactResult.violations.map(violation => violation.id)).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath(`places-compact-${width}.png`), fullPage: true });
+    await view.getByRole('button', { name: 'Details', exact: true }).click();
+    await expect(page.locator('[data-activity-id]')).toHaveCount(5);
   }
+  expect(await state(page)).toEqual(before);
   expect(errors).toEqual([]);
 });
 
@@ -172,7 +198,13 @@ test('keeps a visit draft on conflicts and permits activity details while filter
   await expect(page.getByLabel('City name', { exact: true })).toHaveCount(0);
   await page.getByText('Find an activity', { exact: true }).click();
   await page.getByLabel('Search activities', { exact: true }).fill('Grand Place');
-  await expect(page.getByRole('button', { name: 'Drag activity Grand Place walk', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^Drag activity/ })).toHaveCount(0);
+  await expect(page.locator('[data-activity-id="walk"]').getByRole('button', { name: 'Move', exact: true })).toBeEnabled();
+  const view = page.getByRole('group', { name: 'City card view', exact: true });
+  await view.getByRole('button', { name: 'Compact', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^Drag visit/ }).first()).toBeEnabled();
+  await view.getByRole('button', { name: 'Details', exact: true }).click();
+  await expect(page.locator('[data-activity-id]')).toHaveCount(5);
   await page.getByRole('button', { name: 'Grand Place walk', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Close activity details', exact: true })).toBeVisible();
 });
@@ -189,6 +221,7 @@ test('keeps viewer routes read-only', async ({ page, browser }) => {
     await expect(reader.getByText('Read-only route.', { exact: false })).toBeVisible();
     await expect(reader.locator('.route-drag-handle, .route-insert, .visit-add-activity')).toHaveCount(0);
     await expect(reader.getByRole('button', { name: '+ Add city visit', exact: true })).toHaveCount(0);
+    await expect(reader.getByRole('button', { name: 'Move', exact: true })).toHaveCount(0);
     await expect(reader.getByRole('heading', { name: 'Grand Place walk', exact: true })).toBeVisible();
   } finally { await context.close(); }
 });
@@ -197,8 +230,12 @@ test('supports keyboard visit dragging and cancels a failed save without changin
   const ids = await setup(page);
   const handle = visit(page, ids[0]).getByRole('button', { name: /Drag visit/ });
   await handle.focus(); await page.keyboard.press('Space');
-  await expect(page.locator('.route-drag-preview')).toBeVisible();
-  await page.keyboard.press('ArrowRight'); await page.keyboard.press('Space');
+  const preview = page.locator('.route-drag-preview');
+  await expect(preview).toBeVisible();
+  const startX = (await preview.boundingBox())!.x;
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(async () => (await preview.boundingBox())?.x ?? startX).toBeGreaterThan(startX + 20);
+  await page.keyboard.press('Space');
   await expect.poll(() => order(page)).toEqual([ids[1], ids[0], ids[2], ids[3]]);
   await page.getByRole('button', { name: 'Undo move', exact: true }).click();
   await expect.poll(() => order(page)).toEqual(ids);
@@ -210,15 +247,79 @@ test('supports keyboard visit dragging and cancels a failed save without changin
   await page.unroute('**/api/commands');
 });
 
-test('supports touch dragging an activity on a phone', async ({ browser, baseURL }) => {
-  const context = await browser.newContext({ baseURL, hasTouch: true, isMobile: true, viewport: { width: 390, height: 1200 } });
+test('moves an activity to the last offscreen city using a popup on a phone', async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ baseURL, hasTouch: true, isMobile: true, viewport: { width: 390, height: 1000 } });
   try {
     const page = await context.newPage();
     const ids = await setup(page);
-    const handle = page.getByRole('button', { name: 'Drag activity Grand Place walk', exact: true });
-    await handle.scrollIntoViewIfNeeded();
+    await expect(visit(page, ids[3])).not.toBeInViewport();
+    await page.locator('[data-activity-id="walk"]').getByRole('button', { name: 'Move', exact: true }).tap();
+    const dialog = page.getByRole('dialog', { name: 'Move activity', exact: true });
+    await expect(dialog).toBeInViewport();
+    await dialog.getByLabel('Destination visit', { exact: true }).selectOption(ids[3]);
+    const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+    expect(result.violations.map(violation => violation.id)).toEqual([]);
+    await dialog.getByRole('button', { name: 'Move activity', exact: true }).tap();
+    await expect(dialog).toHaveCount(0);
+    expect((await state(page)).data.places.find(place => place.id === 'walk')?.cityId).toBe(ids[3]);
+  } finally { await context.close(); }
+});
+
+test('keeps move choices through a conflicting save and supports retry and undo', async ({ page }) => {
+  const ids = await setup(page);
+  const before = await state(page);
+  await page.locator('[data-activity-id="walk"]').getByRole('button', { name: 'Move', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Move activity', exact: true });
+  await dialog.getByLabel('Destination visit', { exact: true }).selectOption(ids[3]);
+  await dialog.getByLabel('Position', { exact: true }).selectOption('museum');
+  await page.route('**/api/commands', route => route.abort());
+  await dialog.getByRole('button', { name: 'Move activity', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toContainText('Your choices are kept');
+  expect(await state(page)).toEqual(before);
+  await page.unroute('**/api/commands');
+  await command(page, { type: 'visit.move', id: ids[1], beforeId: ids[0] });
+  await dialog.getByRole('button', { name: 'Move activity', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toContainText('Your choices are kept');
+  await expect(dialog.getByLabel('Destination visit', { exact: true })).toHaveValue(ids[3]);
+  await expect(dialog.getByLabel('Position', { exact: true })).toHaveValue('museum');
+  await dialog.getByRole('button', { name: 'Move activity', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(visit(page, ids[3]).locator('[data-activity-id="walk"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Undo move', exact: true }).click();
+  await expect(visit(page, ids[0]).locator('[data-activity-id="walk"]')).toBeVisible();
+});
+
+test('compact cards fit on a phone and can drag the first city directly to the last', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 1000 });
+  const ids = await setup(page);
+  const before = await state(page);
+  const view = page.getByRole('group', { name: 'City card view', exact: true });
+  await view.getByRole('button', { name: 'Compact', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(visit(page, ids[3])).toBeInViewport();
+  await drag(page, visit(page, ids[0]).getByRole('button', { name: /^Drag visit/ }),
+    visit(page, ids[3]).locator('.route-visit-heading'));
+  await expect.poll(() => order(page)).toEqual([ids[1], ids[2], ids[3], ids[0]]);
+  const after = await state(page);
+  expect(after.data.places).toEqual(before.data.places);
+  expect(after.data.events).toEqual(before.data.events);
+  await expect(view.getByRole('button', { name: 'Compact', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(async () => {
+    await view.getByRole('button', { name: 'Details', exact: true }).click();
+    await expect(visit(page, ids[0]).locator('[data-activity-id="walk"]')).toBeVisible({ timeout: 250 });
+  }).toPass({ timeout: 5000 });
+});
+
+test('supports touch dragging city visits in compact mode', async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ baseURL, hasTouch: true, isMobile: true, viewport: { width: 390, height: 1000 } });
+  try {
+    const page = await context.newPage();
+    const ids = await setup(page);
+    await page.getByRole('group', { name: 'City card view' }).getByRole('button', { name: 'Compact', exact: true }).tap();
+    const handle = visit(page, ids[0]).getByRole('button', { name: /^Drag visit/ });
     const from = (await handle.boundingBox())!;
-    const to = (await page.locator('[data-activity-id="trail"]').boundingBox())!;
+    const to = (await visit(page, ids[3]).locator('.route-visit-heading').boundingBox())!;
+    await expect(visit(page, ids[3])).toBeInViewport();
     const cdp = await context.newCDPSession(page);
     const point = (x: number, y: number) => [{ x, y, id: 1 }];
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: point(from.x + 16, from.y + 22) });
@@ -226,7 +327,6 @@ test('supports touch dragging an activity on a phone', async ({ browser, baseURL
     await expect(page.locator('.route-drag-preview')).toBeVisible();
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: point(to.x + to.width / 2, to.y + to.height / 2) });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    await expect.poll(async () => (await state(page)).data.places.filter(place => place.cityId === ids[0]).map(place => place.id))
-      .toEqual(['trail', 'walk']);
+    await expect.poll(() => order(page)).toEqual([ids[1], ids[2], ids[3], ids[0]]);
   } finally { await context.close(); }
 });

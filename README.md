@@ -28,9 +28,10 @@ Weekday initials use the Excalidraw comparison's color-only option, without boxe
 `Places` follows the editable reference in `places-route-exploration.excalidraw`. Each city card is one visit, so you can plan `Brussels → Ghent → Brussels` with different activities in each Brussels visit.
 
 - Drag a visit by its handle to move the whole group. The itinerary's route summary follows the same order; its continuous days and booked times stay chronological.
+- Choose **Compact** to shrink city cards for route reordering. **Details** shows their activities and planning controls. Compact clears activity filters so the whole route is available.
 - Click `+` on the path to insert a visit, or **Add city visit** to append one.
-- Use **Add activity** inside a visit. Drag an activity within a visit or into another visit, keeping its ID, details, notes and links.
-- The `···` menus offer non-drag moves. **Undo move** reverses the most recent move while its revision remains current.
+- Use **Add activity** inside a visit. An activity's **Move** button opens a popup with its current visit, destination and position. Return visits have distinct stop numbers. Its ID, details, notes and links stay attached.
+- Activities do not use drag-and-drop. City `···` menus offer non-drag route moves. **Undo move** reverses the most recent move while its revision remains current.
 - Scheduled dates and times do not shift. Review date warnings when route order and calendar order differ.
 
 Desktop uses a horizontal route; phones use a vertical path. Existing saved places become activity cards without being recreated.

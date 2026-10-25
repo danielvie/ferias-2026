@@ -71,8 +71,9 @@
 }
 
 .route-workspace { min-width: 0; }
-.route-workspace-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1rem; color: var(--muted); font-size: .85rem; }
-.route-workspace-heading p { margin: 0; }
+.route-workspace-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; color: var(--muted); font-size: .85rem; }
+.route-instructions { margin: .75rem 0 0; color: var(--muted); font-size: .85rem; }
+.route-view-controls .button[aria-pressed="true"] { background: var(--nav-active-bg); border-color: var(--nav-active-bg); color: var(--nav-active-ink); }
 .route-workspace-heading span { white-space: nowrap; }
 .places-route { display: flex; align-items: stretch; gap: 2.5rem; padding: 0 .25rem 1rem; margin: 0; list-style: none; overflow-x: auto; }
 .route-visit-item { flex: 1 0 230px; min-width: 0; position: relative; }
@@ -87,6 +88,10 @@
 .route-visit-heading, .route-activity-heading { display: flex; align-items: flex-start; gap: .25rem; min-width: 0; }
 .route-visit-heading > div { flex: 1; min-width: 0; padding-top: .6rem; }
 .route-visit-heading h2 { font-size: 1.1rem; margin: 0 0 .3rem; overflow-wrap: anywhere; }
+.places-route-compact .route-visit { min-height: 0; padding: .5rem .75rem; }
+.places-route-compact .route-visit-heading { align-items: center; }
+.places-route-compact .route-visit-heading > div { padding-top: 0; }
+.places-route-compact .route-visit-heading h2 { font-size: 1rem; margin: 0; }
 .visit-caption, .visit-dates { font-size: .75rem; line-height: 1.5; color: var(--muted); margin-bottom: .5rem; }
 .visit-dates { margin: .5rem 0 1rem; }
 .route-drag-handle { touch-action: none; display: grid; place-items: center; width: 32px; min-height: 44px; flex-shrink: 0; padding: 0; font-size: 1.35rem; background: transparent; color: var(--muted); border: 0; cursor: grab; }
@@ -99,7 +104,6 @@
 .route-menu[open] { z-index: 5; }
 .route-menu-content { position: absolute; top: 100%; right: 0; width: 220px; display: flex; flex-direction: column; gap: .4rem; padding: .75rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: 0 4px 12px #263a3014; }
 .route-menu-content .button { justify-content: flex-start; text-align: left; }
-.route-menu-content label { margin-top: .5rem; }
 .visit-activities { display: flex; flex-direction: column; gap: .75rem; min-height: 120px; }
 .route-activity { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: .5rem; min-width: 0; }
 .route-activity-heading h3 { flex: 1; min-width: 0; margin: 0; }
@@ -107,10 +111,10 @@
 .activity-title:hover { color: var(--forest); text-decoration: underline; text-underline-offset: 3px; }
 .activity-meta, .activity-calendar { font-size: .75rem; color: var(--muted); margin: .25rem .25rem .5rem; line-height: 1.5; }
 .activity-schedule { min-height: 36px; padding: .25rem; background: transparent; border: 0; color: var(--forest); font-size: .75rem; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
-.activity-drop-placeholder { display: grid; place-items: center; text-align: center; min-height: 76px; padding: .75rem; border: 1px dashed var(--line); border-radius: 6px; font-size: .75rem; color: var(--muted); }
+.activity-move { font-size: .75rem; }
+.activity-move-form { overflow-wrap: anywhere; }
 .visit-add-activity { margin-top: .75rem; font-size: .8rem; }
 .is-dragging { opacity: .35; }
-.is-drop-target { outline: 2px dashed var(--forest); outline-offset: 3px; background: var(--soft-green); }
 .route-drag-preview { padding: 1rem; max-width: 280px; border: 2px solid var(--forest); border-radius: var(--radius); color: var(--forest-dark); background: var(--surface); box-shadow: 0 8px 24px #263a3020; font-weight: 600; overflow-wrap: anywhere; }
 .route-footnote { font-size: .8rem; color: var(--muted); margin: .5rem 0 0; }
 .route-notice { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .75rem 1rem; border-radius: var(--radius); background: var(--soft-green); color: var(--forest-dark); font-size: .875rem; }
@@ -133,5 +137,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .route-visit-item, .route-activity { transition: none !important; }
+  .route-visit-item { transition: none !important; }
 }

@@ -331,6 +331,18 @@ Rebased the Places feature onto `origin/main` at `6bfb82f`. Preserve the soft-se
 
 `npm run build`, all 102 unit/API tests, the Deno entrypoint typecheck and all 29 Chromium workflows passed. The browser suite ran standalone with `PLAYWRIGHT_PORT=5197`, installed Chrome and SQLite, leaving the preview on 5187 and the user's server on 5173 running. A separate smoke against the existing Deno/PostgreSQL preview confirmed the new header, continuous itinerary/day rail, repeat-name settings save and updated Places colors. Desktop, phone and itinerary screenshots were inspected.
 
+### Compact city cards and contextual activity moves
+
+The owner found expanded city cards too large to drag on a phone and rejected long-distance activity dragging. Places now has local Details/Compact controls. Details retains activities and planning controls; Compact renders only city names, route numbers, city drag handles and city menus. Sample phone cards measured 62 CSS pixels high, with all four visits visible together. Entering Compact clears activity filters and hides activity filters/suggestions; switching views does not write trip data.
+
+Activity drag handles, sortable registrations and drop zones were removed. A Move button opens the existing native modal pane with the activity's current visit, a numbered destination list and a position selector. It distinguishes return visits, supports reordering inside the same visit, warns about different cities and preserves dates, times, details and links. Failed/conflicting saves retain the choices for retry, and successful moves retain single-level Undo.
+
+`npm run build` and all 102 unit/API tests passed. The standalone browser suite passed all 32 workflows with `PLAYWRIGHT_PORT=5197`, installed Chrome and SQLite. Coverage includes both views at 320/768/1024/1440px with axe checks, no writes from view toggles, pointer and touch dragging from the first compact city to the last, keyboard city dragging, moving an activity to an offscreen return visit through the popup, destination positioning, Cancel, unchanged bookings, failed/conflicting saves, retry, Undo and read-only access.
+
+Keyboard collision detection retains the active visit, following the standard sortable behavior; excluding it made the coordinate getter skip the adjacent visit. Tests wait for the rendered keyboard movement before dropping and retry immediate post-pointer actions through the library's short click-suppression interval rather than using fixed sleeps.
+
+The live Deno/PostgreSQL preview was inspected on desktop and phone, including the move popup and its axe check, without saving changes to its sample plans. The backend command contract and database schema did not change in this iteration, so native database and managed Edge-runtime suites were not rerun. Nothing was pushed or deployed.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

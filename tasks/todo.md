@@ -100,3 +100,4 @@ hosted deployment is not authorized.
 - [x] R2. Build the reference-led route board, insertion form, activity moves, accessible alternatives and move undo. Pointer, keyboard and touch workflows pass.
 - [x] R3. Reflect route order in the itinerary summary, disambiguate repeat visits, and flag date conflicts without shifting bookings. Preserve main's continuous itinerary and stable-ID settings.
 - [x] R4. Rebased onto `origin/main` at `6bfb82f`. Production build, 102 unit/API tests, 29 browser workflows and Deno typecheck pass. Earlier native database/API proofs remain recorded separately. Updated header, itinerary, settings and responsive Places preview verified.
+- [x] R5. Add Compact/Details city-card views and replace activity drag-and-drop with a contextual Move popup. Build, 102 unit/API tests and all 32 browser workflows pass, including compact city pointer/touch dragging, long-distance activity moves, placement, failure/conflict retry and Undo.

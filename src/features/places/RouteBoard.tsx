@@ -9,7 +9,7 @@ import { CityVisitCard } from './CityVisitCard';
 
 export interface RouteActions {
   moveVisit: (id: string, beforeId: string | null) => void;
-  moveActivity: (id: string, cityId: string, beforeId: string | null) => void;
+  moveActivity: (place: Place, button: HTMLButtonElement) => void;
   insert: (beforeId: string | null, button: HTMLButtonElement) => void;
   addActivity: (cityId: string, button: HTMLButtonElement) => void;
   details: (place: Place, button: HTMLButtonElement) => void;
@@ -17,26 +17,19 @@ export interface RouteActions {
   schedule: (place: Place, button: HTMLButtonElement) => void;
 }
 
-// Nested activity targets must win over their enclosing visit. Pointer drops
-// outside the board cancel; keyboard drags use the documented center fallback.
+// Only city visits are draggable. Pointer drops outside the board cancel;
+// keyboard drags use the documented center fallback.
 // https://docs.dndkit.com/api-documentation/context-provider/collision-detection-algorithms
 const collisionDetection: CollisionDetection = args => {
-  const kind = args.active.data.current?.kind;
-  const candidates = args.droppableContainers.filter(item => item.id !== args.active.id &&
-    (kind === 'visit' ? item.data.current?.kind === 'visit' : item.data.current?.kind !== 'visit'));
-  const options = { ...args, droppableContainers: candidates };
-  if (!args.pointerCoordinates) return closestCenter(options);
-  const hits = pointerWithin(options);
-  const activityHits = hits.filter(hit => String(hit.id).startsWith('activity:'));
-  return activityHits.length ? activityHits : hits;
+  return args.pointerCoordinates ? pointerWithin(args) : closestCenter(args);
 };
 
-export function RouteBoard({ places, disabled, reorderingDisabled, actions }: {
-  places: Place[]; disabled: boolean; reorderingDisabled: boolean; actions: RouteActions;
+export function RouteBoard({ places, compact, disabled, reorderingDisabled, actions }: {
+  places: Place[]; compact: boolean; disabled: boolean; reorderingDisabled: boolean; actions: RouteActions;
 }) {
   const { snapshot, canEdit } = useTrip();
   const { trip, events } = snapshot.data;
-  const [active, setActive] = useState<{ kind: string; id: string } | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   // Handle-only touch-action:none leaves the rest of the board scrollable.
   // https://docs.dndkit.com/api-documentation/sensors/pointer#touch-action
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -44,38 +37,29 @@ export function RouteBoard({ places, disabled, reorderingDisabled, actions }: {
   const conflicts = routeDateConflicts(trip.cities, events);
 
   function drop({ active: dragged, over }: DragEndEvent) {
-    setActive(null);
+    setActiveId(null);
     if (!over || reorderingDisabled || !canEdit || dragged.id === over.id) return;
     const source = dragged.data.current;
     const target = over.data.current;
     if (!source || !target) return;
-    if (source.kind === 'visit' && target.kind === 'visit') {
-      const from = trip.cities.findIndex(city => city.id === source.id);
-      const to = trip.cities.findIndex(city => city.id === target.id);
-      actions.moveVisit(source.id, from < to ? trip.cities[to + 1]?.id ?? null : target.id);
-    } else if (source.kind === 'activity') {
-      const siblings = snapshot.data.places.filter(place => place.cityId === target.cityId);
-      const from = siblings.findIndex(place => place.id === source.id);
-      const to = siblings.findIndex(place => place.id === target.id);
-      const beforeId = target.kind === 'drop' ? null :
-        from >= 0 && from < to ? siblings[to + 1]?.id ?? null : target.id;
-      actions.moveActivity(source.id, target.cityId, beforeId);
-    }
+    const from = trip.cities.findIndex(city => city.id === source.id);
+    const to = trip.cities.findIndex(city => city.id === target.id);
+    if (from < 0 || to < 0) return;
+    actions.moveVisit(source.id, from < to ? trip.cities[to + 1]?.id ?? null : target.id);
   }
 
-  const activeTitle = active?.kind === 'visit' ? trip.cities.find(city => city.id === active.id)?.name :
-    snapshot.data.places.find(place => place.id === active?.id)?.title;
+  const activeTitle = trip.cities.find(city => city.id === activeId)?.name;
 
   return <DndContext sensors={sensors} collisionDetection={collisionDetection}
-    onDragStart={({ active }) => setActive({ kind: active.data.current?.kind, id: active.data.current?.id })}
-    onDragCancel={() => setActive(null)} onDragEnd={drop}>
-    <ol className="places-route" aria-label="City visits in route order">
+    onDragStart={({ active }) => setActiveId(active.data.current?.id)}
+    onDragCancel={() => setActiveId(null)} onDragEnd={drop}>
+    <ol id="places-route" className={`places-route${compact ? ' places-route-compact' : ''}`} aria-label="City visits in route order">
       <SortableContext items={trip.cities.map(city => `visit:${city.id}`)} strategy={rectSortingStrategy}>
         {trip.cities.map((city, index) => <CityVisitCard key={city.id} city={city} index={index}
-          places={places.filter(place => place.cityId === city.id)} disabled={disabled}
+          places={places.filter(place => place.cityId === city.id)} compact={compact} disabled={disabled}
           reorderingDisabled={reorderingDisabled} conflict={conflicts.includes(city.id)} actions={actions} />)}
       </SortableContext>
     </ol>
-    <DragOverlay dropAnimation={null}>{active && <div className="route-drag-preview">{activeTitle}</div>}</DragOverlay>
+    <DragOverlay dropAnimation={null}>{activeId && <div className="route-drag-preview">{activeTitle}</div>}</DragOverlay>
   </DndContext>;
 }

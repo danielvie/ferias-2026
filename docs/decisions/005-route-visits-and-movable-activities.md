@@ -8,6 +8,8 @@ Implemented locally. Hosted migration and deployment are not part of this change
 
 The agreed reference is `places-route-exploration.excalidraw`. Places becomes an ordered route of city visits with movable activity cards. Brussels can appear at both the start and end of a trip, with different activities in each visit.
 
+Later owner feedback replaces activity drag-and-drop with a contextual Move popup and adds Compact/Details city-card views. Long-distance activity drags are awkward when the destination is far down the route.
+
 Existing trips already have stable city and place IDs. Calendar entries, notes and family selections refer to those IDs. Replacing those entities would lose context or require a migration of every reference.
 
 ## Decision
@@ -22,7 +24,9 @@ Moving an activity also updates the visit reference on its linked calendar entri
 
 Use main's stable-ID city rows in the trip settings pane. Remove the obsolete comma-separated name reconciliation; repeated names are allowed and each row keeps its own ID. Repeated visits are labelled with their route stop number in selectors.
 
-Use dnd-kit core 6.3.1 and sortable 10.0.0 with stable IDs, handle-only pointer activation, touch support, keyboard sensors and a drag overlay. Nested activity targets take precedence over visit drop areas. Non-drag move controls remain available. Filtering disables reordering because hidden siblings make drop positions ambiguous, but activity details and editing remain available.
+Use dnd-kit core 6.3.1 and sortable 10.0.0 for city visits only, with stable IDs, handle-only pointer activation, touch support, keyboard sensors and a drag overlay. Details is the default local view. Compact shows only the city name, route number, drag handle and city menu. Activity filters and suggestions are hidden, and active filters are cleared, to keep route reordering available without hidden constraints. Changing the view does not write trip data.
+
+Activities have a Move button instead of a drag handle or drop area. Reuse the native modal pane to show the activity's source visit, an ordered destination list with stop numbers, and its position before another activity or at the end. This also supports reordering within the current visit. A different-city warning asks the traveler to check addresses and bookings. The popup states that calendar dates and times stay unchanged. Failed/conflicting saves retain the destination and position for review and retry.
 
 Move undo sends the inverse narrow command. It is available only while the resulting revision is current, so it cannot restore a stale snapshot over someone else's changes. Failed saves do not optimistically replace the route.
 
@@ -39,7 +43,7 @@ Existing trips need no content conversion. Apply `20260717000300_repeat_city_vis
 
 Restoring the old unique-name index is safe only after repeat visits have been resolved. Do not reset the database or discard visits as a rollback shortcut.
 
-The app still stores user-entered locations, not a geographic city catalogue. Moving between differently named cities asks the traveler to check addresses and bookings; it does not relocate the real attraction.
+The app still stores user-entered locations, not a geographic city catalogue. Moving between differently named cities asks the traveler to check addresses and bookings; it does not relocate the real attraction. The initial drawing's activity drag handles are superseded by the later Move-popup interaction.
 
 Local checkouts can isolate browser tests with `PLAYWRIGHT_PORT`. A separate Deno preview can set `TRIP_HTTP_HOST=127.0.0.1` and `TRIP_HTTP_PORT`, leaving Supabase's default bind unchanged when unset. `LOCAL_TRIP_API_URL` points the native HTTP check at that loopback handler; the check rejects non-local endpoints.
 
