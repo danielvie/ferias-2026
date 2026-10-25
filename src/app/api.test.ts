@@ -64,6 +64,35 @@ describe('remembered access transport', () => {
     expect(fetchMock.mock.lastCall?.[1]?.headers).toMatchObject({ 'X-Trip-Session': token('a') });
   });
 
+  it('adopts an existing tab credential even when its registry metadata is missing', async () => {
+    const { join } = await fixture();
+    await join();
+    localStorage.clear();
+    vi.resetModules();
+    const { api, rememberedTrips } = await import('./api');
+    fetchMock.mockResolvedValueOnce(reply({ tripId: 'one', title: 'First trip' }));
+    fetchMock.mockResolvedValueOnce(reply(snapshot('one')));
+    expect((await api.prepareJoin(token('s'))).snapshot?.session.id).toBe('owner');
+    expect(rememberedTrips.get('one:owner')?.credential).toBe(token('a'));
+  });
+
+  it('adopts legacy SQLite cookies but does not mistake read-only access for editor membership', async () => {
+    vi.stubEnv('VITE_BACKEND', 'sqlite');
+    const { api, rememberedTrips } = await import('./api');
+    fetchMock.mockResolvedValueOnce(reply({ tripId: 'one', title: 'First trip' }));
+    fetchMock.mockResolvedValueOnce(reply(snapshot('one')));
+    expect((await api.prepareJoin(token('s'))).snapshot?.session.role).toBe('owner');
+    expect(rememberedTrips.capture().id).toBe('one:owner');
+    const viewer = { ...snapshot('one'), session: { id: 'viewer', name: 'Reader', role: 'viewer' as const } };
+    fetchMock.mockResolvedValueOnce(reply(viewer));
+    await api.join(token('v'));
+    rememberedTrips.forget('one:owner');
+    fetchMock.mockResolvedValueOnce(reply({ tripId: 'one', title: 'First trip' }));
+    fetchMock.mockResolvedValueOnce(reply(viewer));
+    expect((await api.prepareJoin(token('s'))).snapshot).toBeNull();
+    expect(rememberedTrips.capture().id).toBe('one:viewer');
+  });
+
   it('does not register a duplicate identity when remembered access cannot be checked', async () => {
     const { join, api, rememberedTrips } = await fixture();
     await join();

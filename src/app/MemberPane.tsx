@@ -32,7 +32,7 @@ export function MemberPane({ member, revision, busy, error, onSave, onCancel, on
         <input name="name" required maxLength={100} value={name} onChange={(event) => { setName(event.target.value); setNotice(''); }}
           autoComplete="name" disabled={busy} />
       </label>
-      <p className="fine-print">Use a separate private link for each person. Anyone sharing your link shares your identity and access.</p>
+      <p className="fine-print">The trip invitation lets each person join under their own name. Names are display labels, not verified accounts.</p>
       {error && <p className="inline-error" role="alert">{error}</p>}
       {notice && <p className="fine-print" role="status">{notice}</p>}
       <div className="actions">

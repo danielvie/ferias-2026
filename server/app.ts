@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { Store } from './store';
-import { check, commandInput, createTripInput, historyInput, HttpError, id, inviteInput, joinToken, object, profileInput, text } from './validation';
+import { check, commandInput, createTripInput, historyInput, HttpError, id, inviteInput, joinInput, joinToken, object, profileInput, text } from './validation';
 
 export interface AppOptions {
   /** ':memory:' is supported for tests. File-backed databases create their parent directory. */
@@ -189,8 +189,8 @@ export function createApp(options: AppOptions = {}) {
         return send(res, 200, store.previewJoin(joinToken(body.token)));
       }
       if (method === 'POST' && path === '/api/join') {
-        const body = object(await json(req));
-        const result = store.joinTrip(joinToken(body.token), text(body.name, 'Name', 100));
+        const input = joinInput(await json(req));
+        const result = store.joinTrip(input.token, input.name);
         setCookie(res, result.sessionToken, secure);
         rememberCookie(result.sessionToken, result.snapshot.data.trip.id, result.snapshot.session.id);
         return send(res, 201, result.snapshot);

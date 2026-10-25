@@ -110,7 +110,8 @@ export const api = {
       .filter(entry => entry.id.startsWith(`${trip.tripId}:`) && entry.credential &&
         (entry.role === 'owner' || entry.role === 'editor') && entry.id !== current.id)
       .map(entry => rememberedTrips.capture(entry.id));
-    if (current.id?.startsWith(`${trip.tripId}:`) && current.credential) candidates.unshift(current);
+    // A legacy cookie/session can be usable before it has a registry entry.
+    if ((!current.id || current.id.startsWith(`${trip.tripId}:`)) && current.credential !== '') candidates.unshift(current);
     for (const context of candidates) {
       try {
         const next = await readTrip(context);

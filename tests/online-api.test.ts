@@ -117,7 +117,7 @@ describe('online API with actual PostgreSQL migrations', () => {
 
   test('rejects invalid joins and read-only sharing while protecting stored join credentials', async () => {
     const shared = await (await call('/share')).json();
-    for (const name of ['', ' ', 'x'.repeat(101), '\u0001']) {
+    for (const name of ['', ' ', 'x'.repeat(101), '\u0001', 'Ana\tBob', 'Ana\nBob']) {
       expect((await call('/join', 'POST', { ...shared, name }, '')).status).toBe(422);
     }
     for (const token of ['', 'bad', 'x'.repeat(43)]) {

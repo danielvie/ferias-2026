@@ -14,11 +14,14 @@ async function create(page: Page, title: string, first = false) {
   await form.getByLabel('Your name', { exact: true }).fill('Daniel');
   await form.getByLabel('Start date', { exact: true }).fill('2030-06-01');
   await form.getByLabel('End date', { exact: true }).fill('2030-06-05');
+  const response = page.waitForResponse(result => result.url().endsWith('/api/trips') && result.request().method() === 'POST');
   await form.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
-  const link = await page.getByLabel('Private owner recovery link', { exact: true }).inputValue();
-  await page.getByRole('button', { name: "I've saved it", exact: true }).click();
-  return link;
+  const result = await response;
+  expect(result.status()).toBe(201);
+  const link = new URL(page.url());
+  link.hash = new URLSearchParams({ access: (await result.json()).ownerToken }).toString();
+  return link.href;
 }
 
 async function open(page: Page, title: string, name = 'Daniel', role = 'owner') {

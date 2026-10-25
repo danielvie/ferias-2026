@@ -97,6 +97,12 @@ export function joinToken(value: unknown): string {
   return value;
 }
 
+export function joinInput(value: unknown) {
+  const v = object(value), token = joinToken(v.token), name = text(v.name, 'Name', 100);
+  check(!/[\u0000-\u001f\u007f]/u.test(name), 'Name contains invalid characters.');
+  return { token, name };
+}
+
 export function historyInput(value: unknown): string | null {
   const v = object(value);
   return v.before === undefined || v.before === null ? null : id(v.before);

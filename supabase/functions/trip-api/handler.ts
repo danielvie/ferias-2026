@@ -3,7 +3,7 @@ import { checklistStrategies } from '../../../shared/checklists.ts';
 import { applyCommand } from '../../../server/commands.ts';
 import { changesBetween } from '../../../server/history.ts';
 import { requirePermission, snapshot, type Access } from '../../../server/permissions.ts';
-import { check, commandInput, createTripInput, historyInput, HttpError, id, inviteInput, joinToken, object, profileInput, text } from '../../../server/validation.ts';
+import { check, commandInput, createTripInput, historyInput, HttpError, id, inviteInput, joinInput, joinToken, object, profileInput } from '../../../server/validation.ts';
 
 export type Rpc = (name: string, args: Record<string, unknown>) => Promise<unknown>;
 interface State { revision: number; data: TripData; access: Access; members: Member[] }
@@ -83,11 +83,11 @@ export function createHandler(rpc: Rpc, allowedOrigins: string[]) {
         return reply(await rpc('trip_join_preview', { p_token: joinToken(body.token) }));
       }
       if (path === '/join' && request.method === 'POST') {
-        const secret = joinToken(body.token), name = text(body.name, 'Name', 100);
+        const input = joinInput(body);
         await rpc('trip_rate_limit', { p_bucket: 'open' });
         const sessionToken = token();
         const state = await rpc('trip_join', {
-          p_token: secret, p_name: name, p_link_hash: await hash(token()), p_session_hash: await hash(sessionToken),
+          p_token: input.token, p_name: input.name, p_link_hash: await hash(token()), p_session_hash: await hash(sessionToken),
         }) as State;
         return reply({ snapshot: project(state), sessionToken }, 201);
       }

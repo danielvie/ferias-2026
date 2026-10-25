@@ -83,7 +83,7 @@ export function NoteForm({ note, onClose }: { note?: Note; onClose: () => void }
           </label>}
         </div>
         {missingLink && <p className="inline-error" role="status">The original destination is no longer in this trip. Your private note was kept unchanged. Choose a new destination or link it to the whole trip before saving.</p>}
-        <p className="muted">Private notes belong to this member link. Other member links cannot read them, but anyone holding this link acts as you. The owner creates and can replace member links, so trust the link issuer with personal notes. Trip notes are shared with trip members, not family links.</p>
+        <p className="muted">Private notes belong to your member identity, remembered by this browser. Other members cannot read them through their own access. The trip owner and server administrator remain trusted with personal notes. Trip notes are shared with trip members, not family links.</p>
         {error && <p className="inline-error" role="alert">{error}</p>}
         <div className="actions">
           <button type="submit" className="button" disabled={busy}>Save note</button>

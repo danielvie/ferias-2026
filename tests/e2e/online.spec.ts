@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { expect, test, type Page } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
 import type { TripSnapshot } from '../../shared/model';
+import { simpleSharingTests } from './simple-sharing-flows';
 
 const trips = new Set<string>();
 const database = process.env.TRIP_TEST_DATABASE || 'postgres';
@@ -45,10 +46,10 @@ async function create(page: Page, title = 'Online Belgium trip', another = false
   const result = await created.json();
   expect(result.snapshot?.data.trip.id).toMatch(/^[0-9a-f-]{36}$/);
   trips.add(result.snapshot.data.trip.id);
-  const link = await page.getByLabel('Private owner recovery link', { exact: true }).inputValue();
-  expect(new URL(link).pathname).toBe('/ferias-2026/');
-  await page.getByRole('button', { name: "I've saved it", exact: true }).click();
-  return link;
+  const link = new URL(page.url());
+  link.hash = new URLSearchParams({ access: result.ownerToken }).toString();
+  expect(link.pathname).toBe('/ferias-2026/');
+  return link.href;
 }
 async function note(page: Page, title: string) {
   await navigate(page, 'Notes');
@@ -59,14 +60,19 @@ async function note(page: Page, title: string) {
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
 }
 async function invite(page: Page, name: string, role: string) {
-  await navigate(page, 'Share');
-  await page.getByLabel('Recipient name', { exact: true }).fill(name);
-  await page.getByRole('combobox', { name: /Access role/ }).selectOption(role);
-  await page.getByRole('button', { name: 'Create invitation link', exact: true }).click();
-  const link = await page.getByLabel('Invitation link', { exact: true }).inputValue();
-  expect(new URL(link).pathname).toBe('/ferias-2026/');
-  await page.getByRole('button', { name: "I've saved this link", exact: true }).click();
-  return link;
+  // Retained private-member links are compatibility fixtures, not the new UI.
+  const token = await page.evaluate(async ({ base, name, role }) => {
+    const key = Object.keys(sessionStorage).find(key => key.startsWith('belgium-together:session:'));
+    const response = await fetch(`${base}/invites`, { method: 'POST', headers: {
+      'Content-Type': 'application/json', 'X-Trip-Session': key ? sessionStorage.getItem(key) || '' : '',
+    }, body: JSON.stringify({ name, role, eventIds: [], placeIds: [] }) });
+    if (!response.ok) throw new Error(`Legacy invitation failed with ${response.status}`);
+    return (await response.json()).token as string;
+  }, { base: apiBase, name, role });
+  const link = new URL(page.url());
+  link.hash = new URLSearchParams({ access: token }).toString();
+  expect(link.pathname).toBe('/ferias-2026/');
+  return link.href;
 }
 async function snapshot(page: Page): Promise<TripSnapshot> {
   return page.evaluate(async (base) => {
@@ -77,6 +83,8 @@ async function snapshot(page: Page): Promise<TripSnapshot> {
     return response.json();
   }, apiBase);
 }
+
+simpleSharingTests({ create, snapshot });
 
 test('mobile profile and durable history work through the deployed-path Edge transport', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 1000 });
@@ -136,10 +144,12 @@ test('remembered family access stays redacted and revoked access requires a new 
     expect(visible.data.packing).toEqual([]);
     expect(visible.revision).toBe(0);
     await expect(family.getByRole('navigation').getByRole('button', { name: 'Notes', exact: true })).toHaveCount(0);
-    const card = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Family online', exact: true }) });
-    await card.getByRole('button', { name: 'Revoke access', exact: true }).click();
-    await card.getByRole('button', { name: 'Confirm revoke', exact: true }).click();
-    await expect(card).toHaveCount(0);
+    const revoked = await page.evaluate(async ({ base, id }) => {
+      const key = Object.keys(sessionStorage).find(key => key.startsWith('belgium-together:session:'));
+      return (await fetch(`${base}/invites/${id}`, { method: 'DELETE',
+        headers: { 'X-Trip-Session': key ? sessionStorage.getItem(key) || '' : '' } })).status;
+    }, { base: apiBase, id: visible.session.id });
+    expect(revoked).toBe(200);
     await family.reload();
     await expect(family.getByRole('alert')).toBeVisible();
     await expect(family.getByRole('heading', { name: 'Your trips', exact: true })).toBeVisible();
@@ -151,7 +161,8 @@ test('remembered owner access follows link replacement without retaining the reu
   const previous = await create(page);
   await note(page, 'Kept after rotation');
   const memberId = (await snapshot(page)).session.id;
-  await navigate(page, 'Share');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.locator('.owner-recovery > summary').click();
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Replace owner link', exact: true }).click();
   const replacement = await page.getByLabel('Private owner link', { exact: true }).inputValue();
@@ -162,6 +173,8 @@ test('remembered owner access follows link replacement without retaining the reu
   const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
   expect(violations.map((violation) => violation.id)).toEqual([]);
   await page.getByRole('button', { name: "I've saved this link", exact: true }).click();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Close Trip settings', exact: true }).click();
   await page.reload();
   expect((await snapshot(page)).session.id).toBe(memberId);
   await navigate(page, 'Notes');

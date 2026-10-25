@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 interface Props {
   busy: boolean;
   error: string;
-  onJoin: (token: string) => Promise<void>;
+  onJoin: (token: string, kind: 'access' | 'join') => Promise<void>;
   onCancel: () => void;
 }
 
@@ -13,16 +13,19 @@ export function OpenTripForm({ busy, error, onJoin, onCancel }: Props) {
   function join(event: FormEvent) {
     event.preventDefault();
     let token = access.trim();
+    let kind: 'access' | 'join' = 'access';
     try {
       const url = new URL(token);
-      token = new URLSearchParams(url.hash.slice(1)).get('access') || '';
+      const fragment = new URLSearchParams(url.hash.slice(1));
+      kind = fragment.has('access') ? 'access' : 'join';
+      token = fragment.get(kind) || '';
     } catch { /* A raw token is also accepted. */ }
     if (!token) {
-      setValidationError('Enter an invitation or owner recovery link.');
+      setValidationError('Enter a trip invitation or owner recovery link.');
       return;
     }
     setValidationError('');
-    void onJoin(token);
+    void onJoin(token, kind);
   }
   return <section className="panel details-panel" aria-labelledby="open-trip-heading">
     <h2 id="open-trip-heading">Open an existing trip</h2>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import type { CreateTripInput, TripCommand, TripSnapshot } from '../../shared/model';
+import type { CreateTripInput, JoinTripInfo, TripCommand, TripSnapshot } from '../../shared/model';
 import { api, ApiError, rememberedTrips, tripLink } from './api';
 import { tripIdentity } from './remembered-trips';
 
@@ -10,6 +10,7 @@ export function useTripSession() {
   const [error, setError] = useState('');
   const [recoveryLink, setRecoveryLink] = useState('');
   const [pendingAccess, setPendingAccess] = useState('');
+  const [pendingJoin, setPendingJoin] = useState<{ token: string; trip: JoinTripInfo | null } | null>(null);
   const [accessLost, setAccessLost] = useState(false);
   const saved = useSyncExternalStore(rememberedTrips.subscribe, rememberedTrips.getSnapshot);
   const locked = useRef(false);
@@ -20,6 +21,16 @@ export function useTripSession() {
   function opened(next: TripSnapshot) {
     setAccessLost(false);
     setSnapshot(next);
+  }
+
+  function joinedShared(result: Awaited<ReturnType<typeof api.prepareJoin>>, token: string) {
+    if (result.snapshot) {
+      opened(result.snapshot);
+      setPendingJoin(null);
+      setPendingAccess('');
+      setRecoveryLink('');
+      history.replaceState(null, '', location.pathname + location.search);
+    } else setPendingJoin({ token, trip: result.trip });
   }
 
   useEffect(() => {
@@ -52,21 +63,28 @@ export function useTripSession() {
     // navigation. Re-bootstrap through a real reload so existing beforeunload
     // draft protections still apply instead of silently switching identities.
     const reopen = () => {
-      if (new URLSearchParams(window.location.hash.slice(1)).get('access')) window.location.reload();
+      const fragment = new URLSearchParams(window.location.hash.slice(1));
+      if (fragment.get('access') || fragment.get('join')) window.location.reload();
     };
     window.addEventListener('hashchange', reopen);
-    const token = new URLSearchParams(window.location.hash.slice(1)).get('access');
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    const token = fragment.get('access');
+    const joinToken = token ? null : fragment.get('join');
+    if (joinToken) setPendingJoin({ token: joinToken, trip: null });
     if (token) {
       setPendingAccess(token);
       history.replaceState(null, '', location.pathname + location.search);
     }
-    const initial = token ? api.join(token) : api.load();
+    const initial = joinToken ? api.prepareJoin(joinToken).then(result => {
+      joinedShared(result, joinToken);
+      return null;
+    }) : token ? api.join(token) : api.load();
     void initial.then((next) => {
-      opened(next);
+      if (next) opened(next);
       setPendingAccess('');
     }).catch((cause: unknown) => {
       if (cause instanceof ApiError && cause.status === 401) setPendingAccess('');
-      if (token || !(cause instanceof ApiError && cause.status === 401) || cause.sessionExpired) {
+      if (token || joinToken || !(cause instanceof ApiError && cause.status === 401) || cause.sessionExpired) {
         setError(cause instanceof Error ? cause.message : 'Could not open the trip.');
       }
     }).finally(() => setLoading(false));
@@ -141,10 +159,29 @@ export function useTripSession() {
   }
 
   return {
-    snapshot, loading, busy, error, recoveryLink, pendingAccess, accessLost,
+    snapshot, loading, busy, error, recoveryLink, pendingAccess, pendingJoin, accessLost,
     remembered: saved.entries, storageWarning: saved.warning,
     dismissError: () => setError(''),
     dismissRecovery: () => setRecoveryLink(''),
+    cancelJoin: () => {
+      setPendingJoin(null);
+      setError('');
+      history.replaceState(null, '', location.pathname + location.search);
+    },
+    openJoinLink: (token: string) => {
+      setPendingJoin({ token, trip: null });
+      return run(() => api.prepareJoin(token), result => joinedShared(result, token));
+    },
+    joinTrip: (name: string) => {
+      if (!pendingJoin?.trip) return Promise.resolve(false);
+      return run(() => api.joinTrip(pendingJoin.token, name), next => {
+        opened(next);
+        setPendingJoin(null);
+        setPendingAccess('');
+        setRecoveryLink('');
+        history.replaceState(null, '', location.pathname + location.search);
+      });
+    },
     refresh,
     create: async (input: CreateTripInput) => {
       return run(() => api.create(input), (result) => {

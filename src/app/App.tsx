@@ -15,6 +15,9 @@ import { ModalPane } from '../components/ModalPane';
 import { MemberPane } from './MemberPane';
 import { TripsList } from './TripsList';
 import { tripIdentity } from './remembered-trips';
+import { JoinTripPane } from './JoinTripPane';
+import { OwnerRecovery } from '../features/sharing/OwnerRecovery';
+import { isOnlineBackend } from './api';
 
 export function App() {
   const session = useTripSession();
@@ -93,8 +96,17 @@ export function App() {
     } else saved = await session.create({ ...details, cities: details.cities.map((city) => city.name) });
     if (saved) { setActivePanel(null); setSetupHint(''); setPage('today'); }
   }
-  async function join(token: string) {
-    if (await session.join(token)) { setActivePanel(null); setSetupHint(''); setPage('today'); }
+  async function join(token: string, kind: 'access' | 'join' = 'access') {
+    if (kind === 'join') {
+      setActivePanel(null);
+      if (await session.openJoinLink(token)) { setSetupHint(''); setPage('today'); }
+    } else if (await session.join(token)) { setActivePanel(null); setSetupHint(''); setPage('today'); }
+  }
+  async function joinTrip(name: string) {
+    if (await session.joinTrip(name)) {
+      setActivePanel(null); setSetupHint(''); setPage('today');
+      requestAnimationFrame(() => { main.current?.focus(); window.scrollTo({ top: 0 }); });
+    }
   }
   async function openTrip(id: string) {
     if (!canLeave()) return;
@@ -119,11 +131,14 @@ export function App() {
   }
   async function logout() {
     if (!canLeave()) return;
-    if (session.recoveryLink && !window.confirm('Have you saved your private owner link? You will need it to reopen this trip after exiting.')) return;
     await session.logout();
     setPage('today');
     setActivePanel(null);
   }
+  const ownerLink = session.recoveryLink && <section className="recovery-banner" aria-label="Private owner recovery link">
+    <p>This link opens your owner identity on another browser. Use Share to invite people instead.</p>
+    <div className="actions"><label className="visually-hidden" htmlFor="owner-link">Private owner recovery link</label><input id="owner-link" readOnly value={session.recoveryLink} onFocus={(event) => event.currentTarget.select()} /><button className="button secondary" onClick={() => void copyRecovery()}>{copied ? 'Copied' : 'Copy owner link'}</button></div>
+  </section>;
   const detailsPanel = formPanel && <ModalPane title={activePanel === 'link' ? 'Open trip link' : activePanel === 'create' ? 'New trip' : snapshot ? 'Trip settings' : 'Trip details'}
     busy={session.busy} onClose={() => { if (canLeave()) closePanel(); }}>
     {setupHint && activePanel === 'details' && <p className="setup-hint" role="status">{setupHint}</p>}
@@ -131,6 +146,11 @@ export function App() {
       key={activePanel === 'create' ? 'new-trip' : snapshot?.data.trip.id ?? 'new-trip'}
       trip={activePanel === 'create' ? undefined : snapshot?.data.trip} busy={session.busy}
       error={session.error} onSave={saveDetails} onCancel={closePanel} />}
+    {activePanel === 'details' && snapshot?.session.role === 'owner' && (ownerLink || isOnlineBackend) &&
+      <details className="owner-recovery">
+        <summary>Private owner recovery</summary>
+        <div className="stack">{ownerLink}{isOnlineBackend && <OwnerRecovery />}</div>
+      </details>}
     {activePanel === 'link' && <OpenTripForm busy={session.busy} error={session.error} onJoin={join} onCancel={closePanel} />}
   </ModalPane>;
   const memberPanel = activePanel === 'member' && snapshot && <ModalPane title="Your profile"
@@ -153,11 +173,6 @@ export function App() {
     {(!activePanel || (activePanel === 'member' && !snapshot)) && error}
     {!activePanel && session.storageWarning && <p role="status" className="places-warning">{session.storageWarning}</p>}
     {session.pendingAccess && <section className="access-retry" aria-label="Retry trip link"><p>The link is kept in memory while this page stays open. Retry when your connection is back.</p><button className="button secondary" disabled={session.busy} onClick={() => void join(session.pendingAccess)}>Retry opening trip</button></section>}
-    {session.recoveryLink && <section className="recovery-banner" aria-label="Save your private owner link">
-      <div className="panel-header"><strong>Save your private owner link</strong><button className="button ghost" onClick={session.dismissRecovery}>I've saved it</button></div>
-      <p>This link gives full owner access. Keep it private; use Share to invite other people.</p>
-      <div className="actions"><label className="visually-hidden" htmlFor="owner-link">Private owner recovery link</label><input id="owner-link" readOnly value={session.recoveryLink} onFocus={(event) => event.currentTarget.select()} /><button className="button secondary" onClick={() => void copyRecovery()}>{copied ? 'Copied' : 'Copy owner link'}</button></div>
-    </section>}
     {snapshot ? <fieldset className="trip-content" disabled={session.accessLost}>
       <legend className="visually-hidden">Trip workspace</legend>
       {FeaturePage ? <FeaturePage /> : <CalendarPage />}
@@ -166,6 +181,9 @@ export function App() {
     {detailsPanel}
     {memberPanel}
     {tripsPanel}
+    {session.pendingJoin && <JoinTripPane key={session.pendingJoin.token} trip={session.pendingJoin.trip}
+      busy={session.busy} error={session.error} onJoin={joinTrip}
+      onRetry={() => void session.openJoinLink(session.pendingJoin!.token)} onCancel={session.cancelJoin} />}
   </AppShell>;
   return snapshot
     ? <TripContext key={tripIdentity(snapshot)} value={{ snapshot, canEdit, busy: session.busy, command: session.command, refresh: session.refresh, navigate, registerNavigationGuard, onOwnerLinkReplaced: session.dismissRecovery }}>{shell}</TripContext>

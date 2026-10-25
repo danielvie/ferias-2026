@@ -140,7 +140,7 @@ describe('trip API', () => {
     const app = await start(), owner = app.client();
     await owner.create();
     const shared = (await owner.request('/share')).body;
-    for (const name of ['', ' ', 'x'.repeat(101), '\u0001']) {
+    for (const name of ['', ' ', 'x'.repeat(101), '\u0001', 'Ana\tBob', 'Ana\nBob']) {
       expect((await owner.request('/join', 'POST', { token: shared.token, name })).response.status).toBe(422);
     }
     for (const token of ['', 'bad', 'x'.repeat(43)]) {

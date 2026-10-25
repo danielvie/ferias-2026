@@ -2,10 +2,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { Role, TripSnapshot } from '../../../shared/model';
 import { TripContext, type TripContextValue } from '../../app/TripContext';
-import { FamilyPreview } from './FamilyPreview';
 import { SharingPage } from './SharingPage';
 import { SecretLink } from './SecretLink';
-import { isOnlineBackend } from '../../app/api';
 import type { ReactNode } from 'react';
 
 function render(role: Role, content: ReactNode) {
@@ -31,24 +29,23 @@ function render(role: Role, content: ReactNode) {
 }
 
 describe('sharing', () => {
-  it('renders only selected safe family fields and excludes stays even if selected', () => {
-    const html = render('owner', <FamilyPreview eventIds={['walk', 'stay']} placeIds={['place']} />);
-    expect(html).toContain('Canal walk');
-    expect(html).toContain('Ghent');
-    expect(html).toContain('2026-08-02');
-    expect(html).toContain('10:00');
-    expect(html).toContain('Art museum');
-    expect(html).toContain('museum');
+  it.each(['owner', 'editor'] as const)('offers one common join link without invitation setup for %s', (role) => {
+    const html = render(role, <SharingPage />);
+    expect(html).toContain('Share your trip');
+    expect(html).toContain('Invite people with this link');
+    expect(html).toContain('Loading your trip link');
+    expect(html).toContain('Each person gets their own identity');
+    expect(html).not.toContain('Recipient name');
+    expect(html).not.toContain('Access role');
+    expect(html).not.toContain('Replace owner link');
     expect(html).not.toContain('PRIVATE');
-    expect(render('owner', <FamilyPreview eventIds={[]} placeIds={[]} />)).not.toContain('Canal walk');
   });
 
-  it.each(['editor', 'viewer', 'family'] as const)('has no invitation controls for %s', (role) => {
+  it.each(['viewer', 'family'] as const)('keeps existing %s access read-only', (role) => {
     const html = render(role, <SharingPage />);
-    expect(html).not.toContain('Create invitation link');
+    expect(html).not.toContain('Invite people with this link');
     expect(html).not.toContain('Revoke access');
-    expect(html).toContain('localhost');
-    expect(html).toContain(isOnlineBackend ? 'Supabase' : 'same origin');
+    expect(html).toContain('This access is read-only');
   });
 
   it.each(['/', '/ferias-2026/'])('shows a selectable readonly link under %s with its bearer access warning', (base) => {

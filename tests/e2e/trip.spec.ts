@@ -13,7 +13,6 @@ async function createTrip(page: Page) {
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Our Belgium trip', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Trip details', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: "I've saved it", exact: true }).click();
 }
 
 async function navigate(page: Page, name: string) {
@@ -341,7 +340,7 @@ test('a traveler saves a place, schedules it, writes a note and checks separate 
   expect(browserErrors).toEqual([]);
 });
 
-test('family sharing is selected, redacted, read-only and revocable across browser sessions', async ({ page, browser }) => {
+test('legacy family sharing stays redacted, read-only and revocable across browser sessions', async ({ page, browser }) => {
   await createTrip(page);
   let state = await snapshot(page);
   const { trip } = state.data;
@@ -356,15 +355,14 @@ test('family sharing is selected, redacted, read-only and revocable across brows
   const note = { id: 'private-note', title: 'Private detail', body: 'PRIVATE NOTE BODY', visibility: 'private', linkType: 'trip', linkId: trip.id };
   expect((await page.request.post('/api/commands', { data: { revision: state.revision, command: { type: 'note.save', note } } })).ok()).toBeTruthy();
   await page.reload();
-  await navigate(page, 'Share');
-  await page.getByLabel('Recipient name', { exact: true }).fill('Family');
-  await page.getByRole('combobox', { name: 'Access role', exact: true }).selectOption('family');
-  await page.getByRole('checkbox', { name: /Walk in Brussels/ }).check();
-  await page.getByRole('button', { name: 'Create invitation link' }).click();
-  const link = await page.getByLabel('Invitation link', { exact: true }).inputValue();
+  const response = await page.request.post('/api/invites', { data: { name: 'Family', role: 'family', eventIds: [event.id], placeIds: [] } });
+  expect(response.status()).toBe(201);
+  const invitation = await response.json();
+  const link = new URL(page.url());
+  link.hash = new URLSearchParams({ access: invitation.token }).toString();
   const guest = await browser.newContext();
   const guestPage = await guest.newPage();
-  await guestPage.goto(link);
+  await guestPage.goto(link.href);
   await expect(guestPage.getByRole('heading', { name: 'Our Belgium trip', exact: true })).toBeVisible();
   expect(new URL(guestPage.url()).hash).toBe('');
   const guestState = await snapshot(guestPage);
@@ -376,9 +374,7 @@ test('family sharing is selected, redacted, read-only and revocable across brows
   await navigate(guestPage, 'Itinerary');
   await expect(guestPage.getByRole('button', { name: 'Add event', exact: true })).toHaveCount(0);
   expect((await guestPage.request.post('/api/commands', { data: { revision: guestState.revision, command: { type: 'event.delete', id: event.id } } })).status()).toBe(403);
-  await page.getByRole('button', { name: 'Revoke access', exact: true }).click();
-  await page.getByRole('button', { name: 'Confirm revoke', exact: true }).click();
-  await expect(page.getByText('Access revoked for Family.', { exact: true })).toBeVisible();
+  expect((await page.request.delete(`/api/invites/${invitation.id}`, { headers: { 'Content-Type': 'application/json' } })).status()).toBe(200);
   expect((await guestPage.request.get('/api/trip')).status()).toBe(401);
   await guest.close();
 });
@@ -440,30 +436,26 @@ test('a failed link exchange can be retried without exposing its token in the ad
   await context.close();
 });
 
-test('invitation creation blocks navigation until the one-time link can be saved', async ({ page }) => {
+test('a delayed shared invitation does not block navigation or restore a stale Share screen', async ({ page }) => {
   await createTrip(page);
-  await navigate(page, 'Share');
-  await page.getByLabel('Recipient name', { exact: true }).fill('Alex');
   let release!: () => void;
   const delayed = new Promise<void>((resolve) => { release = resolve; });
-  await page.route('**/api/invites', async (route) => {
-    if (route.request().method() !== 'POST') return route.continue();
+  await page.route('**/api/share', async (route) => {
     const response = await route.fetch();
     await delayed;
     await route.fulfill({ response });
   });
-  await page.getByRole('button', { name: 'Create invitation link' }).click();
-  await expect(page.getByRole('button', { name: 'Create invitation link' })).toBeDisabled();
-  page.once('dialog', (dialog) => dialog.dismiss());
-  await navigate(page, 'Itinerary');
-  await expect(page.getByRole('heading', { name: 'Sharing', exact: true })).toBeVisible();
-  release();
-  await expect(page.getByLabel('Invitation link', { exact: true })).toBeFocused();
-  await page.getByRole('button', { name: "I've saved this link", exact: true }).click();
-  await expect(page.getByLabel('Recipient name', { exact: true })).toBeEnabled();
-  await expect(page.getByLabel('Recipient name', { exact: true })).toHaveValue('');
+  await navigate(page, 'Share');
+  await expect(page.getByRole('status')).toHaveText('Loading your trip link…');
   await navigate(page, 'Itinerary');
   await expect(page.getByRole('heading', { name: 'Our Belgium trip', exact: true })).toBeVisible();
+  const completed = page.waitForResponse(response => response.url().endsWith('/api/share'));
+  release();
+  await completed;
+  await page.unroute('**/api/share');
+  await navigate(page, 'Share');
+  await expect(page.getByLabel('Trip invitation link', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copy link', exact: true })).toBeEnabled();
 });
 
 test('trip creation failures stay visible next to the submit button without losing the form', async ({ page }) => {
