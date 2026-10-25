@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CreateTripInput, Page } from '../../shared/model';
+import type { Page } from '../../shared/model';
 import { CalendarPage } from '../features/calendar/CalendarPage';
 import { PlacesPage } from '../features/places/PlacesPage';
 import { NotesPage } from '../features/notes/NotesPage';
@@ -9,8 +9,9 @@ import { TripContext, type NavigationGuard } from './TripContext';
 import { useTripSession } from './useTripSession';
 import { AppShell } from './AppShell';
 import { Dashboard } from './Dashboard';
-import { TripDetailsForm } from './TripDetailsForm';
+import { TripDetailsForm, type TripDetailsInput } from './TripDetailsForm';
 import { OpenTripForm } from './OpenTripForm';
+import { ModalPane } from '../components/ModalPane';
 
 export function App() {
   const session = useTripSession();
@@ -49,7 +50,6 @@ export function App() {
     if (!canLeave()) return;
     session.dismissError();
     setSetupHint('');
-    setPage('today');
     setActivePanel(panel);
   }
   function closePanel() {
@@ -58,7 +58,9 @@ export function App() {
     session.dismissError();
     requestAnimationFrame(() => document.getElementById('trip-details-button')?.focus());
   }
-  function navigate(next: Page) {
+  function navigate(destination: Page) {
+    // Existing feature callers still use 'calendar'; there is now one itinerary.
+    const next = destination === 'calendar' ? 'today' : destination;
     if (!session.snapshot && next !== 'today') {
       openPanel('details');
       setSetupHint('Save your trip details here to start adding plans, notes and travel checks.');
@@ -77,13 +79,13 @@ export function App() {
   const safePage = !snapshot || (family && !['today', 'calendar', 'places'].includes(page)) ? 'today' : page;
   const pages = { calendar: CalendarPage, places: PlacesPage, notes: NotesPage, checklists: ChecklistsPage, sharing: SharingPage };
   const FeaturePage = safePage === 'today' ? null : pages[safePage];
-  async function saveDetails(details: CreateTripInput) {
+  async function saveDetails(details: TripDetailsInput) {
     let saved: boolean;
     if (snapshot) {
-      const trip = snapshot.data.trip;
-      const cities = details.cities.map((name) => trip.cities.find((city) => city.name.toLowerCase() === name.toLowerCase()) || { id: crypto.randomUUID(), name });
-      saved = await session.command({ type: 'trip.update', trip: { title: details.title, startDate: details.startDate, endDate: details.endDate, cities } });
-    } else saved = await session.create(details);
+      saved = await session.command({ type: 'trip.update', trip: {
+        title: details.title, startDate: details.startDate, endDate: details.endDate, cities: details.cities,
+      } });
+    } else saved = await session.create({ ...details, cities: details.cities.map((city) => city.name) });
     if (saved) { setActivePanel(null); setSetupHint(''); }
   }
   async function join(token: string) {
@@ -100,13 +102,14 @@ export function App() {
     setPage('today');
     setActivePanel(null);
   }
-  const detailsPanel = <>
+  const detailsPanel = activePanel && <ModalPane title={activePanel === 'link' ? 'Open trip link' : snapshot ? 'Trip settings' : 'Trip details'}
+    busy={session.busy} onClose={() => { if (canLeave()) closePanel(); }}>
     {setupHint && activePanel === 'details' && <p className="setup-hint" role="status">{setupHint}</p>}
     {activePanel === 'details' && <TripDetailsForm key={snapshot?.data.trip.id ?? 'new-trip'} trip={snapshot?.data.trip} busy={session.busy} error={session.error} onSave={saveDetails} onCancel={closePanel} />}
     {activePanel === 'link' && <OpenTripForm busy={session.busy} error={session.error} onJoin={join} onCancel={closePanel} />}
-  </>;
-  const shell = <AppShell page={safePage} member={snapshot?.session} busy={session.busy} mainRef={main}
-    onNavigate={navigate} onRefresh={() => void session.refresh()} onExit={() => void logout()} onOpenLink={() => openPanel('link')}>
+  </ModalPane>;
+  const shell = <AppShell page={safePage} member={snapshot?.session} busy={session.busy} mainRef={main} canEdit={Boolean(canEdit)}
+    onSettings={() => openPanel('details')} onNavigate={navigate} onRefresh={() => void session.refresh()} onExit={() => void logout()} onOpenLink={() => openPanel('link')}>
     {!activePanel && error}
     {session.pendingAccess && <section className="access-retry" aria-label="Retry trip link"><p>The link is kept in memory while this page stays open. Retry when your connection is back.</p><button className="button secondary" disabled={session.busy} onClick={() => void join(session.pendingAccess)}>Retry opening trip</button></section>}
     {session.recoveryLink && <section className="recovery-banner" aria-label="Save your private owner link">
@@ -114,7 +117,8 @@ export function App() {
       <p>This link gives full owner access. Keep it private; use Share to invite other people.</p>
       <div className="actions"><label className="visually-hidden" htmlFor="owner-link">Private owner recovery link</label><input id="owner-link" readOnly value={session.recoveryLink} onFocus={(event) => event.currentTarget.select()} /><button className="button secondary" onClick={() => void copyRecovery()}>{copied ? 'Copied' : 'Copy owner link'}</button></div>
     </section>}
-    {FeaturePage ? <FeaturePage /> : <Dashboard snapshot={snapshot} onNavigate={navigate} onDetails={() => openPanel('details')} detailsPanel={detailsPanel} />}
+    {FeaturePage ? <FeaturePage /> : snapshot ? <CalendarPage /> : <Dashboard onDetails={() => openPanel('details')} />}
+    {detailsPanel}
   </AppShell>;
   return snapshot
     ? <TripContext value={{ snapshot, canEdit, busy: session.busy, command: session.command, refresh: session.refresh, navigate, registerNavigationGuard, onOwnerLinkReplaced: session.dismissRecovery }}>{shell}</TripContext>

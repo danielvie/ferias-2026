@@ -11,11 +11,17 @@ npm ci
 task run
 ```
 
-Start Docker first, then open http://127.0.0.1:5173. The development task starts local Supabase, its Edge API and the React client. It uses local development configuration without changing cloud values in `.env.local`. The dashboard opens immediately, without a separate setup page. Use **Add trip details** on the main page when you are ready to save a trip with your own dates, name and cities. Nothing is created, booked or pre-scheduled just by opening the website.
+Start Docker first, then open http://127.0.0.1:5173. The development task starts local Supabase, its Edge API and the React client. It uses local development configuration without changing cloud values in `.env.local`. The itinerary opens immediately, without a separate setup page. Use **Add trip details** to open the setup pane when you are ready to save your own dates, name and cities. Nothing is created, booked or pre-scheduled just by opening the website.
 
 The existing SQLite trip is not imported automatically. Use `task run:sqlite` to open the original application and data instead. Stop an existing development server on port 5173 before switching runners.
 
-Use **Edit trip details** on the same page for later changes. To return to an existing trip in a new browser, use **Open trip link** in the top bar or open your invitation/recovery URL directly.
+Use **Settings** in the top bar for later changes. The pane edits the trip name, dates and individual cities, including their order. Renaming or reordering a city preserves linked plans. Removing a city or shortening dates still requires moving or removing affected plans first. To return to an existing trip in a new browser, use **Open trip link** or open your invitation/recovery URL directly.
+
+The continuous itinerary includes every day, even empty ones. Hover or focus a marker in the compact right-hand day rail to preview its activities; click or press Enter to jump to that day. Ordinary ticks stay 2 pixels thick while their width grows on hover/focus; immediate neighbors grow halfway and receive 20% of the hover color. The selected tick follows the same width effect, while retaining its blue accent and 3-pixel thickness. The strip scales to fit all trip days without scrolling, and the current marker follows the itinerary. The number beside a marker defaults to its day of the month; click **Days** to toggle between that and trip-day numbering starting at 1. The calendar button below the strip opens a full-size date chooser. On touch screens, tapping a marker opens its preview. Settings returns you to the same place in the itinerary.
+
+The icon beside **Days** indicates the current numbering mode: a calendar for day-of-month dates, or a numbered list for ordered trip days.
+
+Weekday initials use the Excalidraw comparison's color-only option, without boxes, fills or an extra right-side bar. Ordinary weekdays are gray; Saturday and Sunday are warm-colored and bold. When days are too tightly packed for readable initials, only the focused/previewed day or current day shows its initial.
 
 Save the private owner recovery link shown after creation. It is the way back from another browser or after signing out. Do not send it to other travelers. Use **Share** to create editor, viewer or family invitation links instead.
 
@@ -113,16 +119,18 @@ The Node runner does not provision hosting, configure TLS or send invitations by
 - `shared/checklists.ts`: packing and departure strategies.
 - `server/`: validation, role strategies, SQLite persistence and HTTP API.
 - `supabase/`: private schema migrations, transactional routines and the Edge API, reusing the shared server domain rules.
-- `src/app/`: session, save/conflict handling, top navigation, dashboard and inline trip details.
+- `src/app/`: session, save/conflict handling, top navigation, empty itinerary and trip settings.
 - `src/features/calendar/` and `places/`: itinerary and saved-place workflows.
 - `src/features/notes/`, `checklists/` and `sharing/`: collaboration and travel checks.
 - `tests/`: API and browser verification.
 
-See `tasks/plan.md` for the parallel ownership plan, `tasks/layout-plan.md` for the reference-led layout and dashboard-first flow, and `docs/decisions/001-module-boundaries-and-sharing.md` for the architectural trade-offs and official API references.
+See `belgium-itinerary-layout-v2.excalidraw` and the final section of `tasks/plan.md` for the continuous-itinerary redesign. `tasks/layout-plan.md` records the earlier dashboard layout. `docs/decisions/001-module-boundaries-and-sharing.md` records the architectural trade-offs and official API references.
 
 ## Online version
 
-The app is deployed at https://danielvie.github.io/ferias-2026/ with a Supabase Free API/database and no charges permitted. Access is link-only for every role, without application accounts or sign-in. Hosted synthetic-data validation passed. The test trip was deleted and new-trip creation is disabled until the owner is ready to create the real trip. No local trip was imported.
+The app is deployed at https://danielvie.github.io/ferias-2026/ with a Supabase Free API/database and no charges permitted. Access is link-only for every role, without application accounts or sign-in. Hosted synthetic-data validation passed and its test trips were deleted. New-trip creation is an operator-controlled setup window; check the hosted setting before creating a trip. No local trip was imported.
+
+The continuous-itinerary redesign is included in the repository source but has not been redeployed to GitHub Pages. The deployment status above describes the previously published version; current hosted trip/creation state must be checked separately before setup.
 
 Start with `docs/online-setup.md` for the steps needing owner action. `supabase/README.md` describes local commands and permissions. `tasks/online-plan.md` records rollout status; ADR-002, ADR-003 and ADR-004 record the provider, access and persistence decisions.
 

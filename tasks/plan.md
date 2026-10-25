@@ -40,3 +40,14 @@ One trip per browser session is enough for the first release; creating another t
 ## Planned online target
 
 Supabase Free is selected for the backend and GitHub Pages for the frontend, with no charges permitted. Access uses private links for every role, without application accounts or sign-in. See `tasks/online-plan.md` for the migration slices and ADR-002/ADR-003 in `docs/decisions/` for the provider and access decisions. The running local architecture and data remain unchanged; planning does not authorize implementation, cloud resource creation, billing changes or publication.
+
+## Approved continuous-itinerary redesign
+
+The user approved implementing `belgium-itinerary-layout-v2.excalidraw` and selected one continuous itinerary, not one-day pagination. Use the board as the visual specification, with A / Daylight as the starting theme. This section supersedes the original dashboard layout, not the persistence/access decisions. Existing online rollout tasks remain separate.
+
+1. Replace the dashboard/calendar split with one continuous itinerary. Include empty days, chronological activities, existing edit/delete actions and departure-checklist links. Keep `calendar` as an internal navigation alias so feature callers retain their behavior.
+2. Add a fixed, compact day rail that scales to fit every trip day without its own scrolling. Hover/focus expands tick widths with halfway neighbor growth and 20% neighbor color; ordinary thickness stays fixed. The selected tick follows the same width effect while remaining thicker and accent colored. Weekday initials use option 1 from `weekday-badge-options.excalidraw`, with colored, bold weekends and no containers or edge bar. Marker numbers default to the day of the month; **Days** toggles calendar-date and ordinal trip-day numbering. Hover/focus previews the date, cities and up to three activities; clicking scrolls and focuses the day heading. Touch uses a preview sheet and an explicit jump; a separate calendar button opens a full-size date chooser for precise selection. Active markers track itinerary scrolling; Escape dismisses previews; reduced motion is respected. Draft guards still apply.
+3. Move creation, trip settings and link-opening forms into native modal panes. Edit the trip name/dates and individual ordered city rows. Preserve city IDs during renames/reordering, keep drafts through conflicts and keep backend rejection of orphaned plans.
+4. Apply the quiet white/slate/blue palette across the existing modules. Use a system font stack with Source Sans 3 when locally available, avoiding a runtime font service or new dependency.
+
+Verify each slice with focused tests, then `task check`, `task test:e2e` and `task online:e2e`. Browser checks cover settings focus/scroll restoration, rail keyboard/touch behavior, conflicts, role filtering, responsive widths and axe. No database/schema changes, hosted writes, import, push or deployment are part of this redesign.
