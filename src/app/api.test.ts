@@ -37,6 +37,56 @@ async function fixture() {
 }
 
 describe('remembered access transport', () => {
+  it('previews shared joins without changing the active trip and saves only derived access', async () => {
+    const { join, api, rememberedTrips } = await fixture();
+    await join('one');
+    fetchMock.mockResolvedValueOnce(reply({ tripId: 'two', title: 'Second trip' }));
+    expect(await api.prepareJoin(token('s'))).toEqual({ trip: { tripId: 'two', title: 'Second trip' }, snapshot: null });
+    expect(rememberedTrips.capture().id).toBe('one:owner');
+    const traveler = { ...snapshot('two'), session: { id: 'new', name: 'Ana', role: 'editor' as const } };
+    fetchMock.mockResolvedValueOnce(reply({ snapshot: traveler, sessionToken: token('b') }, 201));
+    expect(await api.joinTrip(token('s'), 'Ana')).toEqual(traveler);
+    expect(rememberedTrips.capture().id).toBe('two:new');
+    expect(rememberedTrips.get('one:owner')?.credential).toBe(token('a'));
+    const saved = Array.from({ length: localStorage.length }, (_, index) => localStorage.getItem(localStorage.key(index)!)).join();
+    expect(saved).not.toContain(token('s'));
+  });
+
+  it('reuses the remembered identity for a shared link without registering again', async () => {
+    const { join, api, rememberedTrips } = await fixture();
+    await join('one');
+    await join('two', 'b');
+    fetchMock.mockResolvedValueOnce(reply({ tripId: 'one', title: 'First trip' }));
+    fetchMock.mockResolvedValueOnce(reply(snapshot('one')));
+    expect((await api.prepareJoin(token('s'))).snapshot?.session.id).toBe('owner');
+    expect(rememberedTrips.capture().id).toBe('one:owner');
+    expect(fetchMock.mock.lastCall?.[0]).toContain('/trip');
+    expect(fetchMock.mock.lastCall?.[1]?.headers).toMatchObject({ 'X-Trip-Session': token('a') });
+  });
+
+  it('does not register a duplicate identity when remembered access cannot be checked', async () => {
+    const { join, api, rememberedTrips } = await fixture();
+    await join();
+    fetchMock.mockResolvedValueOnce(reply({ tripId: 'one', title: 'First trip' }));
+    fetchMock.mockResolvedValueOnce(reply({ error: 'Storage unavailable' }, 503));
+    await expect(api.prepareJoin(token('s'))).rejects.toThrow('Storage unavailable');
+    expect(rememberedTrips.capture().credential).toBe(token('a'));
+  });
+
+  it('offers registration after revoked remembered access, but never merges members by name', async () => {
+    const { join, api, rememberedTrips } = await fixture();
+    await join();
+    await join('two', 'b');
+    fetchMock.mockResolvedValueOnce(reply({ tripId: 'one', title: 'First trip' }));
+    fetchMock.mockResolvedValueOnce(reply({ error: 'Revoked' }, 401));
+    expect((await api.prepareJoin(token('s'))).snapshot).toBeNull();
+    expect(rememberedTrips.capture().credential).toBe(token('b'));
+    expect(rememberedTrips.get('one:owner')?.credential).toBeNull();
+    fetchMock.mockResolvedValueOnce(reply({ error: 'Bad join' }, 401));
+    await expect(api.joinTrip(token('s'), 'Daniel')).rejects.toMatchObject({ sessionExpired: false });
+    expect(rememberedTrips.capture().credential).toBe(token('b'));
+  });
+
   it('restores derived access with a fresh tab and never saves the reusable link', async () => {
     const { join } = await fixture();
     await join();

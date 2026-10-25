@@ -88,6 +88,7 @@ export interface TripData {
 }
 export interface TripSnapshot { revision: number; data: TripData; session: Member; members: Member[] }
 export interface CreateTripInput { title: string; ownerName: string; startDate: string; endDate: string; cities: string[] }
+export interface JoinTripInfo { tripId: string; title: string }
 export interface InviteInput { name: string; role: Exclude<Role, 'owner'>; eventIds: string[]; placeIds: string[] }
 export interface InviteInfo { id: string; name: string; role: Exclude<Role, 'owner'>; eventIds: string[]; placeIds: string[]; createdAt: string }
 

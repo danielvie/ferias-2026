@@ -128,9 +128,9 @@ online acceptance tasks above.
 - [x] S2. Additive Supabase storage/routines and Edge endpoints with parity.
   Verify actual migrations and privileges using `tests/online-api.test.ts`,
   plus the Edge typecheck. All 18 API tests and Deno typecheck pass.
-- [ ] S3. Browser transport and remembered-identity reuse for join links.
+- [x] S3. Browser transport and remembered-identity reuse for join links.
   Verify API tests, failed exchanges and no duplicate return membership.
-  Depends on S1–S2.
+  All 25 related API/registry tests and TypeScript pass. Depends on S1–S2.
 - [ ] S4. Compact Share, name-only Join trip and separate owner recovery.
   Verify rendering, production build and SQLite browser flows. Depends on S3.
 - [ ] S5. Isolated native online/browser acceptance, responsive accessibility,
