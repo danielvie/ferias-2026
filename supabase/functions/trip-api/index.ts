@@ -28,4 +28,6 @@ const rpc: Rpc = async (name, args) => {
 };
 const origins = (env.get('TRIP_ALLOWED_ORIGINS') || 'http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:4173')
   .split(',').map((origin) => origin.trim()).filter(Boolean);
-Deno.serve(createHandler(rpc, origins));
+// Standalone fixture runs bind loopback; the Supabase container keeps its default.
+// https://docs.deno.com/api/deno/~/Deno.ServeTcpOptions#property_hostname
+Deno.serve({ hostname: env.get('TRIP_BIND_HOST') || '0.0.0.0' }, createHandler(rpc, origins));

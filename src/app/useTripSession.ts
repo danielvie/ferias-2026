@@ -126,6 +126,10 @@ export function useTripSession() {
       if (!current.current) return Promise.resolve(false);
       return run(() => api.command(current.current!.revision, command), setSnapshot);
     },
+    rename: (name: string) => {
+      if (!current.current) return Promise.resolve(false);
+      return run(() => api.profile(current.current!.session.name, name), setSnapshot);
+    },
     logout: async () => {
       await run(() => api.logout(), () => { setSnapshot(null); setRecoveryLink(''); });
     },

@@ -1,8 +1,9 @@
 import type { Member, TripData } from '../../../shared/model.ts';
 import { checklistStrategies } from '../../../shared/checklists.ts';
 import { applyCommand } from '../../../server/commands.ts';
+import { changesBetween } from '../../../server/history.ts';
 import { requirePermission, snapshot, type Access } from '../../../server/permissions.ts';
-import { check, commandInput, createTripInput, HttpError, id, inviteInput, object } from '../../../server/validation.ts';
+import { check, commandInput, createTripInput, historyInput, HttpError, id, inviteInput, object, profileInput } from '../../../server/validation.ts';
 
 export type Rpc = (name: string, args: Record<string, unknown>) => Promise<unknown>;
 interface State { revision: number; data: TripData; access: Access; members: Member[] }
@@ -85,6 +86,16 @@ export function createHandler(rpc: Rpc, allowedOrigins: string[]) {
       if (path === '/trip' && request.method === 'GET') {
         return reply(project(await rpc('trip_state', { p_session_hash: sessionHash }) as State));
       }
+      if (path === '/profile' && request.method === 'POST') {
+        const input = profileInput(body);
+        await rpc('trip_rate_limit', { p_bucket: 'write' });
+        return reply(project(await rpc('trip_profile', {
+          p_session_hash: sessionHash, p_previous_name: input.previousName, p_name: input.name,
+        }) as State));
+      }
+      if (path === '/history' && request.method === 'POST') {
+        return reply(await rpc('trip_history', { p_session_hash: sessionHash, p_before: historyInput(body) }));
+      }
       if (path === '/commands' && request.method === 'POST') {
         check(Number.isSafeInteger(body.revision) && Number(body.revision) >= 0, 'Invalid trip revision.');
         const command = commandInput(body.command);
@@ -92,10 +103,14 @@ export function createHandler(rpc: Rpc, allowedOrigins: string[]) {
         requirePermission(state.access.member, 'mutate');
         if (state.revision !== body.revision) throw new HttpError(409, 'The trip changed. Reload before saving.');
         await rpc('trip_rate_limit', { p_bucket: 'write' });
+        const before = structuredClone(state.data);
         applyCommand(state.data, state.access.member, command);
         // The database reauthorizes and compares the revision inside the write
         // transaction. The earlier state is not permission to finish a save.
-        const saved = await rpc('trip_commit', { p_session_hash: sessionHash, p_revision: body.revision, p_data: state.data }) as State;
+        const saved = await rpc('trip_commit', {
+          p_session_hash: sessionHash, p_revision: body.revision, p_data: state.data,
+          p_changes: changesBetween(before, state.data),
+        }) as State;
         return reply(project(saved));
       }
       if (path === '/invites' && request.method === 'GET') return reply(await rpc('trip_invitations', { p_session_hash: sessionHash }));

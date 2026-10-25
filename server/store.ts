@@ -3,8 +3,9 @@ import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { checklistStrategies } from '../shared/checklists';
-import type { CreateTripInput, InviteInfo, InviteInput, Member, TripCommand, TripData } from '../shared/model';
+import type { CreateTripInput, HistoryPage, HistoryRecord, InviteInfo, InviteInput, Member, TripCommand, TripData } from '../shared/model';
 import { addActivity, applyCommand } from './commands';
+import { changesBetween, memberChange, type Change } from './history';
 import { type Access, requirePermission, snapshot } from './permissions';
 import { check, HttpError } from './validation';
 
@@ -42,6 +43,12 @@ export class Store {
       ) STRICT;
       CREATE INDEX IF NOT EXISTS members_trip ON members(trip_id);
       CREATE INDEX IF NOT EXISTS sessions_member ON sessions(member_id);
+      CREATE TABLE IF NOT EXISTS history (
+        sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE,
+        trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+        note_id TEXT NOT NULL, private_to TEXT NOT NULL, payload TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX IF NOT EXISTS history_trip ON history(trip_id, sequence DESC);
     `);
   }
 
@@ -98,6 +105,55 @@ export class Store {
     this.db.prepare('UPDATE trips SET revision = ?, data = ? WHERE id = ?').run(revision, JSON.stringify(data), tripId);
   }
 
+  private record(access: Access, changes: Change[], data?: TripData) {
+    const operationId = randomUUID();
+    for (const note of data?.notes ?? []) {
+      if (note.visibility === 'private') {
+        this.db.prepare('UPDATE history SET private_to = ? WHERE trip_id = ? AND note_id = ?')
+          .run(note.authorId, access.tripId, note.id);
+      }
+    }
+    for (const change of changes) {
+      const record: HistoryRecord = {
+        id: randomUUID(), operationId, actorId: access.member.id, actorName: access.member.name,
+        action: change.action, target: change.target, at: new Date().toISOString(),
+      };
+      this.db.prepare('INSERT INTO history (id, trip_id, note_id, private_to, payload) VALUES (?, ?, ?, ?, ?)')
+        .run(record.id, access.tripId, change.noteId, change.privateTo, JSON.stringify(record));
+    }
+  }
+
+  history(access: Access, before: string | null): HistoryPage {
+    if (access.member.role === 'family') throw new HttpError(403, 'Family links cannot read trip history.');
+    let sequence = Number.MAX_SAFE_INTEGER;
+    if (before) {
+      const cursor = this.db.prepare("SELECT sequence FROM history WHERE trip_id = ? AND id = ? AND (private_to = '' OR private_to = ?)")
+        .get(access.tripId, before, access.member.id) as { sequence: number } | undefined;
+      check(cursor, 'This history page is no longer available. Reload history.');
+      sequence = cursor.sequence;
+    }
+    const rows = this.db.prepare(`SELECT payload FROM history WHERE trip_id = ? AND sequence < ?
+      AND (private_to = '' OR private_to = ?) ORDER BY sequence DESC LIMIT 51`)
+      .all(access.tripId, sequence, access.member.id) as { payload: string }[];
+    const items = rows.slice(0, 50).map((row) => JSON.parse(row.payload) as HistoryRecord);
+    return { items, before: rows.length > 50 ? items[items.length - 1].id : null };
+  }
+
+  rename(access: Access, previousName: string, name: string) {
+    return this.transaction(() => {
+      const member = this.db.prepare('SELECT name FROM members WHERE id = ? AND trip_id = ?')
+        .get(access.member.id, access.tripId) as { name: string };
+      if (member.name !== previousName) throw new HttpError(409, 'Your name changed. Reload before saving.');
+      if (member.name !== name) {
+        this.db.prepare('UPDATE members SET name = ? WHERE id = ?').run(name, access.member.id);
+        const { revision, data } = this.load(access.tripId);
+        this.record(access, [memberChange('renamed', 'member', access.member.id, name)]);
+        this.write(access.tripId, revision + 1, data);
+      }
+      return this.snapshot({ ...access, member: { ...access.member, name } });
+    });
+  }
+
   snapshot(access: Access) {
     const { revision, data } = this.load(access.tripId);
     const members = this.db.prepare('SELECT id, name, role FROM members WHERE trip_id = ? ORDER BY created_at, id').all(access.tripId) as unknown as Member[];
@@ -125,7 +181,11 @@ export class Store {
       this.db.prepare('INSERT INTO trips (id, revision, data) VALUES (?, ?, ?)').run(tripId, 0, JSON.stringify(data));
       const owner = this.insertMember(tripId, { name: input.ownerName, role: 'owner', eventIds: [], placeIds: [] });
       const sessionToken = this.session(owner.id, oldSession);
-      return { snapshot: this.snapshot(this.authenticate(sessionToken)), ownerToken: owner.token, sessionToken };
+      const access = this.authenticate(sessionToken);
+      this.record(access, [{
+        action: 'added', target: { type: 'trip', id: tripId, parentId: '', label: input.title }, noteId: '', privateTo: '',
+      }]);
+      return { snapshot: this.snapshot(access), ownerToken: owner.token, sessionToken };
     });
   }
 
@@ -143,7 +203,9 @@ export class Store {
     return this.transaction(() => {
       const current = this.load(access.tripId);
       if (current.revision !== revision) throw new HttpError(409, 'The trip changed. Reload it before trying again.');
+      const before = structuredClone(current.data);
       applyCommand(current.data, access.member, command);
+      this.record(access, changesBetween(before, current.data), current.data);
       this.write(access.tripId, revision + 1, current.data);
       return this.snapshot(access);
     });
@@ -165,6 +227,7 @@ export class Store {
       check(input.eventIds.every((id) => data.events.some((event) => event.id === id)), 'An invited event no longer exists.');
       check(input.placeIds.every((id) => data.places.some((place) => place.id === id)), 'An invited place no longer exists.');
       const invite = this.insertMember(access.tripId, input);
+      this.record(access, [memberChange('added', 'link', invite.id, input.name)]);
       addActivity(data, `${access.member.name} created a ${input.role} link for ${input.name}.`);
       this.write(access.tripId, revision + 1, data);
       return invite;
@@ -174,9 +237,12 @@ export class Store {
   revoke(access: Access, id: string) {
     requirePermission(access.member, 'manageInvites');
     return this.transaction(() => {
+      const member = this.db.prepare("SELECT name FROM members WHERE id = ? AND trip_id = ? AND role != 'owner'")
+        .get(id, access.tripId) as { name: string } | undefined;
       const result = this.db.prepare("DELETE FROM members WHERE id = ? AND trip_id = ? AND role != 'owner'").run(id, access.tripId);
       if (!result.changes) throw new HttpError(404, 'Invitation not found.');
       const { data, revision } = this.load(access.tripId);
+      this.record(access, [memberChange('revoked', 'link', id, member!.name)]);
       addActivity(data, `${access.member.name} revoked an invitation.`);
       this.write(access.tripId, revision + 1, data);
       // Foreign key cascade removes every session created from the invitation.

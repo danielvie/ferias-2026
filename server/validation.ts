@@ -85,6 +85,16 @@ export function inviteInput(value: unknown): InviteInput {
   };
 }
 
+export function profileInput(value: unknown) {
+  const v = object(value);
+  return { previousName: text(v.previousName, 'Previous name', 100), name: text(v.name, 'Name', 100) };
+}
+
+export function historyInput(value: unknown): string | null {
+  const v = object(value);
+  return v.before === undefined || v.before === null ? null : id(v.before);
+}
+
 // Construct each object from known fields. Never spread untrusted JSON into domain data.
 export function commandInput(value: unknown): TripCommand {
   const v = object(value);

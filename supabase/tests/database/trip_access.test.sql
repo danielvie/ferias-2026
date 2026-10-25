@@ -91,8 +91,8 @@ select throws_ok(
 select is(public.trip_read(repeat('b', 64))#>>'{trip,title}', 'Updated trip', 'conflict leaves the saved trip unchanged');
 select throws_ok(
   $$select public.trip_update_details(repeat('b', 64), 1,
-    jsonb_set(current_setting('test.details')::jsonb, '{cities}', '[{"id":"a","name":"Brussels"},{"id":"b","name":"BRUSSELS"}]'))$$,
-  '23505', null, 'duplicate cities fail after entering the mutation'
+    jsonb_set(current_setting('test.details')::jsonb, '{cities}', '[{"id":"a","name":"Brussels"},{"id":"a","name":"Ghent"}]'))$$,
+  '23505', null, 'duplicate city IDs fail after entering the mutation'
 );
 select is(public.trip_read(repeat('b', 64))#>>'{trip,title}', 'Updated trip', 'failed mutation rolls back title and cities');
 reset role;

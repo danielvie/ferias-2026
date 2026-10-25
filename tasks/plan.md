@@ -51,3 +51,29 @@ The user approved implementing `belgium-itinerary-layout-v2.excalidraw` and sele
 4. Apply the quiet white/slate/blue palette across the existing modules. Use a system font stack with Source Sans 3 when locally available, avoiding a runtime font service or new dependency.
 
 Verify each slice with focused tests, then `task check`, `task test:e2e` and `task online:e2e`. Browser checks cover settings focus/scroll restoration, rail keyboard/touch behavior, conflicts, role filtering, responsive widths and axe. No database/schema changes, hosted writes, import, push or deployment are part of this redesign.
+
+## Approved member attribution
+
+Implement `docs/member-attribution-spec.md`. Preserve the unrelated pending online
+acceptance tasks above.
+
+1. Define structured change records and compare full before/after domain state,
+   including nested checks/comments and automatic related changes. SQLite appends
+   records transactionally outside the recent feed. Verify with focused store tests.
+2. Add a private Supabase history table and backend-only commit/profile/history
+   routines. Stamp actors/times from the final authorized transaction. Preserve
+   history on revocation and tighten old note-history visibility when made private.
+   Verify actual migrations through the Edge handler and database tests.
+3. Add self-only profile and paginated history transport. Renames compare the
+   previous name, increment the trip revision, and preserve IDs/credentials.
+   Family profile responses retain revision zero and their filtered projection.
+4. Put an identity button below the brand and add profile/history in a modal pane.
+   Reuse navigation guards and save/error patterns. Test two members, rename/reload,
+   pagination, mobile widths, keyboard focus and accessibility.
+5. Run `task check`, Edge checks and available isolated/local Supabase workflows.
+   Record actual evidence and deployment order. Do not push or deploy.
+
+History uses random IDs as page cursors, not exposed sequence counters that would
+reveal gaps from hidden private-note records. Public record payloads contain no
+note content. Private transitions restrict earlier note/comment records; deletion
+retains the last restriction. The older recent feed stops receiving note activity.

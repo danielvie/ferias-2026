@@ -94,6 +94,11 @@ tasks:
     cmds:
       - npx --no-install deno check supabase/functions/trip-api/index.ts
 
+  attribution:check:
+    desc: Verify attribution in a disposable local database without migrating the running app
+    cmds:
+      - node scripts/test-attribution.mjs
+
   online:build:
     desc: Validate hosted public configuration and build the GitHub Pages frontend
     env:

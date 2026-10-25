@@ -12,11 +12,12 @@ import { Dashboard } from './Dashboard';
 import { TripDetailsForm, type TripDetailsInput } from './TripDetailsForm';
 import { OpenTripForm } from './OpenTripForm';
 import { ModalPane } from '../components/ModalPane';
+import { MemberPane } from './MemberPane';
 
 export function App() {
   const session = useTripSession();
   const [page, setPage] = useState<Page>('today');
-  const [activePanel, setActivePanel] = useState<'details' | 'link' | null>(null);
+  const [activePanel, setActivePanel] = useState<'details' | 'link' | 'member' | null>(null);
   const [setupHint, setSetupHint] = useState('');
   const [copied, setCopied] = useState(false);
   const main = useRef<HTMLElement>(null);
@@ -27,7 +28,7 @@ export function App() {
   }, []);
   useEffect(() => {
     const protect = (event: BeforeUnloadEvent) => {
-      if (guards.current.size || session.busy || activePanel) { event.preventDefault(); event.returnValue = ''; }
+      if (guards.current.size || session.busy || (activePanel && activePanel !== 'member')) { event.preventDefault(); event.returnValue = ''; }
     };
     window.addEventListener('beforeunload', protect);
     return () => window.removeEventListener('beforeunload', protect);
@@ -38,11 +39,11 @@ export function App() {
       window.alert(blocking?.message || 'Wait for the current save to finish before leaving.');
       return false;
     }
-    if (activePanel) return window.confirm('Leave this form? Unsaved changes will be lost.');
+    if (activePanel && activePanel !== 'member') return window.confirm('Leave this form? Unsaved changes will be lost.');
     const guard = [...guards.current.values()][0];
     return !guard || window.confirm(guard.message);
   }
-  function openPanel(panel: 'details' | 'link') {
+  function openPanel(panel: 'details' | 'link' | 'member') {
     if (activePanel === panel) {
       document.querySelector<HTMLInputElement>('.details-panel input')?.focus();
       return;
@@ -102,15 +103,21 @@ export function App() {
     setPage('today');
     setActivePanel(null);
   }
-  const detailsPanel = activePanel && <ModalPane title={activePanel === 'link' ? 'Open trip link' : snapshot ? 'Trip settings' : 'Trip details'}
+  const detailsPanel = activePanel && activePanel !== 'member' && <ModalPane title={activePanel === 'link' ? 'Open trip link' : snapshot ? 'Trip settings' : 'Trip details'}
     busy={session.busy} onClose={() => { if (canLeave()) closePanel(); }}>
     {setupHint && activePanel === 'details' && <p className="setup-hint" role="status">{setupHint}</p>}
     {activePanel === 'details' && <TripDetailsForm key={snapshot?.data.trip.id ?? 'new-trip'} trip={snapshot?.data.trip} busy={session.busy} error={session.error} onSave={saveDetails} onCancel={closePanel} />}
     {activePanel === 'link' && <OpenTripForm busy={session.busy} error={session.error} onJoin={join} onCancel={closePanel} />}
   </ModalPane>;
+  const memberPanel = activePanel === 'member' && snapshot && <ModalPane title="Your profile"
+    busy={session.busy} onClose={() => { if (canLeave()) closePanel(); }}>
+    <MemberPane key={snapshot.session.id} member={snapshot.session} revision={snapshot.revision}
+      busy={session.busy} error={session.error} onSave={session.rename} onCancel={closePanel} onExpired={session.refresh} />
+  </ModalPane>;
   const shell = <AppShell page={safePage} member={snapshot?.session} busy={session.busy} mainRef={main} canEdit={Boolean(canEdit)}
-    onSettings={() => openPanel('details')} onNavigate={navigate} onRefresh={() => void session.refresh()} onExit={() => void logout()} onOpenLink={() => openPanel('link')}>
-    {!activePanel && error}
+    onMember={() => openPanel('member')} onSettings={() => openPanel('details')} onNavigate={navigate}
+    onRefresh={() => void session.refresh()} onExit={() => void logout()} onOpenLink={() => openPanel('link')}>
+    {(!activePanel || (activePanel === 'member' && !snapshot)) && error}
     {session.pendingAccess && <section className="access-retry" aria-label="Retry trip link"><p>The link is kept in memory while this page stays open. Retry when your connection is back.</p><button className="button secondary" disabled={session.busy} onClick={() => void join(session.pendingAccess)}>Retry opening trip</button></section>}
     {session.recoveryLink && <section className="recovery-banner" aria-label="Save your private owner link">
       <div className="panel-header"><strong>Save your private owner link</strong><button className="button ghost" onClick={session.dismissRecovery}>I've saved it</button></div>
@@ -119,6 +126,7 @@ export function App() {
     </section>}
     {FeaturePage ? <FeaturePage /> : snapshot ? <CalendarPage /> : <Dashboard onDetails={() => openPanel('details')} />}
     {detailsPanel}
+    {memberPanel}
   </AppShell>;
   return snapshot
     ? <TripContext value={{ snapshot, canEdit, busy: session.busy, command: session.command, refresh: session.refresh, navigate, registerNavigationGuard, onOwnerLinkReplaced: session.dismissRecovery }}>{shell}</TripContext>

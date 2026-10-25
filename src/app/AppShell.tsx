@@ -17,11 +17,12 @@ interface Props {
   onExit: () => void;
   onOpenLink: () => void;
   onSettings: () => void;
+  onMember: () => void;
   canEdit: boolean;
   children: ReactNode;
 }
 
-export function AppShell({ page, member, busy, mainRef, onNavigate, onRefresh, onExit, onOpenLink, onSettings, canEdit, children }: Props) {
+export function AppShell({ page, member, busy, mainRef, onNavigate, onRefresh, onExit, onOpenLink, onSettings, onMember, canEdit, children }: Props) {
   const visibleNav = member?.role === 'family'
     ? navigation.filter((item) => ['today', 'calendar', 'places'].includes(item.id))
     : navigation;
@@ -29,14 +30,19 @@ export function AppShell({ page, member, busy, mainRef, onNavigate, onRefresh, o
     <a className="skip-link" href="#main-content">Skip to content</a>
     <div className="app-shell">
       <header className="topbar">
-        <button className="brand" onClick={() => onNavigate('today')}>Belgium, together</button>
+        <div className="brand-group">
+          <button className="brand" onClick={() => onNavigate('today')}>Belgium, together</button>
+          {member && <button className="member-label" onClick={onMember} disabled={busy}
+            aria-label={`Your profile: ${member.name}, ${member.role}`} title={`${member.name} · ${member.role}`}>
+            <span className="member-name">{member.name}</span><span className="member-role">· {member.role}</span>
+          </button>}
+        </div>
         <nav className="topnav" aria-label="Main navigation">
           {visibleNav.map((item) => <button key={item.id} className="nav-item"
             aria-current={page === item.id ? 'page' : undefined} onClick={() => onNavigate(item.id)}>{item.label}</button>)}
         </nav>
         <div className="session-controls">
           {member ? <>
-            <span className="member-label">{member.name} <span className="muted">{member.role === 'family' ? 'Family' : member.role}</span></span>
             {canEdit && <button id="trip-settings-button" className="button secondary" onClick={onSettings} disabled={busy}>Settings</button>}
             <button className="button ghost" onClick={onRefresh} disabled={busy}>Refresh</button>
             <button className="button ghost" onClick={onExit} disabled={busy} aria-label="Close this trip session">Exit</button>

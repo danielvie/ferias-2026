@@ -58,6 +58,22 @@ export interface Transfer {
   items: ChecklistItem[];
 }
 export interface Activity { id: string; message: string; at: string }
+export interface ChangeTarget {
+  type: 'trip' | 'place' | 'event' | 'note' | 'comment' | 'packing' | 'departure' | 'departure-check' | 'member' | 'link';
+  id: string;
+  parentId: string;
+  label: string;
+}
+export interface HistoryRecord {
+  id: string;
+  operationId: string;
+  actorId: string;
+  actorName: string;
+  action: 'added' | 'changed' | 'deleted' | 'renamed' | 'revoked' | 'rotated';
+  target: ChangeTarget;
+  at: string;
+}
+export interface HistoryPage { items: HistoryRecord[]; before: string | null }
 export interface TripData {
   trip: Trip;
   places: Place[];

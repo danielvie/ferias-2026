@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { Store } from './store';
-import { check, commandInput, createTripInput, HttpError, id, inviteInput, object, text } from './validation';
+import { check, commandInput, createTripInput, historyInput, HttpError, id, inviteInput, object, profileInput, text } from './validation';
 
 export interface AppOptions {
   /** ':memory:' is supported for tests. File-backed databases create their parent directory. */
@@ -144,7 +144,7 @@ export function createApp(options: AppOptions = {}) {
       const method = req.method;
       const revoke = method === 'DELETE' && /^\/api\/invites\/[^/]+$/.test(path);
       const known = (method === 'GET' && ['/api/trip', '/api/invites'].includes(path)) ||
-        (method === 'POST' && ['/api/trips', '/api/session', '/api/commands', '/api/invites'].includes(path)) ||
+        (method === 'POST' && ['/api/trips', '/api/session', '/api/commands', '/api/invites', '/api/profile', '/api/history'].includes(path)) ||
         (method === 'DELETE' && path === '/api/session') || revoke;
       if (!known) throw new HttpError(404, 'API route not found.');
       const oldSession = cookie(req);
@@ -174,6 +174,14 @@ export function createApp(options: AppOptions = {}) {
         return send(res, 201, store.invite(store.authenticate(oldSession), input));
       }
       if (revoke) return send(res, 200, store.revoke(access, id(path.slice('/api/invites/'.length))));
+      if (method === 'POST' && path === '/api/history') {
+        const before = historyInput(await json(req));
+        return send(res, 200, store.history(store.authenticate(oldSession), before));
+      }
+      if (method === 'POST' && path === '/api/profile') {
+        const input = profileInput(await json(req));
+        return send(res, 200, store.rename(store.authenticate(oldSession), input.previousName, input.name));
+      }
       const body = object(await json(req));
       check(typeof body.revision === 'number' && Number.isSafeInteger(body.revision) && body.revision >= 0, 'Invalid revision.');
       // The body can arrive slowly. An invite may have been revoked while awaiting it.

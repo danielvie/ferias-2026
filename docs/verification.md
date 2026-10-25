@@ -217,6 +217,89 @@ The existing full-size date chooser is preserved on a separate calendar-icon but
 
 The owner requested committing and pushing the reviewed redesign to `origin/main` after local validation. The publication includes source, tests, documentation and the two editable Excalidraw boards, not environment files, trip databases, browser traces or private links. The Pages workflow is manual, so this source push does not deploy the frontend or change the hosted API/database.
 
+## Member attribution
+
+Implemented the approved specification in `docs/member-attribution-spec.md`.
+The header now exposes an editable identity on mobile and desktop. The member
+pane includes durable paginated history, with stable IDs and names at the time.
+Both backends stamp records transactionally; related changes share an operation
+ID. Private transitions restrict earlier note/comment history, and family links
+cannot read it. Note content is never copied into history.
+
+Final checks passed on Node 24.15.0 with the pinned project tools:
+
+- `task check`: production build, TypeScript, and 106 tests in 20 files.
+- `task online:check`: Deno typecheck of the actual Edge entry point.
+- `task attribution:check`: 37 native pgTAP assertions, six multi-connection
+  tests, and all five online Chromium workflows under `/ferias-2026/`.
+- `task backup:check`: restored private notes and durable history with the same
+  member IDs; sessions excluded and fixture creation disabled on restore.
+- `DEBUG=pw:webserver task test:e2e -- --config <temporary-config>`: all 24
+  Chromium workflows with isolated ports 3002/5199 and in-memory SQLite.
+- `git diff --check`: no whitespace errors.
+
+Coverage includes distinct members with the same name, add/edit/delete targets,
+automatic related changes and grouping, server-stamped actor names before/after a
+rename, retained history after revocation/deletion/restart, more than 50 records,
+cursor paging, failed/stale-save rollback, profile-only permissions, forged input,
+and shared-to-private note history transitions. Native races verify that a
+pending rename cannot finish after revocation, and a content save staged before
+a rename cannot record stale attribution.
+
+Browser checks cover mobile name visibility, all roles, long names at
+320/768/1024/1440 pixels, two collaborators, rename/reload, focus restoration,
+Escape/discard guards, failed/conflicting saves retaining drafts, history errors
+and pagination. Axe checks pass for the profile/history pane and existing modules;
+phone screenshots were inspected.
+
+No source push, hosted migration, or deployment was performed. The standard
+`task online:test` and `task online:e2e` gateway-backed paths were not run for this
+change; the isolated Deno/PostgREST route below is a distinct check. No physical
+device, full assistive-technology, hosted rollout, or load test was performed.
+
+The initial default `task db:test` attempt found three failures in its 37
+foundation assertions because the shared local database already has
+`repeat_city_visits`, which removes the original unique-city-name rule. This is
+unrelated schema drift, not an attribution migration failure. `task db:migrate`
+was a no-op before the version collision was discovered. The feature's migration
+was renumbered to `20260717000400`; no attribution schema was applied to that
+database, no trip data were reset, and its existing Edge process was not restarted.
+
+`task attribution:check` provides a repeatable isolated native check. It uses the
+existing local Supabase PostgreSQL container and PostgREST image, creates a fresh
+fixture database/login, applies this worktree's migrations, then runs pgTAP,
+native multi-connection tests, and the online browser suite through the actual
+Deno entry point. Fixture services bind loopback and are cleaned up. This is not
+the Supabase gateway/function-bundling path, and is not a hosted deployment test.
+
+## Rebase and local preview
+
+At the user's request, moved the work onto `origin/main` at `6bfb82f` and reapplied
+the uncommitted attribution changes. Resolved the header conflicts by keeping
+main's soft-blue `aria-current` selection and the profile button beneath the
+brand. Narrow-screen spacing keeps the session actions alongside the identity.
+
+Local startup initially refused the missing `20260717000300_repeat_city_visits`
+source. Recovered its exact recorded SQL from the local migration history, without
+repairing that history or resetting data. The native duplicate-city rollback
+fixture now uses duplicate visit IDs, which remain invalid when names may repeat.
+Applied `20260717000400_member_attribution.sql` locally and restarted the
+worktree's development server on `http://127.0.0.1:5173/`.
+
+No tests were run for this rebase, as requested. Only startup availability was
+checked: the frontend, profile modules and local Edge health endpoint return 200.
+The validation results above predate this rebase and were not rerun. Existing
+local trip data were preserved; no hosted migration or deployment was performed.
+
+### Attribution source publication
+
+The owner subsequently requested committing and pushing the rebased attribution
+feature to `origin/main`. Reviewed the source file list for credentials, private
+links, databases and generated artifacts before publication. No tests were rerun
+for publication, following the user's instruction. The local preview remains
+available; source publication does not run the manual Pages workflow or deploy
+the hosted database/API.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

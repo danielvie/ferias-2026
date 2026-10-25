@@ -71,6 +71,33 @@ Use the workflow for publication so a local test build pointing to `127.0.0.1` c
 
 If only built assets should be public, stop before publishing source. Use a separate reviewed static-artifact publication procedure instead of this source-build workflow.
 
+## Member-attribution rollout
+
+This feature is implemented but not deployed. Unlike a layout-only change, it
+requires `20260717000400_member_attribution.sql` and the matching `trip-api` source.
+ADR-005 records the API and storage decisions.
+
+1. Obtain approval for the specific source publication and hosted migration/API
+   deployment. Reconfirm the target, Free plan, backup, and current migration list.
+2. Reconcile migration history first. Source now includes
+   `20260717000300_repeat_city_visits`, recovered from its recorded local SQL,
+   followed by the attribution migration. Confirm the intended target matches.
+   Do not reset a database or mark migrations applied as a shortcut.
+3. Arrange a brief no-edit window. Preview and apply the reviewed additive
+   migration, then immediately deploy the matching API with the existing custom
+   authentication settings. The migration makes old unaudited content writers
+   fail closed until the new API is available.
+4. Verify old links still work, rename preserves member IDs/roles, content saves
+   produce history, private-note history is isolated, and family history returns
+   403. Do not change trip-creation settings or import/reset data for this rollout.
+5. Run the manual Pages workflow for the reviewed source. A frontend-only
+   deployment is insufficient for this feature.
+
+For frontend rollback, retain the compatible audited API and history storage.
+Do not delete records or redeploy an unaudited writer to restore writes.
+Backups of the private schema now include history; `task backup:check` verifies
+its restoration with synthetic fixtures.
+
 ## 4. Create the online trip, then close creation
 
 Creation is disabled by default. In the hosted project's SQL editor, after backend deployment:

@@ -26,6 +26,134 @@ async function snapshot(page: Page): Promise<TripSnapshot> {
   return response.json();
 }
 
+test('mobile identity is visible, editable, and credits separate collaborators', async ({ page, browser }, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 1000 });
+  await createTrip(page);
+  const original = await snapshot(page);
+  const profile = page.getByRole('button', { name: 'Your profile: Daniel, owner', exact: true });
+  await expect(profile).toBeVisible();
+  await expect(profile).toContainText('owner');
+  await profile.click();
+  await expect(page.getByLabel('Your name', { exact: true })).toBeFocused();
+  await page.getByLabel('Your name', { exact: true }).fill('Daniel Vieira');
+  await page.getByRole('button', { name: 'Save name', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Your name is saved' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close Your profile', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Your profile: Daniel Vieira, owner' })).toBeFocused();
+  await page.reload();
+  expect((await snapshot(page)).session).toEqual({ ...original.session, name: 'Daniel Vieira' });
+  const invited = await page.request.post('/api/invites', { data: { name: 'Editor', role: 'editor', eventIds: [], placeIds: [] } });
+  const link = await invited.json();
+  const context = await browser.newContext();
+  try {
+    const editor = await context.newPage();
+    await editor.goto(`/#access=${link.token}`);
+    await editor.getByRole('button', { name: 'Your profile: Editor, editor' }).click();
+    await editor.getByLabel('Your name', { exact: true }).fill('Ana');
+    await editor.getByRole('button', { name: 'Save name', exact: true }).click();
+    await expect(editor.getByRole('status').filter({ hasText: 'Your name is saved' })).toBeVisible();
+    await editor.getByRole('button', { name: 'Close Your profile', exact: true }).click();
+    await navigate(editor, 'Places');
+    await editor.getByRole('button', { name: 'Save suggestion: Grand Place', exact: true }).click();
+    await expect(editor.getByRole('heading', { name: 'Grand Place', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Your profile: Daniel Vieira, owner' }).click();
+    const history = page.getByRole('list', { name: 'Recorded changes' });
+    await expect(history).toContainText('Ana added place');
+    await expect(history).toContainText('Grand Place');
+    await expect(history).toContainText('Daniel renamed member');
+    for (const width of [320, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    }
+    await page.setViewportSize({ width: 320, height: 1000 });
+    const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+    expect(violations.map((violation) => violation.id)).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath('member-history-phone.png') });
+    await page.getByRole('button', { name: 'Close Your profile', exact: true }).click();
+    await page.screenshot({ path: testInfo.outputPath('member-identity-phone.png') });
+  } finally { await context.close(); }
+});
+
+test('profile drafts survive save failures and conflicts, and Escape protects unsaved changes', async ({ page }) => {
+  await createTrip(page);
+  await page.getByRole('button', { name: 'Your profile: Daniel, owner' }).click();
+  await page.getByLabel('Your name', { exact: true }).fill('My draft name');
+  await page.route('**/api/profile', (route) => route.fulfill({
+    status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Synthetic save failure' }),
+  }), { times: 1 });
+  await page.getByRole('button', { name: 'Save name', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Synthetic save failure');
+  await expect(page.getByLabel('Your name', { exact: true })).toHaveValue('My draft name');
+  const remote = await page.request.post('/api/profile', { data: { previousName: 'Daniel', name: 'Remote name' } });
+  expect(remote.ok()).toBe(true);
+  await page.getByRole('button', { name: 'Save name', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Someone changed');
+  await expect(page.getByLabel('Your name', { exact: true })).toHaveValue('My draft name');
+  await page.getByRole('button', { name: 'Save name', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Your name is saved' })).toBeVisible();
+  await page.getByLabel('Your name', { exact: true }).fill('Unsaved name');
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Your profile', exact: true })).toBeVisible();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect((await snapshot(page)).session.name).toBe('My draft name');
+});
+
+test('viewer and family profiles support long names without enabling trip editing', async ({ page, browser }) => {
+  await createTrip(page);
+  for (const role of ['viewer', 'family']) {
+    const invited = await page.request.post('/api/invites', { data: { name: role, role, eventIds: [], placeIds: [] } });
+    const link = await invited.json();
+    const context = await browser.newContext({ viewport: { width: 320, height: 1000 } });
+    try {
+      const guest = await context.newPage();
+      await guest.goto(`/#access=${link.token}`);
+      await guest.getByRole('button', { name: `Your profile: ${role}, ${role}` }).click();
+      const name = `${role} ${'A'.repeat(90)}`;
+      await guest.getByLabel('Your name', { exact: true }).fill(name);
+      await guest.getByRole('button', { name: 'Save name', exact: true }).click();
+      await expect(guest.getByRole('status').filter({ hasText: 'Your name is saved' })).toBeVisible();
+      if (role === 'family') await expect(guest.getByRole('heading', { name: 'Change history', exact: true })).toHaveCount(0);
+      else await expect(guest.getByRole('heading', { name: 'Change history', exact: true })).toBeVisible();
+      await guest.getByRole('button', { name: 'Close Your profile', exact: true }).click();
+      await expect(guest.getByRole('button', { name: 'Settings', exact: true })).toHaveCount(0);
+      for (const width of [320, 768, 1024, 1440]) {
+        await guest.setViewportSize({ width, height: 1000 });
+        const identity = guest.getByRole('button', { name: `Your profile: ${name}, ${role}` });
+        await expect(identity).toBeVisible();
+        await expect(identity.locator('.member-role')).toBeVisible();
+        expect(await guest.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+      }
+    } finally { await context.close(); }
+  }
+});
+
+test('history loads older pages and retries errors without inventing old attribution', async ({ page }) => {
+  await createTrip(page);
+  let state = await snapshot(page);
+  for (let i = 0; i < 52; i++) {
+    const response = await page.request.post('/api/commands', { data: {
+      revision: state.revision, command: { type: 'packing.add', title: `History item ${i}`, assignee: '' },
+    } });
+    expect(response.ok()).toBe(true);
+    state = await response.json();
+  }
+  await page.route('**/api/history', (route) => route.fulfill({
+    status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Synthetic history failure' }),
+  }), { times: 1 });
+  await page.getByRole('button', { name: 'Your profile: Daniel, owner' }).click();
+  await expect(page.getByRole('alert')).toContainText('Synthetic history failure');
+  await page.getByRole('button', { name: 'Reload history', exact: true }).click();
+  const records = page.getByRole('list', { name: 'Recorded changes' }).getByRole('listitem');
+  await expect(records).toHaveCount(50);
+  await page.getByRole('button', { name: 'Load older changes', exact: true }).click();
+  await expect(records).toHaveCount(53);
+  await expect(records.last()).toContainText('Daniel added trip');
+  await expect(page.getByRole('button', { name: 'Load older changes', exact: true })).toHaveCount(0);
+});
+
 test('the empty itinerary opens without a fabricated trip and setup uses a modal pane', async ({ page }, testInfo) => {
   let creates = 0;
   page.on('request', (request) => {

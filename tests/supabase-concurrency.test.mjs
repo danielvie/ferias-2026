@@ -3,10 +3,13 @@ import { spawn } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
+import { changesBetween } from '../server/history.ts';
 
 // Native tests deliberately target only the project container, never a URL or
 // credentials from .env.local. Cleanup deletes only each test's generated trip.
 const container = 'supabase_db_ferias-2026';
+const database = process.env.TRIP_TEST_DATABASE || 'postgres';
+if (database !== 'postgres' && !/^trip_attribution_[0-9a-f]+$/.test(database)) throw new Error('Invalid disposable test database.');
 const details = {
   title: 'Synthetic concurrency trip', startDate: '2026-12-02', endDate: '2026-12-15',
   cities: [{ id: 'brussels', name: 'Brussels' }],
@@ -18,7 +21,7 @@ function connection(name = `trip-test-${randomUUID()}`) {
   const child = spawn('docker', [
     'exec', '-i', '--env', `PGAPPNAME=${name}`,
     '--env', 'PGOPTIONS=-c statement_timeout=10000 -c lock_timeout=10000', container,
-    'psql', '-X', '-qAt', '-U', 'postgres', '-d', 'postgres',
+    'psql', '-X', '-qAt', '-U', 'postgres', '-d', database,
     '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose',
   ], { stdio: ['pipe', 'pipe', 'pipe'] });
   let stdout = '';
@@ -179,5 +182,49 @@ test('native full-state commits reauthorize after an earlier state read and pend
     const saved = JSON.parse(await query(`select public.trip_state(${literal(data.ownerSession)});`));
     assert.equal(saved.revision, 1);
     assert.deepEqual(saved.data.packing, []);
+  });
+});
+
+test('native pending profile saves recheck revoked access before recording a rename', { timeout: 20_000 }, async () => {
+  await withConnections(async (data, holder, waiting) => {
+    holder.write(`begin; select public.trip_read(${literal(data.ownerSession)}); select 'trip-test-ready';`);
+    await holder.ready();
+    waiting.write(`select public.trip_profile(${literal(data.editorSession)}, 'Test editor', 'Must not persist');`);
+    await waitUntilBlocked(waiting.name);
+    holder.write(`select public.trip_revoke_link(${literal(data.ownerSession)}, ${literal(data.linkId)}); commit;`);
+    waiting.end('');
+    const result = await waiting.done;
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /PT401/);
+    assert.equal(await query(`select count(*) from trip_private.history where trip_id = ${literal(data.tripId)};`), '0');
+  });
+});
+
+test('native rename/content races reject stale attribution and stamp the committed member name', { timeout: 20_000 }, async () => {
+  await withConnections(async (data, holder, waiting) => {
+    const state = JSON.parse(await query(`select public.trip_state(${literal(data.editorSession)});`));
+    const before = structuredClone(state.data);
+    state.data.packing.push({ id: 'race-item', title: 'Adapter', assignee: '', status: 'pending' });
+    const changes = changesBetween(before, state.data);
+    holder.write(`begin;
+      select public.trip_profile(${literal(data.editorSession)}, 'Test editor', 'Ana');
+      select 'trip-test-ready';`);
+    await holder.ready();
+    waiting.write(`select public.trip_commit(${literal(data.editorSession)}, 0, ${json(state.data)}, ${json(changes)});`);
+    await waitUntilBlocked(waiting.name);
+    holder.write('commit;');
+    waiting.end('');
+    const result = await waiting.done;
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /PT409/);
+    const saved = JSON.parse(await query(`select public.trip_state(${literal(data.editorSession)});`));
+    assert.deepEqual(saved.data.packing, []);
+    await query(`select public.trip_commit(${literal(data.editorSession)}, ${saved.revision}, ${json(state.data)}, ${json(changes)});`);
+    const history = JSON.parse(await query(`select public.trip_history(${literal(data.editorSession)});`));
+    assert.equal(history.items.length, 2);
+    assert.equal(history.items[0].actorName, 'Ana');
+    assert.equal(history.items[0].target.id, 'race-item');
+    assert.equal(history.items[1].actorName, 'Test editor');
+    assert.equal(history.items[0].actorId, history.items[1].actorId);
   });
 });

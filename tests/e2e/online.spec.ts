@@ -4,8 +4,12 @@ import { AxeBuilder } from '@axe-core/playwright';
 import type { TripSnapshot } from '../../shared/model';
 
 const trips = new Set<string>();
+const database = process.env.TRIP_TEST_DATABASE || 'postgres';
+if (database !== 'postgres' && !/^trip_attribution_[0-9a-f]+$/.test(database)) throw new Error('Invalid disposable test database.');
+const apiBase = process.env.TRIP_TEST_API_URL || 'http://127.0.0.1:54321/functions/v1/trip-api';
+if (!/^http:\/\/127\.0\.0\.1:\d+\/functions\/v1\/trip-api$/.test(apiBase)) throw new Error('Online tests must use a loopback API.');
 const sql = (input: string) => execFileSync('docker', [
-  'exec', '-i', 'supabase_db_ferias-2026', 'psql', '-X', '-qAt', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1',
+  'exec', '-i', 'supabase_db_ferias-2026', 'psql', '-X', '-qAt', '-U', 'postgres', '-d', database, '-v', 'ON_ERROR_STOP=1',
 ], { input, encoding: 'utf8' }).trim();
 let originallyEnabled: boolean;
 test.beforeAll(() => {
@@ -57,14 +61,29 @@ async function invite(page: Page, name: string, role: string) {
   return link;
 }
 async function snapshot(page: Page): Promise<TripSnapshot> {
-  return page.evaluate(async () => {
+  return page.evaluate(async (base) => {
     const key = Object.keys(sessionStorage).find((key) => key.startsWith('belgium-together:session:'));
     const session = key ? sessionStorage.getItem(key) || '' : '';
-    const response = await fetch('http://127.0.0.1:54321/functions/v1/trip-api/trip', { headers: { 'X-Trip-Session': session } });
+    const response = await fetch(`${base}/trip`, { headers: { 'X-Trip-Session': session } });
     if (!response.ok) throw new Error(`Snapshot failed with ${response.status}`);
     return response.json();
-  });
+  }, apiBase);
 }
+
+test('mobile profile and durable history work through the deployed-path Edge transport', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 1000 });
+  await create(page);
+  const previous = await snapshot(page);
+  await page.getByRole('button', { name: 'Your profile: Daniel, owner' }).click();
+  await page.getByLabel('Your name', { exact: true }).fill('Daniel online');
+  await page.getByRole('button', { name: 'Save name', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Your name is saved' })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Recorded changes' })).toContainText('Daniel renamed member');
+  await page.getByRole('button', { name: 'Close Your profile', exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Your profile: Daniel online, owner' })).toBeVisible();
+  expect((await snapshot(page)).session).toEqual({ ...previous.session, name: 'Daniel online' });
+});
 
 test('Pages-path creation, derived-session reload and separate link-only identities work across browsers', async ({ page, browser }) => {
   const ownerLink = await create(page);

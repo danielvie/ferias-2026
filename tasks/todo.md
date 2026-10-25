@@ -72,3 +72,24 @@ Approved visual contract and scope are in `belgium-itinerary-layout-v2.excalidra
 - [x] L4. Apply the Daylight shell and responsive styles. Desktop/phone screenshots inspected; 320/768/1024/1440 overflow and axe checks passed. Depends on L1–L3.
 - [x] L5. `task check` passed 91 tests/build/typecheck; standalone `task test:e2e` passed 16 workflows; `task online:e2e` passed four. Results and limits recorded in `docs/verification.md`. Not deployed. Depends on L4.
   - Compact-rail follow-up: `task check` passed again; all 17 browser workflows passed with a temporary isolated-port configuration and in-memory SQLite, preserving the user's running app.
+
+## Member attribution
+
+Approved scope: `docs/member-attribution-spec.md`. Implementation order and
+decisions: final section of `tasks/plan.md`. Source publication approved;
+hosted deployment is not authorized.
+
+- [x] A1. Structured records and transactional SQLite history. Verify actor/target,
+  automatic effects, private transitions, paging, rollback and restart persistence.
+- [x] A2. Additive Supabase storage/routines and Edge integration. Depends on A1.
+  Verify real SQL, privileges, revocation/rename races and backend parity.
+- [x] A3. Self-service profile and history pane. Depends on A1–A2. Verify mobile
+  identity, rename/reload, cancellation, conflicts, pagination and family restrictions.
+- [x] A4. Regression/accessibility checks and deployment documentation. Depends on
+  A3. Run available repository commands and report skipped checks explicitly.
+  - `task check`: 106 tests/build/typecheck. Edge typecheck and backup/restore pass.
+  - `task attribution:check`: 37 native assertions, six races and five online browser workflows pass.
+  - Isolated `task test:e2e`: 24 workflows pass, including accessibility/responsive checks.
+  - Initial validation left the shared schema untouched. The subsequent requested
+    preview recovered the missing migration source, applied attribution locally,
+    and restarted the app. No tests rerun for that rebase; no push or deployment.

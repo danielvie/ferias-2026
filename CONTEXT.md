@@ -8,6 +8,10 @@ A shared trip brings together the plans and practical details for a group visiti
 
 **Trip member**: A named role in a trip, reached through a private member link. It is not a verified personal account.
 
+**Member name**: A member's editable display label. Renaming a member does not make them a different member, and two members can have the same name.
+
+**Change history**: A record of who added, changed or removed trip data, under the name they used at the time. Recording an action does not mean that member paid for it or owes its cost.
+
 **Member link**: A private URL granting its holder a particular trip role. People sharing the same member link share that member's identity and access.
 
 **Owner link**: The private member link that grants trip management and control of other links. It is also the owner's way back without signing in.

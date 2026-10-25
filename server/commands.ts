@@ -168,5 +168,7 @@ export function applyCommand(data: TripData, member: Member, command: TripComman
       break;
   }
   validateReferences(data);
-  addActivity(data, message);
+  // A generic note message still exposes private activity and its timing.
+  // Structured note history is separately permission-filtered.
+  if (!command.type.startsWith('note.')) addActivity(data, message);
 }

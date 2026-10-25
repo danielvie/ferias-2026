@@ -1,4 +1,4 @@
-import type { CreateTripInput, InviteInfo, InviteInput, TripCommand, TripSnapshot } from '../../shared/model';
+import type { CreateTripInput, HistoryPage, InviteInfo, InviteInput, TripCommand, TripSnapshot } from '../../shared/model';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number, public sessionExpired = false) { super(message); }
@@ -57,6 +57,8 @@ export const api = {
     return 'snapshot' in result ? result.snapshot : result;
   },
   command: (revision: number, command: TripCommand) => request<TripSnapshot>('/commands', { method: 'POST', body: JSON.stringify({ revision, command }) }),
+  profile: (previousName: string, name: string) => request<TripSnapshot>('/profile', { method: 'POST', body: JSON.stringify({ previousName, name }) }),
+  history: (before: string | null = null) => request<HistoryPage>('/history', { method: 'POST', body: JSON.stringify({ before }) }),
   invites: () => request<InviteInfo[]>('/invites'),
   invite: (input: InviteInput) => request<{ id: string; token: string }>('/invites', { method: 'POST', body: JSON.stringify(input) }),
   revoke: (id: string) => request<{ ok: true }>(`/invites/${encodeURIComponent(id)}`, { method: 'DELETE' }),

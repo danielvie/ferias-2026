@@ -25,6 +25,27 @@ Weekday initials use the Excalidraw comparison's color-only option, without boxe
 
 Save the private owner recovery link shown after creation. It is the way back from another browser or after signing out. Do not send it to other travelers. Use **Share** to create editor, viewer or family invitation links instead.
 
+## Your identity and change history
+
+Your name and role appear beneath **Belgium, together**, including on phones.
+Click your name to open **Your profile**, edit your name, and save it. This is
+separate from trip settings and works for every role, including viewers and family.
+Renaming does not change your access or private-note ownership.
+
+The same pane shows **Change history** for owners, editors, and viewers. It records
+who added, changed or deleted data, the affected item, and when. Use **Load older
+changes** beyond the first 50 records. **Record details** shows stable member/item
+IDs and the group tying automatic related changes to the same write.
+
+History starts with this feature; older actions have no invented attribution.
+Earlier records retain the name used at the time. Private-note history is restricted
+to its author, including earlier records when a shared note becomes private.
+Family links cannot read history. Use a separate private link for each person:
+sharing a link means sharing an identity.
+
+This feature does not add payments or calculate balances. The member entering a
+future expense must be distinguished from its payer and beneficiaries.
+
 ## Prepare Supabase configuration
 
 The local configuration file is `.env.local`, which Git ignores. The shareable template is `.env.example`.
@@ -67,6 +88,7 @@ The checker uses Vite's development-mode environment precedence. Restart the dev
 | `task run` | Start client, local Supabase and Edge API |
 | `task run:sqlite` | Start the original client/Node API with existing SQLite data |
 | `task online:check` | Typecheck the Edge Function with pinned Deno |
+| `task attribution:check` | Check fresh migrations, native races and online browser workflows in a disposable local database |
 | `task online:test` | Exercise the real local Edge API without hosted access |
 | `task online:e2e` | Test the static frontend under `/ferias-2026/` against local Supabase |
 | `task online:build` | Validate hosted configuration and build the Pages frontend |
@@ -131,6 +153,14 @@ See `belgium-itinerary-layout-v2.excalidraw` and the final section of `tasks/pla
 The app is deployed at https://danielvie.github.io/ferias-2026/ with a Supabase Free API/database and no charges permitted. Access is link-only for every role, without application accounts or sign-in. Hosted synthetic-data validation passed and its test trips were deleted. New-trip creation is an operator-controlled setup window; check the hosted setting before creating a trip. No local trip was imported.
 
 The continuous-itinerary redesign is included in the repository source but has not been redeployed to GitHub Pages. The deployment status above describes the previously published version; current hosted trip/creation state must be checked separately before setup.
+
+Member attribution is included in the repository source and is also not deployed.
+It requires a database migration and matching API deployment, not only a Pages
+build. See ADR-005 and the attribution rollout section of `docs/online-setup.md`.
+The previously missing repeat-city migration source was recovered from the local
+database's recorded SQL. Normal `task run` startup can now apply the additive
+attribution migration without resetting existing trip data. Use
+`task attribution:check` for isolated validation instead of migrating a running app.
 
 Start with `docs/online-setup.md` for the steps needing owner action. `supabase/README.md` describes local commands and permissions. `tasks/online-plan.md` records rollout status; ADR-002, ADR-003 and ADR-004 record the provider, access and persistence decisions.
 

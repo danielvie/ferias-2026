@@ -3,7 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createHandler, type Rpc } from '../supabase/functions/trip-api/handler.ts';
 import { HttpError } from '../server/validation.ts';
-import type { TripCommand, TripSnapshot } from '../shared/model.ts';
+import type { HistoryPage, TripCommand, TripSnapshot } from '../shared/model.ts';
 
 const origin = 'http://127.0.0.1:5173';
 const input = { title: 'Online test trip', ownerName: 'Owner', startDate: '2026-12-02', endDate: '2026-12-15', cities: ['Brussels', 'Bruges'] };
@@ -72,6 +72,115 @@ describe('online API with actual PostgreSQL migrations', () => {
   });
   afterAll(async () => { await db?.close(); });
 
+  async function history(credential = session, before: string | null = null): Promise<HistoryPage> {
+    const response = await call('/history', 'POST', { before }, credential);
+    expect(response.status).toBe(200);
+    return response.json();
+  }
+
+  test('renames only the authenticated member and keeps stable identity and past attribution', async () => {
+    const editor = await invite('editor');
+    await command({ type: 'packing.add', title: 'Adapter', assignee: '' }, editor.sessionToken);
+    const response = await call('/profile', 'POST', {
+      previousName: 'editor', name: ' Ana ', memberId: state.session.id, role: 'owner',
+    }, editor.sessionToken);
+    expect(response.status).toBe(200);
+    const renamed: TripSnapshot = await response.json();
+    expect(renamed.session).toEqual({ id: editor.id, name: 'Ana', role: 'editor' });
+    expect((await load()).session.name).toBe('Owner');
+    expect((await load(editor.sessionToken)).session).toEqual(renamed.session);
+    await command({ type: 'packing.add', title: 'Tickets', assignee: '' }, editor.sessionToken);
+    expect((await call('/profile', 'POST', { previousName: 'editor', name: 'Stale' }, editor.sessionToken)).status).toBe(409);
+    const records = (await history()).items.filter((item) => item.actorId === editor.id);
+    expect(records.map((item) => item.actorName)).toEqual(['Ana', 'editor', 'editor']);
+    expect(JSON.stringify(records)).not.toContain(editor.sessionToken);
+    expect((await call(`/invites/${editor.id}`, 'DELETE')).status).toBe(200);
+    expect((await history()).items.filter((item) => item.actorId === editor.id)).toEqual(records);
+    expect((await call('/history', 'POST', {}, editor.sessionToken)).status).toBe(401);
+    expect((await call('/profile', 'POST', { previousName: 'Ana', name: 'Denied' }, editor.sessionToken)).status).toBe(401);
+  });
+
+  test('read-only roles can rename without content access or family history/revision leakage', async () => {
+    for (const role of ['viewer', 'family'] as const) {
+      const guest = await invite(role);
+      const response = await call('/profile', 'POST', { previousName: role, name: `New ${role}` }, guest.sessionToken);
+      expect(response.status).toBe(200);
+      const next: TripSnapshot = await response.json();
+      expect(next.session).toEqual({ id: guest.id, name: `New ${role}`, role });
+      expect((await call('/commands', 'POST', {
+        revision: next.revision, command: { type: 'packing.add', title: 'Denied', assignee: '' },
+      }, guest.sessionToken)).status).toBe(403);
+      if (role === 'family') {
+        expect(next.revision).toBe(0);
+        expect(next.members).toEqual([next.session]);
+        expect(next.data.activity).toEqual([]);
+        expect((await call('/history', 'POST', {}, guest.sessionToken)).status).toBe(403);
+      } else expect((await history(guest.sessionToken)).items.length).toBeGreaterThan(0);
+    }
+    for (const name of ['', ' ', 'x'.repeat(101), '\u0001']) {
+      expect((await call('/profile', 'POST', { previousName: 'Owner', name })).status).toBe(422);
+    }
+    expect((await call('/profile', 'POST', { previousName: 'Owner', name: 'Forged' }, '')).status).toBe(401);
+  });
+
+  test('keeps durable paginated history and ignores browser-supplied actor metadata', async () => {
+    for (let i = 0; i < 55; i++) await command({ type: 'packing.add', title: `Item ${i}`, assignee: '' });
+    const first = await history();
+    expect(first.items).toHaveLength(50);
+    expect((await history(session, first.before)).items).toHaveLength(6);
+    expect(JSON.stringify(first)).not.toContain('sequence');
+    const beforeFailure = await history();
+    expect((await call('/commands', 'POST', {
+      revision: 0, command: { type: 'packing.add', title: 'Stale', assignee: '' },
+    })).status).toBe(409);
+    expect(await history()).toEqual(beforeFailure);
+    const current = await load();
+    expect((await call('/commands', 'POST', {
+      revision: current.revision, actorId: 'forged', actorName: 'Forged', p_changes: [],
+      command: { type: 'packing.delete', id: current.data.packing[0].id },
+    })).status).toBe(200);
+    expect((await history()).items[0]).toMatchObject({
+      actorId: state.session.id, actorName: 'Owner', action: 'deleted', target: { type: 'packing' },
+    });
+    expect((await call('/history', 'POST', { before: 'unknown-cursor' })).status).toBe(422);
+  });
+
+  test('hides earlier note and comment history after privacy changes and deletion', async () => {
+    const editor = await invite('editor');
+    const next = await command({ type: 'note.save', note: {
+      id: '', title: 'SECRET TITLE', body: 'SECRET BODY', visibility: 'trip', linkType: 'trip', linkId: '',
+    } }, editor.sessionToken);
+    const note = next.data.notes[0];
+    await command({ type: 'note.comment', id: note.id, body: 'SECRET COMMENT' });
+    expect((await history()).items.some((item) => item.target.type === 'comment')).toBe(true);
+    await command({ type: 'note.save', note: { ...note, visibility: 'private' } }, editor.sessionToken);
+    await command({ type: 'note.delete', id: note.id }, editor.sessionToken);
+    expect(JSON.stringify(await history())).not.toContain(note.id);
+    const own = await history(editor.sessionToken);
+    expect(own.items.filter((item) => ['note', 'comment'].includes(item.target.type))).toHaveLength(5);
+    expect(JSON.stringify(own)).not.toContain('SECRET');
+    expect(JSON.stringify((await load()).data.activity)).not.toContain('note');
+  });
+
+  test('guards history storage and legacy unaudited writes at the database boundary', async () => {
+    const { hash } = await import('../supabase/functions/trip-api/handler.ts');
+    const current = await load();
+    await expect(db.query('select public.trip_commit($1, $2, $3)', [await hash(session), current.revision, current.data]))
+      .rejects.toMatchObject({ code: 'PT422' });
+    expect(await load()).toEqual(current);
+    for (const role of ['anon', 'authenticated', 'service_role']) {
+      await db.exec(`set role ${role}`);
+      try {
+        await expect(db.query('select * from trip_private.history')).rejects.toMatchObject({ code: '42501' });
+        if (role !== 'service_role') {
+          await expect(db.query('select public.trip_history($1)', [await hash(session)])).rejects.toMatchObject({ code: '42501' });
+          await expect(db.query('select public.trip_profile($1, $2, $3)', [await hash(session), 'Owner', 'Denied']))
+            .rejects.toMatchObject({ code: '42501' });
+        }
+      } finally { await db.exec('reset role'); }
+    }
+  });
+
   test('creates a complete snapshot, hashes credentials, handles CORS and rejects missing access', async () => {
     expect(state.data.packing).toHaveLength(5);
     expect(await load()).toEqual(state);
@@ -96,6 +205,9 @@ describe('online API with actual PostgreSQL migrations', () => {
       kind: 'activity', status: 'planned', placeId: savedPlace.id, description: 'Booking code',
     } });
     expect(state.data.places[0].status).toBe('planned');
+    const related = (await history()).items.slice(0, 2);
+    expect(related.map((record) => record.target.type)).toEqual(['event', 'place']);
+    expect(new Set(related.map((record) => record.operationId)).size).toBe(1);
     const stale = await call('/commands', 'POST', { revision: 0, command: { type: 'place.delete', id: savedPlace.id } });
     expect(stale.status).toBe(409);
     await command({ type: 'place.delete', id: savedPlace.id });

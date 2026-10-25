@@ -99,6 +99,26 @@ function note(overrides: Partial<Pick<Note, 'id' | 'title' | 'body' | 'visibilit
 }
 
 describe('trip API', () => {
+  it('validates self-only profile edits and denies unauthenticated or revoked history', async () => {
+    const app = await start(), owner = app.client();
+    await owner.create();
+    const { client: viewer, id: viewerId } = await owner.invite('viewer');
+    expect((await app.client().request('/history', 'POST', {})).response.status).toBe(401);
+    for (const name of ['', ' ', 'x'.repeat(101), '\u0001']) {
+      expect((await viewer.request('/profile', 'POST', { previousName: 'viewer guest', name })).response.status).toBe(422);
+    }
+    const renamed = await viewer.request('/profile', 'POST', {
+      previousName: 'viewer guest', name: 'Ana', memberId: owner.snapshot.session.id, role: 'owner',
+    });
+    expect(renamed.body.session).toEqual({ id: viewerId, name: 'Ana', role: 'viewer' });
+    expect((await owner.load()).session.name).toBe('Owner');
+    expect((await viewer.request('/profile', 'POST', { previousName: 'viewer guest', name: 'Stale' })).response.status).toBe(409);
+    expect((await viewer.request('/history', 'POST', {})).response.status).toBe(200);
+    await owner.request(`/invites/${viewerId}`, 'DELETE');
+    expect((await viewer.request('/history', 'POST', {})).response.status).toBe(401);
+    expect((await viewer.request('/profile', 'POST', { previousName: 'Ana', name: 'Denied' })).response.status).toBe(401);
+  });
+
   it('creates an empty plan with strategy packing, secure cookie flags and whitelisted fields', async () => {
     const app = await start();
     const owner = app.client();
@@ -236,6 +256,11 @@ describe('trip API', () => {
     const second = await start({ dbPath: path }), restored = second.client();
     restored.cookie = cookie;
     expect((await restored.load()).data.places[0].title).toBe('Grand Place');
+    const history = await restored.request('/history', 'POST', {});
+    expect(history.response.status).toBe(200);
+    expect(history.body.items).toHaveLength(3);
+    expect(history.body.items.find((item: { target: { type: string } }) => item.target.type === 'place'))
+      .toMatchObject({ actorId: created.snapshot.session.id, actorName: 'Owner', target: { id: 'place-1' } });
     expect((await restored.request('/session', 'POST', { token: created.ownerToken })).response.status).toBe(200);
     expect((await second.client().request('/session', 'POST', { token: invite.token })).response.status).toBe(200);
   });
