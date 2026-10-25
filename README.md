@@ -27,7 +27,7 @@ Weekday initials use the Excalidraw comparison's color-only option, without boxe
 
 `Places` follows the editable reference in `places-route-exploration.excalidraw`. Each city card is one visit, so you can plan `Brussels → Ghent → Brussels` with different activities in each Brussels visit.
 
-- Drag a visit by its handle to move the whole group. The calendar's **Route** view follows the same order.
+- Drag a visit by its handle to move the whole group. The itinerary's route summary follows the same order; its continuous days and booked times stay chronological.
 - Click `+` on the path to insert a visit, or **Add city visit** to append one.
 - Use **Add activity** inside a visit. Drag an activity within a visit or into another visit, keeping its ID, details, notes and links.
 - The `···` menus offer non-drag moves. **Undo move** reverses the most recent move while its revision remains current.

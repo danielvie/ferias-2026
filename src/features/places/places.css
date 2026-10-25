@@ -83,7 +83,7 @@
 .route-number { z-index: 1; display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--forest); border-radius: 50%; background: var(--soft-green); color: var(--forest-dark); font-variant-numeric: tabular-nums; }
 .route-insert { position: absolute; z-index: 2; right: -42px; top: 22px; width: 44px; height: 44px; padding: 0; border: 1px solid var(--forest); border-radius: 50%; background: var(--surface); color: var(--forest); font-size: 1.5rem; }
 .route-insert:hover:not(:disabled) { background: var(--soft-green); }
-.route-visit { border: 1px solid #b8cbbf; border-radius: var(--radius); background: #f4f8f5; padding: .75rem; min-height: 330px; }
+.route-visit { border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); padding: .75rem; min-height: 330px; }
 .route-visit-heading, .route-activity-heading { display: flex; align-items: flex-start; gap: .25rem; min-width: 0; }
 .route-visit-heading > div { flex: 1; min-width: 0; padding-top: .6rem; }
 .route-visit-heading h2 { font-size: 1.1rem; margin: 0 0 .3rem; overflow-wrap: anywhere; }
@@ -107,7 +107,7 @@
 .activity-title:hover { color: var(--forest); text-decoration: underline; text-underline-offset: 3px; }
 .activity-meta, .activity-calendar { font-size: .75rem; color: var(--muted); margin: .25rem .25rem .5rem; line-height: 1.5; }
 .activity-schedule { min-height: 36px; padding: .25rem; background: transparent; border: 0; color: var(--forest); font-size: .75rem; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
-.activity-drop-placeholder { display: grid; place-items: center; text-align: center; min-height: 76px; padding: .75rem; border: 1px dashed #99b7a5; border-radius: 6px; font-size: .75rem; color: var(--muted); }
+.activity-drop-placeholder { display: grid; place-items: center; text-align: center; min-height: 76px; padding: .75rem; border: 1px dashed var(--line); border-radius: 6px; font-size: .75rem; color: var(--muted); }
 .visit-add-activity { margin-top: .75rem; font-size: .8rem; }
 .is-dragging { opacity: .35; }
 .is-drop-target { outline: 2px dashed var(--forest); outline-offset: 3px; background: var(--soft-green); }

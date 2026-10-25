@@ -99,4 +99,4 @@ hosted deployment is not authorized.
 - [x] R1. Preserve visit/activity identities, support repeated names, and validate insert/move commands in both backends. Migration applied locally; 39 native database assertions and four concurrency checks pass.
 - [x] R2. Build the reference-led route board, insertion form, activity moves, accessible alternatives and move undo. Pointer, keyboard and touch workflows pass.
 - [x] R3. Reflect route order in the itinerary summary, disambiguate repeat visits, and flag date conflicts without shifting bookings. Preserve main's continuous itinerary and stable-ID settings.
-- [x] R4. Production build, 97 unit/API tests, 19 browser workflows, Deno typecheck and fresh-handler/local PostgreSQL HTTP checks pass. Responsive screenshots and axe checks inspected at 320/768/1024/1440px.
+- [x] R4. Rebased onto `origin/main` at `6bfb82f`. Production build, 102 unit/API tests, 29 browser workflows and Deno typecheck pass. Earlier native database/API proofs remain recorded separately. Updated header, itinerary, settings and responsive Places preview verified.

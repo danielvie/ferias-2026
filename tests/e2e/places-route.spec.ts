@@ -82,11 +82,11 @@ test('inserts a separate visit from the connecting path and keeps its activities
   await expect(visit(page, inserted.id).getByRole('heading', { name: 'Return walk', exact: true })).toBeVisible();
   await page.reload(); await places(page);
   expect(await order(page)).toEqual(saved.data.trip.cities.map(city => city.id));
-  await page.getByRole('navigation').getByRole('button', { name: 'Today', exact: true }).click();
-  await page.getByRole('button', { name: 'Edit trip details', exact: true }).click();
+  await page.getByRole('navigation').getByRole('button', { name: 'Itinerary', exact: true }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByLabel('Trip name', { exact: true }).fill('Same visits, new title');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Trip details', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Trip settings', exact: true })).toHaveCount(0);
   expect((await state(page)).data.trip.cities).toEqual(saved.data.trip.cities);
 });
 
@@ -102,10 +102,11 @@ test('drags a whole visit, undoes it, and uses the same order in the itinerary a
   await visit(page, ids[0]).getByRole('button', { name: 'Move later', exact: true }).click();
   await expect.poll(() => order(page)).toEqual([ids[1], ids[0], ids[2], ids[3]]);
   await page.reload();
-  await page.getByRole('navigation').getByRole('button', { name: 'Calendar', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Route', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  const grouped = await page.locator('[data-itinerary-visit]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-itinerary-visit')));
-  expect(grouped).toEqual([ids[1], ids[0], ids[2], ids[3]]);
+  await page.getByRole('navigation').getByRole('button', { name: 'Itinerary', exact: true }).click();
+  await expect(page.locator('.itinerary-cities')).toHaveText('Ghent / Brussels · stop 2 / Bruges / Brussels · stop 4');
+  await expect(page.locator('[data-trip-day]')).toHaveCount(10);
+  await expect(page.locator('[data-trip-day="2030-06-02"]').getByRole('heading', { name: 'Booked walk', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Route', exact: true })).toHaveCount(0);
   expect((await state(page)).data.events[0].date).toBe('2030-06-02');
 });
 

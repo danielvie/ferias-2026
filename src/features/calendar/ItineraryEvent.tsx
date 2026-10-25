@@ -1,4 +1,5 @@
 import type { TripEvent } from '../../../shared/model';
+import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { overlappingEvents } from './itinerary';
 
@@ -10,7 +11,6 @@ export function ItineraryEvent({ event, editing, onEdit, onDelete }: {
 }) {
   const { snapshot, canEdit, busy, navigate } = useTrip();
   const { trip, places, events } = snapshot.data;
-  const city = trip.cities.find((item) => item.id === event.cityId);
   const place = places.find((item) => item.id === event.placeId);
   return <li className="calendar-event">
     <div className="calendar-event-time">
@@ -19,7 +19,7 @@ export function ItineraryEvent({ event, editing, onEdit, onDelete }: {
     </div>
     <div className="calendar-event-content">
       <h3>{event.title}</h3>
-      <p className="event-meta">{city?.name ?? 'City unavailable'} <span> / </span>
+      <p className="event-meta">{visitLabel(trip.cities, event.cityId)} <span> / </span>
         {event.kind} <span> / </span>{event.status === 'planned' ? 'Planned' : 'Tentative'}</p>
       {overlappingEvents(event, events).length > 0 && <p className="calendar-overlap">Time overlap with another activity</p>}
       {event.description && <p className="calendar-description">{event.description}</p>}

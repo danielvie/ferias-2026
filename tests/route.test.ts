@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { Store } from '../server/store';
 import { commandInput, createTripInput } from '../server/validation';
-import { reconcileVisits, routeDateConflicts, visitLabel } from '../shared/route';
+import { routeDateConflicts, visitLabel } from '../shared/route';
 import type { Place, TripCommand } from '../shared/model';
 
 const stores: Store[] = [];
@@ -26,13 +26,10 @@ const activity = (id: string, cityId: string): Place => ({
 });
 
 describe('route visits and activity identities', () => {
-  it('allows repeated city names and reuses each existing visit ID only once', () => {
+  it('allows repeated city names with distinct visit identities and labels', () => {
     const { state } = setup();
     const cities = state().data.trip.cities;
     expect(new Set(cities.map(city => city.id)).size).toBe(3);
-    expect(reconcileVisits(['Brussels', 'Ghent', 'Brussels'], cities)).toEqual(cities);
-    expect(reconcileVisits(['Brussels', 'Brussels', 'Ghent'], cities).map(city => city.id))
-      .toEqual([cities[0].id, cities[2].id, cities[1].id]);
     expect(visitLabel(cities, cities[2].id)).toBe('Brussels · stop 3');
   });
 

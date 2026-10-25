@@ -36,9 +36,8 @@ export function TripDetailsForm({ trip, busy, error, onSave, onCancel }: Props) 
       setValidationError('The end date must not be before the start date.');
       return;
     }
-    if (!details.cities.length || details.cities.some((city) => !city.name) ||
-      new Set(details.cities.map((city) => city.name.toLowerCase())).size !== details.cities.length) {
-      setValidationError('Enter a different name for each city.');
+    if (!details.cities.length || details.cities.some((city) => !city.name)) {
+      setValidationError('Enter a name for each city visit.');
       return;
     }
     setValidationError('');

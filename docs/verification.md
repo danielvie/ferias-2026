@@ -325,6 +325,12 @@ The initial default HTTP check reached the old mounted runtime and rejected the 
 
 No real booking or trip content was changed. No hosted migration, publication or real-data import was performed. The local schema migration and synthetic preview fixture are intentional review state.
 
+### Rebase onto the latest main design
+
+Rebased the Places feature onto `origin/main` at `6bfb82f`. Preserve the soft-selection header, white/slate/blue palette, stable-ID settings pane, continuous chronological itinerary and compact day rail. The itinerary route summary and visit labels reflect route order; no legacy Route/Day/Agenda views were restored. The settings pane now allows repeated city names without changing its identity-preserving rows, so the old name-reconciliation helper was removed.
+
+`npm run build`, all 102 unit/API tests, the Deno entrypoint typecheck and all 29 Chromium workflows passed. The browser suite ran standalone with `PLAYWRIGHT_PORT=5197`, installed Chrome and SQLite, leaving the preview on 5187 and the user's server on 5173 running. A separate smoke against the existing Deno/PostgreSQL preview confirmed the new header, continuous itinerary/day rail, repeat-name settings save and updated Places colors. Desktop, phone and itinerary screenshots were inspected.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

@@ -8,16 +8,6 @@ export function visitLabel(cities: City[], id: string): string {
   return repeats ? `${city.name} · stop ${index + 1}` : city.name;
 }
 
-// Consume each matching visit once. A name lookup alone would reuse the first
-// Brussels ID for both stops when the trip details form is saved.
-export function reconcileVisits(names: string[], cities: City[], createId = () => crypto.randomUUID()): City[] {
-  const remaining = [...cities];
-  return names.map(name => {
-    const index = remaining.findIndex(city => city.name.toLowerCase() === name.toLowerCase());
-    return index < 0 ? { id: createId(), name } : { ...remaining.splice(index, 1)[0], name };
-  });
-}
-
 export function routeDateConflicts(cities: City[], events: TripEvent[]): string[] {
   const conflicts = new Set<string>();
   let latest: { at: string; cityId: string } | undefined;

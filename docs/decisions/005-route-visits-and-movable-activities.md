@@ -18,9 +18,9 @@ Use the existing saved-place entity as a movable activity. Preserve the `places`
 
 Add `visit.add`, `visit.move` and `place.move` commands. A move identifies the entity and an optional next sibling; a null next sibling appends. Validate anchors and destination visits on the server. Both SQLite and the Supabase Edge API execute the same rules.
 
-Moving an activity also updates the visit reference on its linked calendar entries. Dates, times, descriptions, notes, IDs and sharing selections stay unchanged. Saving an activity with a different visit follows the same rule. The route itinerary groups events by visit order, while Day and Agenda retain chronological ordering. Warn when those dates contradict route order.
+Moving an activity also updates the visit reference on its linked calendar entries. Dates, times, descriptions, notes, IDs and sharing selections stay unchanged. Saving an activity with a different visit follows the same rule. Preserve main's continuous itinerary and compact day rail, rather than restoring the old Route/Day/Agenda views. The itinerary's route summary follows visit order, while its days and timed activities remain chronological. Warn when those dates contradict route order.
 
-The trip details form consumes each matching visit ID once, rather than looking up the first matching city name repeatedly. Repeated visits are labelled with their route stop number in selectors.
+Use main's stable-ID city rows in the trip settings pane. Remove the obsolete comma-separated name reconciliation; repeated names are allowed and each row keeps its own ID. Repeated visits are labelled with their route stop number in selectors.
 
 Use dnd-kit core 6.3.1 and sortable 10.0.0 with stable IDs, handle-only pointer activation, touch support, keyboard sensors and a drag overlay. Nested activity targets take precedence over visit drop areas. Non-drag move controls remain available. Filtering disables reordering because hidden siblings make drop positions ambiguous, but activity details and editing remain available.
 
