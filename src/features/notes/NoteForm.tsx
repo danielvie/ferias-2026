@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import type { Note } from '../../../shared/model';
+import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { useNavigationGuard } from '../../app/useNavigationGuard';
 
@@ -67,7 +68,7 @@ export function NoteForm({ note, onClose }: { note?: Note; onClose: () => void }
           {draft.linkType === 'city' && <label className="field">City
             <select required value={draft.linkId} onChange={(e) => setDraft({ ...draft, linkId: e.target.value })}>
               <option value="">Choose a city</option>
-              {trip.cities.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}
+              {trip.cities.map((city) => <option key={city.id} value={city.id}>{visitLabel(trip.cities, city.id)}</option>)}
             </select>
           </label>}
           {draft.linkType === 'place' && <label className="field">Place

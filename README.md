@@ -23,6 +23,22 @@ The icon beside **Days** indicates the current numbering mode: a calendar for da
 
 Weekday initials use the Excalidraw comparison's color-only option, without boxes, fills or an extra right-side bar. Ordinary weekdays are gray; Saturday and Sunday are warm-colored and bold. When days are too tightly packed for readable initials, only the focused/previewed day or current day shows its initial.
 
+## Plan your route in Places
+
+`Places` follows the editable reference in `places-route-exploration.excalidraw`. Each city card is one visit, so you can plan `Brussels → Ghent → Brussels` with different activities in each Brussels visit.
+
+- Drag a visit by its handle to move the whole group. The calendar's **Route** view follows the same order.
+- Click `+` on the path to insert a visit, or **Add city visit** to append one.
+- Use **Add activity** inside a visit. Drag an activity within a visit or into another visit, keeping its ID, details, notes and links.
+- The `···` menus offer non-drag moves. **Undo move** reverses the most recent move while its revision remains current.
+- Scheduled dates and times do not shift. Review date warnings when route order and calendar order differ.
+
+Desktop uses a horizontal route; phones use a vertical path. Existing saved places become activity cards without being recreated.
+
+For local Supabase, run `task db:migrate` to apply the repeat-city migration without resetting data. The hosted database and Edge Function also need an explicitly approved deployment before using this feature online. See ADR-005 for identity and scheduling rules.
+
+## Trip access
+
 Save the private owner recovery link shown after creation. It is the way back from another browser or after signing out. Do not send it to other travelers. Use **Share** to create editor, viewer or family invitation links instead.
 
 ## Your identity and change history
@@ -107,6 +123,8 @@ npm run test:e2e
 ```
 
 Alternatively, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to an existing Chromium or Chrome executable. Browser tests use a separate ignored database under `data/`. Do not have the development servers running on ports 3001 and 5173 when starting them.
+
+If a frontend is already running on 5173, set `PLAYWRIGHT_PORT=5187` to run browser tests separately. The test API still needs port 3001 free.
 
 ## Persistence and sharing
 

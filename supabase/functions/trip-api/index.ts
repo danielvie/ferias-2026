@@ -28,6 +28,9 @@ const rpc: Rpc = async (name, args) => {
 };
 const origins = (env.get('TRIP_ALLOWED_ORIGINS') || 'http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:4173')
   .split(',').map((origin) => origin.trim()).filter(Boolean);
-// Standalone fixture runs bind loopback; the Supabase container keeps its default.
-// https://docs.deno.com/api/deno/~/Deno.ServeTcpOptions#property_hostname
-Deno.serve({ hostname: env.get('TRIP_BIND_HOST') || '0.0.0.0' }, createHandler(rpc, origins));
+// Keep Supabase's defaults, but let a local worktree preview bind separately
+// without replacing another checkout's running Edge server.
+// https://docs.deno.com/api/deno/~/Deno.serve
+const port = Number(env.get('TRIP_HTTP_PORT') || 8000);
+if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid TRIP_HTTP_PORT.');
+Deno.serve({ hostname: env.get('TRIP_HTTP_HOST') || env.get('TRIP_BIND_HOST') || '0.0.0.0', port }, createHandler(rpc, origins));

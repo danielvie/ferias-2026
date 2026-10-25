@@ -1,5 +1,6 @@
 import { useId, useRef, useState, type FormEvent } from 'react';
 import type { Place } from '../../../shared/model';
+import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { useNavigationGuard } from '../../app/useNavigationGuard';
 
@@ -46,7 +47,7 @@ export function PlaceForm({ initial, editing, onClose }: {
 
   return (
     <section className="panel" aria-labelledby={`${id}-heading`}>
-      <h2 id={`${id}-heading`}>{editing ? 'Edit saved place' : 'Save a place'}</h2>
+      <h2 id={`${id}-heading`}>{editing ? 'Edit activity' : 'Add activity'}</h2>
       <form onSubmit={submit}>
         <fieldset className="places-form-fields stack" disabled={busy || saving || !canEdit}>
           <legend className="visually-hidden">Place details</legend>
@@ -57,11 +58,12 @@ export function PlaceForm({ initial, editing, onClose }: {
                 onChange={event => patch({ title: event.target.value })} />
             </div>
             <div className="field">
-              <label htmlFor={`${id}-city`}>City</label>
+              <label htmlFor={`${id}-city`}>City visit</label>
               <select id={`${id}-city`} name="cityId" required value={draft.cityId}
                 onChange={event => patch({ cityId: event.target.value })}>
-                {snapshot.data.trip.cities.map(city => <option key={city.id} value={city.id}>{city.name}</option>)}
+                {snapshot.data.trip.cities.map(city => <option key={city.id} value={city.id}>{visitLabel(snapshot.data.trip.cities, city.id)}</option>)}
               </select>
+              <small>Changing visits keeps scheduled dates and times. Check the activity's address before moving it to another city.</small>
             </div>
           </div>
           <div className="form-grid">
@@ -111,7 +113,7 @@ export function PlaceForm({ initial, editing, onClose }: {
           </div>
           {error && <p className="inline-error" role="alert">{error}</p>}
           <div className="actions">
-            <button className="button" type="submit">{saving ? 'Saving…' : 'Save place'}</button>
+            <button className="button" type="submit">{saving ? 'Saving…' : 'Save activity'}</button>
             <button className="button secondary" type="button" onClick={onClose}>Cancel</button>
           </div>
         </fieldset>

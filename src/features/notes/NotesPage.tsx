@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Note } from '../../../shared/model';
+import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { NoteCard } from './NoteCard';
 import { NoteForm } from './NoteForm';
@@ -19,7 +20,7 @@ export function NotesPage() {
     && `${note.title} ${note.body} ${note.authorName}`.toLowerCase().includes(query.trim().toLowerCase()));
 
   function linkLabel(note: Note) {
-    if (note.linkType === 'city') return `City: ${trip.cities.find((city) => city.id === note.linkId)?.name ?? 'Removed city'}`;
+    if (note.linkType === 'city') return `City: ${visitLabel(trip.cities, note.linkId)}`;
     if (note.linkType === 'place') return `Place: ${places.find((place) => place.id === note.linkId)?.title ?? 'Removed place'}`;
     if (note.linkType === 'day') return `Day: ${note.linkId}`;
     return trip.title;

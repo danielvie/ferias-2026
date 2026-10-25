@@ -1,5 +1,6 @@
 export type Role = 'owner' | 'editor' | 'viewer' | 'family';
 export interface Member { id: string; name: string; role: Role }
+// A city record is one route visit, not a unique geographic city. Names may repeat.
 export interface City { id: string; name: string }
 export interface Trip {
   id: string;
@@ -10,6 +11,8 @@ export interface Trip {
   cities: City[];
 }
 export type PlaceStatus = 'idea' | 'planned' | 'visited';
+// One movable trip activity. Keep the persisted "place" contract and ID so
+// calendar links, notes and family selections survive the route-first UI.
 export interface Place {
   id: string;
   title: string;
@@ -57,7 +60,7 @@ export interface Transfer {
   time: string;
   items: ChecklistItem[];
 }
-export interface Activity { id: string; message: string; at: string }
+export interface ActivityLogEntry { id: string; message: string; at: string }
 export interface ChangeTarget {
   type: 'trip' | 'place' | 'event' | 'note' | 'comment' | 'packing' | 'departure' | 'departure-check' | 'member' | 'link';
   id: string;
@@ -81,7 +84,7 @@ export interface TripData {
   notes: Note[];
   packing: ChecklistItem[];
   transfers: Transfer[];
-  activity: Activity[];
+  activity: ActivityLogEntry[];
 }
 export interface TripSnapshot { revision: number; data: TripData; session: Member; members: Member[] }
 export interface CreateTripInput { title: string; ownerName: string; startDate: string; endDate: string; cities: string[] }
@@ -91,7 +94,10 @@ export interface InviteInfo { id: string; name: string; role: Exclude<Role, 'own
 // Commands describe intent. Clients never replace a full, privacy-filtered trip snapshot.
 export type TripCommand =
   | { type: 'trip.update'; trip: Pick<Trip, 'title' | 'startDate' | 'endDate' | 'cities'> }
+  | { type: 'visit.add'; visit: City; beforeId: string | null }
+  | { type: 'visit.move'; id: string; beforeId: string | null }
   | { type: 'place.save'; place: Place }
+  | { type: 'place.move'; id: string; cityId: string; beforeId: string | null }
   | { type: 'place.delete'; id: string }
   | { type: 'event.save'; event: TripEvent }
   | { type: 'event.delete'; id: string }

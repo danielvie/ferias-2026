@@ -215,6 +215,36 @@ describe('online API with actual PostgreSQL migrations', () => {
     expect((await load()).data.places).toEqual([]);
   });
 
+  test('persists repeat visits and ordered activity moves without losing bookings or private references', async () => {
+    const first = state.data.trip.cities[0];
+    await command({ type: 'place.save', place: { ...place(), id: 'a' } });
+    await command({ type: 'place.save', place: { ...place(), id: 'b', title: 'Second activity' } });
+    await command({ type: 'event.save', event: {
+      id: 'booking', title: 'Booked museum', cityId: first.id, date: '2026-12-03', startTime: '10:00', endTime: '11:00',
+      kind: 'activity', status: 'planned', placeId: 'a', description: 'Keep booking details',
+    } });
+    const editor = await invite('editor');
+    await command({ type: 'note.save', note: {
+      id: 'private-route-note', title: 'Private activity note', body: 'Keep this note', visibility: 'private', linkType: 'place', linkId: 'a',
+    } }, editor.sessionToken);
+    await command({ type: 'visit.add', visit: { id: 'return', name: first.name }, beforeId: null });
+    await command({ type: 'place.move', id: 'b', cityId: first.id, beforeId: 'a' });
+    expect(state.data.places.map(place => place.id)).toEqual(['b', 'a']);
+    const before = state.data.events[0];
+    await command({ type: 'place.move', id: 'a', cityId: 'return', beforeId: null });
+    await command({ type: 'visit.move', id: 'return', beforeId: first.id });
+    const saved = await load();
+    expect(saved.data.trip.cities.map(city => city.id)).toEqual(['return', first.id, state.data.trip.cities[2].id]);
+    expect(saved.data.places.find(place => place.id === 'a')?.cityId).toBe('return');
+    expect(saved.data.events[0]).toEqual({ ...before, cityId: 'return' });
+    expect(saved.data.notes).toEqual([]);
+    expect((await load(editor.sessionToken)).data.notes[0]).toMatchObject({ id: 'private-route-note', linkId: 'a', body: 'Keep this note' });
+    const invalid = await call('/commands', 'POST', { revision: saved.revision,
+      command: { type: 'visit.add', visit: { id: 'return', name: 'Another name' }, beforeId: null } });
+    expect(invalid.status).toBe(422);
+    expect((await load()).revision).toBe(saved.revision);
+  });
+
   test('keeps private authorship and references isolated from owner edits', async () => {
     await command({ type: 'place.save', place: place() });
     const savedPlace = state.data.places[0];

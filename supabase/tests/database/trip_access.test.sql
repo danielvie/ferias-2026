@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(37);
+select plan(39);
 
 select ok(not has_schema_privilege('anon', 'trip_private', 'USAGE'), 'anon cannot access the private schema');
 select ok(not has_schema_privilege('authenticated', 'trip_private', 'USAGE'), 'authenticated cannot access the private schema');
@@ -92,7 +92,7 @@ select is(public.trip_read(repeat('b', 64))#>>'{trip,title}', 'Updated trip', 'c
 select throws_ok(
   $$select public.trip_update_details(repeat('b', 64), 1,
     jsonb_set(current_setting('test.details')::jsonb, '{cities}', '[{"id":"a","name":"Brussels"},{"id":"a","name":"Ghent"}]'))$$,
-  '23505', null, 'duplicate city IDs fail after entering the mutation'
+  '23505', null, 'duplicate visit IDs fail after entering the mutation'
 );
 select is(public.trip_read(repeat('b', 64))#>>'{trip,title}', 'Updated trip', 'failed mutation rolls back title and cities');
 reset role;
@@ -158,6 +158,16 @@ select throws_ok(
   'PT401', null, 'revoked sessions cannot save even with a current revision'
 );
 select is(public.trip_read(repeat('b', 64))->>'revision', '3', 'rejected revoked writes do not change revision');
+select lives_ok(
+  $$select public.trip_update_details(repeat('b', 64), 3,
+    jsonb_set(current_setting('test.details')::jsonb, '{cities}', '[{"id":"brussels","name":"Brussels"},{"id":"return","name":"Brussels"}]'))$$,
+  'distinct visit IDs can use the same city name'
+);
+select is(
+  public.trip_read(repeat('b', 64))#>'{trip,cities}',
+  '[{"id":"brussels","name":"Brussels"},{"id":"return","name":"Brussels"}]'::jsonb,
+  'return visits retain separate identities and route order'
+);
 reset role;
 
 select * from finish();

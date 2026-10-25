@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { useNavigationGuard } from '../../app/useNavigationGuard';
 
@@ -35,13 +36,13 @@ export function TransferForm({ onCreated }: { onCreated: () => void }) {
         <label className="field">From city
           <select required value={fromCityId} onChange={(e) => setFrom(e.target.value)}>
             <option value="">Choose a city</option>
-            {trip.cities.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}
+            {trip.cities.map((city) => <option key={city.id} value={city.id}>{visitLabel(trip.cities, city.id)}</option>)}
           </select>
         </label>
         <label className="field">To city
           <select required value={toCityId} onChange={(e) => setTo(e.target.value)}>
             <option value="">Choose a city</option>
-            {trip.cities.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}
+            {trip.cities.map((city) => <option key={city.id} value={city.id}>{visitLabel(trip.cities, city.id)}</option>)}
           </select>
         </label>
         <label className="field">Departure date

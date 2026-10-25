@@ -93,3 +93,10 @@ hosted deployment is not authorized.
   - Initial validation left the shared schema untouched. The subsequent requested
     preview recovered the missing migration source, applied attribution locally,
     and restarted the app. No tests rerun for that rebase; no push or deployment.
+
+## Route-first Places
+
+- [x] R1. Preserve visit/activity identities, support repeated names, and validate insert/move commands in both backends. Migration applied locally; 39 native database assertions and four concurrency checks pass.
+- [x] R2. Build the reference-led route board, insertion form, activity moves, accessible alternatives and move undo. Pointer, keyboard and touch workflows pass.
+- [x] R3. Reflect route order in the itinerary summary, disambiguate repeat visits, and flag date conflicts without shifting bookings. Preserve main's continuous itinerary and stable-ID settings.
+- [x] R4. Production build, 97 unit/API tests, 19 browser workflows, Deno typecheck and fresh-handler/local PostgreSQL HTTP checks pass. Responsive screenshots and axe checks inspected at 320/768/1024/1440px.

@@ -1,6 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
 const runId = Date.now();
+const clientPort = Number(process.env.PLAYWRIGHT_PORT || 5173);
+if (!Number.isInteger(clientPort) || clientPort < 1 || clientPort > 65535) throw new Error('Invalid PLAYWRIGHT_PORT.');
 export default defineConfig({
   testDir: './tests/e2e',
   testIgnore: 'online.spec.ts',
@@ -9,7 +11,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: `http://127.0.0.1:${clientPort}`,
     trace: 'retain-on-failure',
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
@@ -23,8 +25,8 @@ export default defineConfig({
       env: { DB_PATH: `data/e2e-${runId}.sqlite`, PUBLIC_ORIGIN: '' },
     },
     {
-      command: 'npm run dev:client',
-      url: 'http://127.0.0.1:5173',
+      command: `npm run dev:client -- --port ${clientPort}`,
+      url: `http://127.0.0.1:${clientPort}`,
       reuseExistingServer: false,
     },
   ],

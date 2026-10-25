@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TripEvent } from '../../../shared/model';
+import { routeDateConflicts, visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { displayDate } from '../../app/dates';
 import { EventForm } from './EventForm';
@@ -20,6 +21,7 @@ export function CalendarPage() {
   const trigger = useRef<HTMLButtonElement | null>(null);
   const deleting = useRef(false);
   const family = snapshot.session.role === 'family';
+  const conflicts = routeDateConflicts(trip.cities, events);
 
   useEffect(() => {
     if (!form) trigger.current?.focus({ preventScroll: true });
@@ -65,12 +67,15 @@ export function CalendarPage() {
       <p className="muted">{family ? 'Shared itinerary' : 'Your itinerary'}</p>
       <h1>{trip.title}</h1>
       <p className="muted">{displayDate(trip.startDate)} to {displayDate(trip.endDate, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-      <p className="itinerary-cities">{trip.cities.map((city) => city.name).join(' / ')}</p>
+      <p className="itinerary-cities">{trip.cities.map((city) => visitLabel(trip.cities, city.id)).join(' / ')}</p>
       {!canEdit && <p className="fine-print">{family ? 'Selected activities and places, shared by the owner.' : 'Read-only. An owner or editor can change the plans.'}</p>}
+      {conflicts.length > 0 && <p className="calendar-overlap">
+        Scheduled dates do not follow your route order. Review these plans; dates and bookings have not been moved.
+      </p>}
     </header>
     <div className="itinerary-days">
       {days.map(({ date, events: dayEvents }) => {
-        const cityNames = [...new Set(dayEvents.map((event) => trip.cities.find((city) => city.id === event.cityId)?.name).filter(Boolean))];
+        const cityNames = [...new Set(dayEvents.map((event) => visitLabel(trip.cities, event.cityId)))];
         const moves = family ? [] : transfers.filter((move) => move.date === date);
         return <section className="itinerary-day" data-trip-day={date} key={date} aria-labelledby={`day-${date}`}>
           <header className="day-heading">
@@ -86,7 +91,7 @@ export function CalendarPage() {
               onEdit={(button) => openForm(event, true, button)} onDelete={() => void deleteEvent(event)} />)}
           </ol> : <p className="day-empty">{family ? 'No activities shared for this day.' : 'Nothing planned yet. Leave it open, or add an activity.'}</p>}
           {moves.map((move) => <button className="departure-link" key={move.id} onClick={() => navigate('checklists')}>
-            {move.time} · {trip.cities.find((city) => city.id === move.fromCityId)?.name} → {trip.cities.find((city) => city.id === move.toCityId)?.name}
+            {move.time} · {visitLabel(trip.cities, move.fromCityId)} → {visitLabel(trip.cities, move.toCityId)}
             <span>Open departure checklist</span>
           </button>)}
         </section>;

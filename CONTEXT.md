@@ -4,7 +4,10 @@ A shared trip brings together the plans and practical details for a group visiti
 
 ## Language
 
-**Trip**: A named journey with dates, an ordered set of cities, and invited members.
+**Trip**: A named journey with dates, an ordered route of city visits, and invited members.
+
+**City visit**: One stop on the route with its own activities. A trip can visit the same city more than once.
+_Avoid_: Treating a city name as the identity of a visit.
 
 **Trip member**: A named role in a trip, reached through a private member link. It is not a verified personal account.
 
@@ -16,7 +19,9 @@ A shared trip brings together the plans and practical details for a group visiti
 
 **Owner link**: The private member link that grants trip management and control of other links. It is also the owner's way back without signing in.
 
-**Place**: A saved attraction, walk, restaurant or other point of interest. An idea can remain unscheduled.
+**Activity**: A saved thing to do, such as an attraction, walk or restaurant visit. It belongs to one city visit, can remain unscheduled, and keeps its identity when moved.
+
+**Place**: The saved point of interest and planning details of an activity.
 
 **Event**: A timed plan on a trip day, optionally linked to a saved place.
 _Avoid_: Using "place" for a scheduled appointment.

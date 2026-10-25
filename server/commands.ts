@@ -25,6 +25,18 @@ function remove<T extends { id: string }>(items: T[], id: string) {
   items.splice(items.findIndex((item) => item.id === id), 1);
 }
 
+function insertBefore<T extends { id: string }>(items: T[], item: T, beforeId: string | null) {
+  check(beforeId !== item.id, 'An item cannot be placed before itself.');
+  if (beforeId !== null) find(items, beforeId);
+  items.splice(beforeId === null ? items.length : items.findIndex(old => old.id === beforeId), 0, item);
+}
+
+function moveLinkedEvents(data: TripData, placeId: string, cityId: string) {
+  // Scheduling is a separate decision. Only the visit reference follows the
+  // activity; dates, times, booking descriptions and private notes stay intact.
+  for (const event of data.events) if (event.placeId === placeId) event.cityId = cityId;
+}
+
 export function addActivity(data: TripData, message: string) {
   data.activity.unshift({ id: randomUUID(), message, at: new Date().toISOString() });
   data.activity = data.activity.slice(0, 50);
@@ -66,12 +78,39 @@ export function applyCommand(data: TripData, member: Member, command: TripComman
   requirePermission(member, 'mutate');
   let message: string;
   switch (command.type) {
+    case 'visit.add':
+      check(data.trip.cities.length < 30, 'A trip can have at most 30 city visits.');
+      check(!data.trip.cities.some(city => city.id === command.visit.id), 'This visit ID already exists.');
+      insertBefore(data.trip.cities, command.visit, command.beforeId);
+      message = `${member.name} added a visit to ${command.visit.name}.`;
+      break;
+    case 'visit.move': {
+      const visit = find(data.trip.cities, command.id);
+      remove(data.trip.cities, command.id);
+      insertBefore(data.trip.cities, visit, command.beforeId);
+      message = `${member.name} reordered the route. Scheduled dates are unchanged.`;
+      break;
+    }
+    case 'place.move': {
+      const place = find(data.places, command.id);
+      find(data.trip.cities, command.cityId);
+      if (command.beforeId !== null) {
+        check(find(data.places, command.beforeId).cityId === command.cityId, 'Choose an activity in the destination visit.');
+      }
+      remove(data.places, place.id);
+      place.cityId = command.cityId;
+      insertBefore(data.places, place, command.beforeId);
+      moveLinkedEvents(data, place.id, place.cityId);
+      message = `${member.name} moved an activity. Scheduled dates are unchanged.`;
+      break;
+    }
     case 'trip.update':
       data.trip = { ...data.trip, ...command.trip };
       message = `${member.name} updated the trip.`;
       break;
     case 'place.save':
       save(data.places, command.place);
+      moveLinkedEvents(data, command.place.id, command.place.cityId);
       message = `${member.name} saved the place "${command.place.title}".`;
       break;
     case 'place.delete':

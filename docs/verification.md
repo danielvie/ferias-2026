@@ -300,6 +300,31 @@ for publication, following the user's instruction. The local preview remains
 available; source publication does not run the manual Pages workflow or deploy
 the hosted database/API.
 
+## Route-first Places
+
+Initial implementation, before rebasing onto the continuous-itinerary redesign:
+
+Implemented from `places-route-exploration.excalidraw`, the agreed reference. Existing city IDs are visit identities and saved-place IDs are movable activity identities. Repeat names, path insertion, whole-visit moves, activity reordering and cross-visit moves persist. Route-grouped itinerary ordering uses the same cities array. Scheduled dates and times remain unchanged.
+
+Checks passed on Windows with Node 24.15.0 and installed Chrome:
+
+- `npm run build`: TypeScript and production frontend build.
+- `npm test`: 97 tests, including an upgrade of a populated PostgreSQL trip, identity preservation, private references, move validation and optimistic conflicts.
+- `PLAYWRIGHT_PORT=5187 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=<installed Chrome> VITE_BACKEND=sqlite npm run test:e2e`: all 19 workflows, including the eleven existing regressions. New checks cover insertion, repeated names, creating activities, pointer/keyboard/touch dragging, move undo, failed saves, conflict recovery, read-only access, filtering and itinerary grouping after reload.
+- Browser layouts at 320, 768, 1024 and 1440px have no document overflow and no axe WCAG A/AA violations in the checked populated state. Desktop and phone screenshots were inspected.
+- `npx --no-install deno check supabase/functions/trip-api/index.ts`: Edge entrypoint types.
+- `task db:migrate`: applied only the repeat-city migration to local Supabase. It drops the name index without rewriting rows.
+- `task db:test`: 39 pgTAP assertions and four native concurrency tests pass.
+- `LOCAL_TRIP_API_URL=http://127.0.0.1:54328/functions/v1/trip-api task online:test`: repeat visits, route/activity moves, scheduling preservation, privacy, family redaction, revocation and owner rotation against the current Deno entrypoint and real local PostgREST/PostgreSQL.
+- A separate browser smoke against the new Deno/PostgreSQL preview verified trip creation with repeated city names, all activity forms, move/undo, route itinerary grouping and refresh without browser errors.
+- `git diff --check`: clean.
+
+The existing server on 5173 and its older mounted Edge runtime were not stopped. A separate frontend on 5187 and Deno handler on 54328 were left running for review, with an explicitly synthetic trip. Process IDs and that synthetic trip ID are recorded in ignored `data/places-preview-processes.json`; no server credentials or invitation tokens are written there. Server credentials remain only in the API process environment.
+
+The initial default HTTP check reached the old mounted runtime and rejected the new command. The fresh-handler check above replaces that result for this worktree's code, not for the old runtime. Hosted deployment and a fresh run inside Supabase's managed Edge sandbox remain unverified. The pre-existing Windows `npx` fallback in the integration script also needs a separate runner fix when no API is already available; this pass used the running isolated handler.
+
+No real booking or trip content was changed. No hosted migration, publication or real-data import was performed. The local schema migration and synthetic preview fixture are intentional review state.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

@@ -1,5 +1,6 @@
 import { useId, useRef, useState, type FormEvent } from 'react';
 import type { TripEvent } from '../../../shared/model';
+import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { useNavigationGuard } from '../../app/useNavigationGuard';
 import { DateTimeFields } from './DateTimeFields';
@@ -69,7 +70,7 @@ export function EventForm({ initial, editing, onClose }: {
               <label htmlFor={`${id}-city`}>City</label>
               <select id={`${id}-city`} name="cityId" required value={draft.cityId}
                 onChange={event => patch({ cityId: event.target.value, placeId: '' })}>
-                {trip.cities.map(city => <option key={city.id} value={city.id}>{city.name}</option>)}
+                {trip.cities.map(city => <option key={city.id} value={city.id}>{visitLabel(trip.cities, city.id)}</option>)}
               </select>
             </div>
           </div>

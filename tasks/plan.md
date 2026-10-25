@@ -77,3 +77,14 @@ History uses random IDs as page cursors, not exposed sequence counters that woul
 reveal gaps from hidden private-note records. Public record payloads contain no
 note content. Private transitions restrict earlier note/comment records; deletion
 retains the last restriction. The older recent feed stops receiving note activity.
+
+## Route-first Places
+
+Reference: `places-route-exploration.excalidraw`, confirmed by the owner in this thread.
+
+1. Preserve existing city IDs as visit identities and place IDs as activity identities. Allow repeated city names. Add narrow insert/move commands, preserving notes, sharing selections and scheduled dates. Verify through shared rules, SQLite and the Edge API with embedded PostgreSQL.
+2. Build the connected visit board with grouped activities, path insertion, independent drag handles, non-drag move controls and single-level move undo. Keep forms, scheduling, permissions, conflicts and saved-place details.
+3. Reflect visit order in the continuous itinerary's route summary. Keep its chronological days and compact day rail. Disambiguate repeated visits and warn when scheduled dates contradict the route rather than shifting bookings.
+4. Verify persistence, pointer/touch/keyboard movement, repeated names, undo, failed/conflicting writes and read-only access. Check 320, 768, 1024 and 1440px layouts and accessibility.
+
+Use the current white/slate/blue design tokens and soft-selection header from main. Desktop uses a horizontally scrollable connected route, phones use a vertical route. Do not restore the old dashboard/calendar tabs, replace the page with a geographic map, create a second activity store, shift dates, deploy hosted changes or import real trip data.

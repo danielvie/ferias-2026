@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { AddItemForm } from './AddItemForm';
 import { ChecklistItemRow } from './ChecklistItemRow';
@@ -13,7 +14,7 @@ export function ChecklistsPage() {
   const [creating, setCreating] = useState(false);
   const selected = transfers.find((transfer) => transfer.id === selectedId) ?? transfers[0];
   const done = packing.filter((item) => item.status === 'done').length;
-  const cityName = (id: string) => trip.cities.find((city) => city.id === id)?.name ?? 'Removed city';
+  const cityName = (id: string) => visitLabel(trip.cities, id);
 
   return (
     <div className="stack checklists-page">

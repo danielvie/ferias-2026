@@ -71,7 +71,7 @@ export function createTripInput(value: unknown): CreateTripInput {
   const startDate = date(v.startDate), endDate = date(v.endDate);
   dateRange(startDate, endDate);
   const cities = list(v.cities, (city) => text(city, 'City', 100), 30);
-  check(cities.length > 0 && new Set(cities.map((city) => city.toLowerCase())).size === cities.length, 'Provide unique cities.');
+  check(cities.length > 0, 'Provide at least one city visit.');
   return { title: text(v.title, 'Trip title'), ownerName: text(v.ownerName, 'Name', 100), startDate, endDate, cities };
 }
 
@@ -101,7 +101,14 @@ export function commandInput(value: unknown): TripCommand {
   const type = text(v.type, 'Command type', 40);
   const assignee = () => text(v.assignee, 'Assignee', 100, true);
   const status = () => oneOf(v.status, ['pending', 'done', 'skipped'], 'check status');
+  const beforeId = () => v.beforeId === null ? null : id(v.beforeId);
   switch (type) {
+    case 'visit.add': {
+      const visit = object(v.visit);
+      return { type, visit: { id: id(visit.id), name: text(visit.name, 'City', 100) }, beforeId: beforeId() };
+    }
+    case 'visit.move': return { type, id: id(v.id), beforeId: beforeId() };
+    case 'place.move': return { type, id: id(v.id), cityId: id(v.cityId), beforeId: beforeId() };
     case 'trip.update': {
       const t = object(v.trip);
       const cities = list(t.cities, (value) => {

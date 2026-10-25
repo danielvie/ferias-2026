@@ -3,7 +3,11 @@ import { execFileSync, spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 
 // Local-only integration. Never read hosted configuration or use deployment keys.
-const base = 'http://127.0.0.1:54321/functions/v1/trip-api';
+const base = process.env.LOCAL_TRIP_API_URL || 'http://127.0.0.1:54321/functions/v1/trip-api';
+const apiUrl = new URL(base);
+assert.ok(apiUrl.protocol === 'http:' && apiUrl.hostname === '127.0.0.1' &&
+  apiUrl.pathname === '/functions/v1/trip-api' && !apiUrl.username && !apiUrl.password && !apiUrl.search && !apiUrl.hash,
+  'The integration API must use a local loopback HTTP endpoint.');
 const origin = 'http://127.0.0.1:5173';
 const sql = (input) => execFileSync('docker', [
   'exec', '-i', 'supabase_db_ferias-2026', 'psql', '-X', '-qAt', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1',
@@ -67,6 +71,14 @@ try {
     id: '', title: 'Museum visit', cityId: city, date: '2026-12-03', startTime: '10:00', endTime: '11:00',
     kind: 'activity', status: 'planned', placeId: place.id, description: 'Private booking code',
   } });
+  await command({ type: 'visit.add', visit: { id: 'synthetic-return', name: 'Brussels' }, beforeId: null });
+  await command({ type: 'place.move', id: place.id, cityId: 'synthetic-return', beforeId: null });
+  const moved = await command({ type: 'visit.move', id: 'synthetic-return', beforeId: city });
+  assert.equal(moved.data.trip.cities[0].id, 'synthetic-return');
+  assert.equal(moved.data.places[0].id, place.id);
+  assert.equal(moved.data.events[0].cityId, 'synthetic-return');
+  assert.equal(moved.data.events[0].date, scheduled.data.events[0].date);
+  assert.equal(moved.data.events[0].description, 'Private booking code');
   const editorLink = await request('/invites', 'POST', { name: 'Editor', role: 'editor', eventIds: [], placeIds: [] }, owner, 201);
   const editor = await request('/session', 'POST', { token: editorLink.token });
   await command({ type: 'note.save', note: {
@@ -88,7 +100,7 @@ try {
   await request('/trip', 'GET', undefined, owner, 401);
   const reopened = await request('/session', 'POST', { token: rotated.token });
   assert.equal(reopened.snapshot.session.id, created.snapshot.session.id);
-  console.log('Native Edge integration passed: create/open/read, CORS, places/calendar, private authorship, family redaction, revocation and owner rotation.');
+  console.log('Native Edge integration passed: create/open/read, CORS, repeat visits, route/activity moves, places/calendar, private authorship, family redaction, revocation and owner rotation.');
 } catch (error) {
   console.error(log.replace(/sb_(?:secret|publishable)_[A-Za-z0-9_-]+/g, '[redacted]').replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[redacted]'));
   throw error;
