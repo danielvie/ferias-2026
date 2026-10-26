@@ -13,6 +13,8 @@ task run
 
 Start Docker first, then open http://127.0.0.1:5173. The development task starts local Supabase, its Edge API and the React client. It uses local development configuration without changing cloud values in `.env.local`. The itinerary opens immediately, without a separate setup page. Use **Add trip details** to open the setup pane when you are ready to save your own dates, name and cities. Nothing is created, booked or pre-scheduled just by opening the website.
 
+On a first run with no saved trip, **Quick start** opens the same setup pane with sample values: **Sample Belgium trip**, **Demo traveler**, Brussels, Ghent and Bruges, and a seven-day range starting today in Europe/Brussels. Edit anything you want, then choose **Save trip details**. Opening or cancelling Quick start creates nothing; saving uses the normal trip-creation flow and adds no activities or bookings. **Add trip details** still starts with blank name and date fields. The editable flow is in `quick-start-trip.excalidraw`.
+
 The existing SQLite trip is not imported automatically. Use `task run:sqlite` to open the original application and data instead. Stop an existing development server on port 5173 before switching runners.
 
 Use **Settings** in the top bar for later changes. The pane edits the trip name, dates and individual cities, including their order. Renaming or reordering a city preserves linked plans. Removing a city or shortening dates still requires moving or removing affected plans first. To return to an existing trip in a new browser, use **Open trip link** or open your invitation/recovery URL directly.
