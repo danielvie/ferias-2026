@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { City } from '../../../shared/model';
 import { useTrip } from '../../app/TripContext';
+import { Icon } from '../../components/Icon';
 import type { RouteActions } from './RouteBoard';
 
 export function CityVisitCard({ city, index, activityCount, selected, disabled, conflict, actions, onSelect, children }: {
@@ -20,7 +21,9 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
     style={{ transform: CSS.Transform.toString(transform), transition }} data-visit-id={city.id}>
     <div className={`route-visit${selected ? ' is-selected' : ''}`}>
       {canEdit ? <button ref={setActivatorNodeRef} className="route-drag-handle" type="button" disabled={disabled}
-        {...attributes} {...listeners} id={`visit-handle-${city.id}`} aria-label={`Drag checkpoint ${checkpointLabel}`}>
+        {...attributes} {...listeners} id={`visit-handle-${city.id}`} aria-label={`Drag checkpoint ${checkpointLabel}`}
+        title="Drag to reorder. Keyboard: Space, arrows, Space to drop.">
+        <Icon name="grip" />
         <span className="checkpoint-number" aria-hidden="true">{index + 1}</span>
       </button> : <span className="checkpoint-marker" aria-hidden="true"><span className="checkpoint-number">{index + 1}</span></span>}
       <h2 className="checkpoint-heading"><button type="button" className="checkpoint-open" id={`checkpoint-${city.id}`} disabled={disabled}

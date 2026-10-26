@@ -103,9 +103,10 @@
 .checkpoint-ideas-status { flex-basis: 100%; margin: 0; font-size: .75rem; color: var(--muted); }
 .route-activity-heading { display: flex; align-items: flex-start; gap: .25rem; min-width: 0; }
 .route-drag-handle, .checkpoint-marker { display: grid; place-items: center; width: 44px; min-height: 56px; flex-shrink: 0; padding: 0; background: transparent; border: 0; }
-.route-drag-handle { touch-action: none; cursor: grab; }
+.route-drag-handle { display: flex; align-items: center; justify-content: center; gap: .25rem; color: var(--muted); touch-action: none; cursor: grab; }
+.route-drag-handle svg { width: 16px; height: 20px; flex-shrink: 0; stroke-width: 3; }
 .route-drag-handle:active { cursor: grabbing; }
-.route-drag-handle:hover:not(:disabled) .checkpoint-number { color: var(--accent); }
+.route-drag-handle:hover:not(:disabled), .route-drag-handle:hover:not(:disabled) .checkpoint-number { color: var(--accent); }
 .route-menu { position: relative; flex-shrink: 0; align-self: center; }
 .route-menu > summary { display: grid; place-items: center; list-style: none; width: 44px; min-height: 44px; letter-spacing: .1rem; color: var(--accent); border-radius: var(--radius); }
 .route-menu > summary[aria-disabled="true"] { opacity: .6; cursor: wait; }
@@ -133,7 +134,9 @@
 .quick-add-status { margin: 0; color: var(--muted); font-size: .8rem; overflow-wrap: anywhere; }
 .checkpoint-quick-add .inline-error { margin: .375rem 0 0; font-size: .8rem; }
 .is-dragging { opacity: .35; }
-.route-drag-preview { padding: 1rem; max-width: 280px; border: 2px solid var(--forest); border-radius: var(--radius); color: var(--forest-dark); background: var(--surface); box-shadow: 0 8px 24px #263a3020; font-weight: 600; overflow-wrap: anywhere; }
+.route-drag-preview { display: flex; align-items: center; gap: .75rem; width: 100%; max-width: calc(100vw - 2rem); padding: .5rem .75rem; border: 1px solid var(--ink); border-radius: var(--radius); color: var(--surface); background: var(--ink); box-shadow: 0 4px 18px rgb(24 32 48 / 16%); font-size: .875rem; font-weight: 600; overflow-wrap: anywhere; }
+.route-drag-preview svg { width: 16px; height: 20px; flex-shrink: 0; color: inherit; stroke-width: 3; }
+.route-drag-preview span { min-width: 0; }
 .route-footnote { font-size: .8rem; color: var(--muted); margin: 1rem 0 0; }
 .route-notice { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .75rem 1rem; border-radius: var(--radius); background: var(--soft-green); color: var(--forest-dark); font-size: .875rem; }
 .route-notice .button { flex-shrink: 0; }

@@ -134,7 +134,7 @@ export function PlacesPage() {
             places={places.filter(place => place.cityId === checkpoint.id)} disabled={!!form}
             conflict={dateConflicts.includes(checkpoint.id)} actions={actions} />}
         </RouteBoard>
-        <p className="route-footnote">Tap a checkpoint to expand or collapse its activities.{canEdit && ' Drag the numbered handle to reorder.'}{' '}
+        <p className="route-footnote">Tap a checkpoint to expand or collapse its activities.{canEdit && ' Drag the grip beside a checkpoint number to reorder.'}{' '}
           Same city, separate checkpoints. Reordering never changes scheduled dates or times.</p>
       </section>
     </div>

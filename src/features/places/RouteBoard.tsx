@@ -5,6 +5,7 @@ import { verticalListSortingStrategy, SortableContext, sortableKeyboardCoordinat
 import type { Place } from '../../../shared/model';
 import { routeDateConflicts } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
+import { Icon } from '../../components/Icon';
 import { CityVisitCard } from './CityVisitCard';
 
 export interface RouteActions {
@@ -63,6 +64,8 @@ export function RouteBoard({ places, selectedId, disabled, actions, onSelect, ch
         </CityVisitCard>)}
       </SortableContext>
     </ol>
-    <DragOverlay dropAnimation={null}>{activeId && <div className="route-drag-preview">{activeTitle}</div>}</DragOverlay>
+    <DragOverlay dropAnimation={null}>{activeId && <div className="route-drag-preview" aria-hidden="true">
+      <Icon name="grip" /><span>{activeTitle}</span>
+    </div>}</DragOverlay>
   </DndContext>;
 }
