@@ -183,7 +183,7 @@ test('the empty itinerary opens without a fabricated trip and setup uses a modal
   expect(creates).toBe(0);
 });
 
-test('the header uses soft selection and keeps every section keyboard-accessible', async ({ page }) => {
+test('the header selects sections with text weight and color and keeps them keyboard-accessible', async ({ page }) => {
   await createTrip(page);
   const header = page.getByRole('banner');
   const navigation = page.getByRole('navigation', { name: 'Main navigation' });
@@ -195,6 +195,9 @@ test('the header uses soft selection and keeps every section keyboard-accessible
     await page.setViewportSize({ width, height: 1000 });
     for (const name of ['Itinerary', 'Places', 'Notes', 'Checklists', 'Share']) {
       const button = navigation.getByRole('button', { name, exact: true });
+      await button.hover();
+      await expect(button).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+      await expect(button).toHaveCSS('color', 'rgb(44, 85, 162)');
       await button.focus();
       await expect(button).toBeFocused();
       await expect(button).toBeInViewport();
@@ -202,7 +205,9 @@ test('the header uses soft selection and keeps every section keyboard-accessible
       await page.keyboard.press('Enter');
       await expect(button).toHaveAttribute('aria-current', 'page');
       await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
-      await expect(button).toHaveCSS('background-color', 'rgb(233, 240, 255)');
+      await expect(button).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+      await expect(button).toHaveCSS('color', 'rgb(44, 85, 162)');
+      await expect(button).toHaveCSS('font-weight', '650');
       await expect(button).toHaveCSS('border-bottom-color', 'rgba(0, 0, 0, 0)');
       await expect(button).toHaveCSS('text-decoration-line', 'none');
       await expect(button).toHaveCSS('box-shadow', 'none');

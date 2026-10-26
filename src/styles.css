@@ -21,7 +21,6 @@
   --nav-ink: #202a3b;
   --nav-muted: #526178;
   --nav-active-ink: #2c55a2;
-  --nav-active-bg: #e9f0ff;
   --nav-hover-bg: #f5f7fb;
   --radius: 6px;
 }
@@ -113,8 +112,8 @@ progress::-webkit-progress-value { background: var(--forest); border-radius: 4px
 .topbar :focus-visible { outline-color: var(--nav-active-ink); }
 .topnav { display: flex; flex: 1; min-width: 0; gap: .25rem; padding: .375rem; }
 .nav-item { min-height: 44px; padding: .5rem .75rem; border: 1px solid transparent; border-radius: .5rem; background: transparent; color: var(--nav-muted); white-space: nowrap; font-size: .875rem; }
-.nav-item[aria-current="page"] { background: var(--nav-active-bg); color: var(--nav-active-ink); font-weight: 650; }
-.nav-item:hover:not([aria-current="page"]) { background: var(--nav-hover-bg); }
+.nav-item[aria-current="page"] { color: var(--nav-active-ink); font-weight: 650; }
+.nav-item:hover:not([aria-current="page"]) { color: var(--nav-active-ink); }
 .session-controls { display: flex; align-items: center; gap: .5rem; min-width: 0; }
 .session-controls .button { font-size: .8125rem; padding: .5rem .625rem; color: var(--nav-active-ink); }
 .session-controls .button:hover:not(:disabled) { background: var(--nav-hover-bg); border-color: transparent; color: var(--nav-active-ink); }
