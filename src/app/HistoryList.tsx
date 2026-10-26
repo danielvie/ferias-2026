@@ -4,7 +4,8 @@ import { api, ApiError } from './api';
 
 const types: Record<ChangeTarget['type'], string> = {
   trip: 'Trip', place: 'Place', event: 'Event', note: 'Note', comment: 'Comment',
-  packing: 'Packing item', departure: 'Departure', 'departure-check': 'Departure check', member: 'Member', link: 'Member link',
+  packing: 'Packing item', checklist: 'Checklist', 'checklist-item': 'Checklist item',
+  departure: 'Departure', 'departure-check': 'Departure check', member: 'Member', link: 'Member link',
 };
 const dateTime = new Intl.DateTimeFormat('en-GB', {
   dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Brussels',

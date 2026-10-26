@@ -166,6 +166,16 @@ export function commandInput(value: unknown): TripCommand {
       } };
     }
     case 'note.comment': return { type, id: id(v.id), body: text(v.body, 'Comment', 5000) };
+    case 'checklist.add':
+    case 'checklist.rename': return { type, id: id(v.id), title: text(v.title, 'Checklist title') };
+    case 'checklist.item.add': return { type, checklistId: id(v.checklistId), title: text(v.title, 'Item title') };
+    case 'checklist.item.rename': return { type, checklistId: id(v.checklistId), id: id(v.id), title: text(v.title, 'Item title') };
+    case 'checklist.item.move': return { type, checklistId: id(v.checklistId), id: id(v.id), beforeId: beforeId() };
+    case 'checklist.item.update': return {
+      type, checklistId: id(v.checklistId), id: id(v.id),
+      status: oneOf(v.status, ['pending', 'done'], 'check status'), assignee: assignee(),
+    };
+    case 'checklist.item.delete': return { type, checklistId: id(v.checklistId), id: id(v.id) };
     case 'packing.add': return { type, title: text(v.title, 'Item title'), assignee: assignee() };
     case 'packing.update': return { type, id: id(v.id), status: status(), assignee: assignee() };
     case 'transfer.add': return { type, fromCityId: id(v.fromCityId), toCityId: id(v.toCityId), date: date(v.date), time: time(v.time) };
@@ -174,6 +184,7 @@ export function commandInput(value: unknown): TripCommand {
     case 'place.delete':
     case 'event.delete':
     case 'note.delete':
+    case 'checklist.delete':
     case 'packing.delete':
     case 'transfer.delete': return { type, id: id(v.id) };
     default: throw new HttpError(422, 'Unknown command.');

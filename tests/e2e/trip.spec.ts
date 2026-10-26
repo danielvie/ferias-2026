@@ -312,12 +312,17 @@ test('a traveler saves a place, schedules it, writes a note and checks separate 
 
   await navigate(page, 'Checklists');
   await page.getByRole('checkbox', { name: 'Passport / ID', exact: true }).click();
+  await page.getByText('1 completed item', { exact: true }).click();
   await expect(page.getByRole('checkbox', { name: 'Passport / ID', exact: true })).toBeChecked();
   const packingRow = page.getByRole('listitem').filter({ has: page.getByRole('checkbox', { name: 'Passport / ID', exact: true }) });
-  await packingRow.getByText('Owner: Shared', { exact: true }).click();
+  await packingRow.getByLabel('Options for Passport / ID', { exact: true }).click();
   await packingRow.getByRole('combobox', { name: 'Owner for Passport / ID', exact: true }).fill('Daniel');
   await packingRow.getByRole('button', { name: 'Save owner', exact: true }).click();
+  await expect(packingRow.getByText('Owner: Daniel', { exact: true })).toHaveText('Owner: Daniel');
+  await packingRow.getByLabel('Options for Passport / ID', { exact: true }).click();
   await expect(packingRow.getByText('Owner: Daniel', { exact: true })).toBeVisible();
+  await packingRow.getByLabel('Options for Passport / ID', { exact: true }).press('Escape');
+  await page.getByText('Departures', { exact: true }).click();
   await page.getByRole('button', { name: 'New departure', exact: true }).click();
   const initial = await snapshot(page);
   await page.getByRole('combobox', { name: 'From city', exact: true }).selectOption(initial.data.trip.cities[0].id);
@@ -409,17 +414,18 @@ test('navigation leaves a note without confirmation and refresh retains a locall
   expect((await snapshot(page)).data.notes).toHaveLength(0);
   await navigate(page, 'Checklists');
   const row = page.getByRole('listitem').filter({ has: page.getByRole('checkbox', { name: 'Passport / ID', exact: true }) });
-  await row.getByText('Owner: Shared', { exact: true }).click();
+  await row.getByLabel('Options for Passport / ID', { exact: true }).click();
   await row.getByRole('combobox', { name: 'Owner for Passport / ID', exact: true }).fill('My unsaved owner');
   const state = await snapshot(page);
   const item = state.data.packing.find((candidate) => candidate.title === 'Passport / ID')!;
   expect((await page.request.post('/api/commands', { data: { revision: state.revision,
     command: { type: 'packing.update', id: item.id, status: item.status, assignee: 'Remote owner' } } })).ok()).toBeTruthy();
   await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+  await row.getByLabel('Options for Passport / ID', { exact: true }).click();
   await expect(row.getByText('Owner: Remote owner', { exact: true })).toBeVisible();
   await expect(row.getByRole('combobox', { name: 'Owner for Passport / ID', exact: true })).toHaveValue('My unsaved owner');
   await row.getByRole('button', { name: 'Save owner', exact: true }).click();
-  await expect(row.getByText('Owner: My unsaved owner', { exact: true })).toBeVisible();
+  await expect(row.getByText('Owner: My unsaved owner', { exact: true })).toHaveText('Owner: My unsaved owner');
   expect(dialogs).toEqual([]);
 });
 

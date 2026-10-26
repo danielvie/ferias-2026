@@ -146,3 +146,36 @@ implementation-only publication limits above for this release. Migration 005/006
 the matching API and Pages were deployed in that order after a private backup.
 See `docs/verification.md` for the exact application commit, workflow and hosted
 integrity/browser evidence. Future unrelated releases still need authorization.
+
+## Named checklists: desktop G and mobile M1.A
+
+Approved scope: `SPEC-checklists.md`. Apply without another approval gate. Preserve
+the unrelated optional import and physical-device acceptance work.
+
+1. Add one canonical collection of named checklists with nested items. Adopt the
+   existing packing items as checklist `packing`, without changing their IDs,
+   assignments or status. Keep the legacy packing commands and snapshot field as
+   compatibility adapters, not a second editable store. Verify SQLite persistence,
+   access, history and stale revisions before building the new editor.
+2. Add an RLS-protected Supabase collection and migrate packing into it. Update the
+   private writer and state/create routines, preserving authorization, atomic
+   history and private-note checks. Reject old writers missing checklist data.
+   Exercise actual SQL using disposable embedded PostgreSQL.
+3. Build compact inline title/item editing and creation with retained failed
+   drafts, assignment controls and confirmed deletion. Desktop selects one editor;
+   mobile keeps all editors on the page with direct dial jumps and a named picker.
+   Keep drafts mounted across selection and breakpoint changes. Leave departure
+   semantics unchanged and place their existing tools in a separate disclosure.
+4. Verify the full suites, production build, migration upgrade, reload, conflict
+   retry, role restrictions, responsive layouts, focus, dial scrolling and axe.
+   Record evidence and the migration/API/client rollout order. Do not deploy.
+
+### Approved U1 shared dial follow-up
+
+Replace the desktop-only navigator and selected editor with the same continuous
+lists and right-edge dial used on phones. Use one scroll/focus rule, retain keyed
+editors and drafts across resizing, and cap the desktop reading width at 760 px.
+Keep the named picker and 44 px targets at every width. Validate short trailing
+lists, keyboard navigation, draft retention, mobile keyboard height changes,
+responsive accessibility and the running isolated preview. No backend, database,
+permission or city-transition changes are required.

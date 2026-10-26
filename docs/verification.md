@@ -541,6 +541,186 @@ remains above. This release supersedes the earlier implementation-only and
 not-deployed status notes; the local Share preview repair also applied migration
 006 and passed a browser smoke before the hosted rollout.
 
+## Named checklists, desktop G and mobile M1.A
+
+Implemented the approved `SPEC-checklists.md` and
+`checklists-focused-layout.excalidraw`, without deploying or migrating the shared
+local database. Existing packing items are adopted into checklist `packing`
+without changing IDs, completion or assignment. Departure semantics remain
+independent under a separate disclosure.
+
+Final checks:
+
+- `npm test`: all 158 tests in 28 files pass, including actual PostgreSQL
+  migration/Edge API tests, SQLite legacy adoption/restart, history, validation,
+  stale writes and role restrictions.
+- `npm run build` and `npx deno check supabase/functions/trip-api/index.ts` pass.
+- `npm run test:e2e -- --config <temporary-isolated-config> --max-failures=2`:
+  all 68 SQLite browser workflows pass. The temporary harness imports the
+  repository's Playwright config but uses ports 3037/5197, an in-memory test
+  database and installed Chrome. The default ports were occupied; their existing
+  processes were not stopped. This verifies the whole suite with different
+  launchers, not the unmodified default server configuration.
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=<installed-Chrome> node scripts/test-attribution.mjs`:
+  fresh migrations in a disposable native PostgreSQL database, 39 pgTAP
+  assertions, six concurrent-transaction checks and all 15 online browser
+  workflows pass. The checklist workflow uses the actual Deno Edge handler and
+  PostgREST under the Pages base path, including reload, completion and viewing
+  through another member's read-only link.
+- `node scripts/test-backup.mjs` passes its disposable local backup/restore
+  workflow. `git diff --check` passes.
+
+Browser checks cover named-list creation/rename, text editing, Enter-to-add,
+completion/reopening, assignment, deletion confirmation, draft retention across
+selection/resizing, failed requests, real revision conflicts, an ambiguous lost
+creation response, and remote completion/item/list deletion. A removed list with
+local drafts remains available to copy or explicitly discard. A long dial keeps
+44 px markers and supports keyboard jumps.
+
+Widths 320, 768, 1024 and 1440 pass overflow and axe checks. Phone interaction also
+uses a touch-enabled context at 390 px, reduced motion and a reduced-height
+viewport. Visual inspection caught and fixed the rail overlapping the New button;
+an automated geometry check now covers the button and sticky-header clearance.
+The existing member-history fixture now opens the current Places checkpoint and
+suggestions controls, and a route insertion assertion waits for React's rendered
+order rather than racing its server response.
+
+Earlier exploratory runs exposed those UI/test issues and two interrupted
+temporary Vite processes. The final complete SQLite and native online runs pass
+without retries. No physical phone/keyboard, screen reader or hosted rollout was
+tested for this feature. Viewport resizing is not proof of an actual mobile
+software-keyboard implementation. See ADR-011 for migration/API/client rollout
+order and compatibility limits.
+
+### Rebase onto main at `1d0fcd9`
+
+Fetched and fast-forwarded this agent checkout from `ca31ee1` to
+`1d0fcd951b71ce6a944d35a709b21edc2f636d81`, then restored all uncommitted
+checklist work and design files. No feature commits were published, no merge
+commit was created, and shared main history was not rewritten.
+
+Resolved the two stash-application conflicts in browser tests by keeping main's
+inline activity entry and combining its no-confirmation behavior with the
+checklist options controls. Checklist forms now follow main's deletion-only
+confirmation policy; local list switches still retain drafts. Browser setup uses
+the new shared date-range helper. The checklist ADR is now 011 because main
+already introduced ADR-010 for inline activity entry.
+
+After integration, `npm test` passes all 169 tests, `npm run build` passes, and
+all 87 SQLite browser workflows pass using the temporary isolated ports
+3037/5197, an in-memory database and installed Chrome. `git diff --check` passes.
+Native Supabase concurrency, online browser and backup/restore checks were not
+repeated for the rebase; their pre-rebase results remain recorded above.
+
+### U1 shared dial at every width
+
+Applied the selected U1 frames in `checklists-focused-layout.excalidraw`.
+Desktop no longer has a named sidebar or hidden selected editor. Every list
+remains mounted in one continuous page, capped at a 760 px reading width, with
+the same dial, titles, compact rows and named chooser as mobile.
+
+The shared scroll rule keeps a chosen short list active when the page bottom
+prevents aligning its heading with the header. Width changes re-anchor the active
+list without replacing editors or moving focus. Height-only changes, including
+the software keyboard, do not jump. Persistence, permissions and city/departure
+semantics are unchanged.
+
+Final evidence:
+
+- `npm test`: all 170 unit/API tests pass, including embedded PostgreSQL coverage.
+- `npm run build`: production typecheck and client build pass.
+- `npm run test:e2e -- --config <temporary-isolated-dev-config> checklists.spec.ts --max-failures=2`:
+  all eight focused checklist workflows pass through Vite.
+- `npm run test:e2e -- --config <temporary-built-client-config> --max-failures=3`:
+  all 88 browser workflows pass without retries against the production client,
+  served by an isolated SQLite HTTP server on port 5197. A full Vite-launched
+  attempt was interrupted when its temporary watcher exited; the complete
+  regression run therefore uses the built client, not the default dev launcher.
+- Geometry and axe checks pass at 320, 768, 1024 and 1440 px. Coverage includes
+  continuous desktop sections, direct jumps, the named chooser, active-marker
+  tracking, draft retention through resizing, keyboard navigation, long dials,
+  44 px targets, short trailing lists and reduced-height touch editing.
+- The existing preview at `http://127.0.0.1:5198/__demo` serves U1. Browser
+  verification checked desktop/mobile rendering, no sidebar or hidden editors,
+  the full-name chooser, focus return and the inline creation form with no page
+  errors. Its demo checklist contents were not changed.
+- The Excalidraw implementation reference is valid JSON with unique element IDs.
+  `git diff --check` passes.
+
+No native Supabase/concurrency, hosted or physical-device checks were repeated
+for this presentation-only follow-up. No database was migrated and no source was
+published.
+
+### Checklist hover, compact cards and grip reordering
+
+Both dials now use `src/components/rail-emphasis.ts` and `rail.css` for the full,
+half-neighbor and color-tint rules. The itinerary keeps its 7/14 px sizes.
+Checklist sizing was refined to 7 px at rest, 16.38 px on hover/focus and 11.69 px
+for immediate neighbors. Labels stay fixed; ordinary/active thickness remains
+2/3 px. The compact, content-sized summary shows title and total item count,
+including completed items, with keyboard parity, Escape dismissal, hover
+persistence and direct touch jumps.
+
+Six-dot grip handles sort within the pending or completed section, using the
+existing dnd-kit packages. Keyboard and touch sorting, menu move alternatives,
+save locking and cancellation preserve item identities and other fields.
+`checklist.item.move` reuses existing nested-array persistence with revision
+checks; relative order changes record a parent-list history entry. No new schema
+migration is required. The floating row uses the existing dark ink token and
+light surface text. Item/list options explicitly suppress the global open
+disclosure glyph so the trigger remains one 44 px button.
+
+Final checks:
+
+- `npm test`: all 173 unit/API tests pass.
+- `npm run build` and the Edge Deno typecheck pass.
+- `npm run test:e2e -- --config <temporary-built-client-config> --max-failures=3`:
+  all 93 browser workflows pass against the production client and isolated SQLite
+  server on port 5197. Fifteen focused checklist/itinerary workflows also pass.
+- The disposable native harness passes 39 database assertions and six concurrency
+  checks. With `TRIP_TEST_GREP='.'`, all 15 online browser workflows pass through
+  Deno and PostgREST under the Pages base path, including persisted keyboard
+  reordering and read-only access. The selector skips repeating the earlier
+  database/concurrency phase.
+- The online reorder fixture now waits for the target-position announcement
+  before dropping. Its fresh-tab fixture now checks main's restored Notes page
+  and private-note isolation, rather than expecting a reset to Itinerary.
+- Automated checks cover full/neighbor growth, unchanged itinerary animation,
+  total/empty/singular counts, compact card size, long-title viewport fit, keyboard
+  descriptions, touch jumps, 44 px targets, non-drag moves, pointer/touch/keyboard
+  sorting, completed sections, failed/conflicting writes and disabled saves.
+  Responsive and axe checks pass at 320, 768, 1024 and 1440 px.
+- Live preview 5198 was restarted to load the new backend command, reusing the
+  existing owner capability in memory. Before/after trip identity and data
+  fingerprints match. Browser verification of dark dragging, the options trigger,
+  the compact card and reduced tick width also left its data/order unchanged.
+- The Excalidraw reference contains 335 editable elements with unique IDs and
+  valid frame bounds. `git diff --check` passes.
+
+No hosted deployment, shared database migration, physical-device acceptance or
+full assistive-technology audit was performed.
+
+### Rebase onto main at `d769ac9`, tests skipped by request
+
+Fetched main and fast-forwarded this agent checkout from `1d0fcd9` to
+`d769ac95cf2bd2c2c3701c5c20a0b73545256514`, then restored the uncommitted checklist
+work and design files. Main's text-only navigation selection and bold checkpoint
+numbers were retained. Restoration had no conflicts. Removed stale calendar
+copies of the shared tick helper to preserve its relocation into components.
+Git conflict/whitespace checks pass.
+
+No tests, build or typecheck were run for this rebase, as requested. Earlier
+results above are pre-rebase evidence, not validation of this new base. The
+recovery stash is retained; no source was committed, pushed or deployed.
+
+### Final rebase before the requested checklist commit
+
+Fetched main again and rebased onto
+`82d52baf62806e5f83842c5ae87f097a104e2496`, retaining its compact itinerary hover
+cards alongside the checklist work. Restoration had no conflicts. Tests, build
+and typecheck remain skipped by request; only static Git checks were performed.
+The local commit does not authorize a push, deployment or hosted migration.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

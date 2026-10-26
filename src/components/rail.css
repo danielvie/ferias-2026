@@ -1,0 +1,12 @@
+.rail-tick {
+  width: calc(var(--tick-width, 7px) + (var(--tick-max-width, 14px) - var(--tick-width, 7px)) * var(--tick-growth, 0));
+  height: var(--tick-height, 2px);
+  background: var(--tick-color, var(--muted));
+  background: color-mix(in oklab, var(--tick-color, var(--muted)), var(--accent) calc(var(--tick-tint, 0) * 100%));
+  flex-shrink: 0;
+  transition: width .14s ease-out, background-color .14s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-tick { transition: none; }
+}

@@ -144,3 +144,52 @@ online acceptance tasks above.
   then API and Pages deployed. Run 40246530711 passes tests, types and build.
   Hosted API/public-browser checks pass; synthetic fixtures removed. Existing
   content, members, access links, history and settings match their baseline.
+
+## Named checklists: desktop G and mobile M1.A
+
+Approved scope: `SPEC-checklists.md`. Keep unfinished online acceptance tasks above.
+
+- [x] C1. Canonical checklist commands and SQLite adoption. Verify item identity,
+  independent lists, validation, permissions, history, reload and stale writes.
+- [x] C2. Additive Supabase migration and API parity. Depends on C1. Verify upgrade
+  from existing packing, transactional writes, grants and family filtering.
+- [x] C3. Compact inline editor and desktop navigator. Depends on C1–C2. Verify
+  creation, text editing, completion, assignment, deletion and retained drafts.
+- [x] C4. Mobile continuous lists, direct-jump dial and full-name picker. Depends
+  on C3. Verify scroll tracking, selection across resizing, focus and keyboard.
+- [x] C5. Regression, responsive/accessibility checks and rollout documentation.
+  Depends on C4. Run `npm test`, `npm run build`, `npm run test:e2e`; report
+  unavailable native Supabase or physical-keyboard/device checks explicitly.
+  - 158 unit/API tests, build and Edge typecheck pass. All 68 SQLite browser
+    workflows pass with isolated test launchers. Disposable native Supabase passes
+    39 database assertions, six concurrency checks and 15 online workflows.
+    Backup/restore passes. No shared/hosted database migration, push or deployment.
+  - Rebased onto main `1d0fcd9`: adapted the date picker, inline activity entry and
+    deletion-only confirmations; 169 unit/API tests, build and all 87 SQLite
+    browser workflows pass. Native online/concurrency checks were not repeated.
+
+### U1 shared dial follow-up
+
+- [x] C6. Replace the desktop split layout with continuous lists and a shared dial.
+  Eight focused browser workflows pass, including desktop jumps, the named
+  chooser, short-list selection, width changes, drafts, 44 px targets and axe.
+- [x] C7. Run the complete regressions, inspect responsive screenshots and verify
+  the live preview. Keep database contents and city-transition semantics unchanged.
+  - 170 unit/API tests and production build pass. All 88 browser workflows pass
+    against the built client and isolated SQLite server; eight focused workflows
+    also pass through Vite. Live preview 5198 verified with unchanged demo content.
+    Native Supabase/concurrency and physical-device checks were not repeated.
+
+- [x] C8. Match itinerary hover/focus emphasis with a compact live summary.
+  Refined the checklist hover width to 16.38 px, kept halfway neighbors, fixed
+  number positions and verified hover, keyboard, touch, viewport fit and Escape.
+- [x] C9. Add persisted item grip sorting and remove the options trigger's extra
+  disclosure glyph. Pointer, touch, keyboard, cancellation, failed/stale writes,
+  independent completion groups and non-drag menu moves pass focused checks.
+- [x] C10. Finish full/native regression checks, update the visual reference and
+  verify the running preview preserves its existing demo data.
+  - 173 unit/API tests, production build and Edge typecheck pass. All 93 built-client
+    browser workflows and 15 native online workflows pass; native database tests
+    pass 39 assertions and six concurrency checks. Preview 5198 was restarted with
+    its existing identity and unchanged data, and dark dragging/details/hover were
+    verified live. No hosted deployment or additional schema migration.

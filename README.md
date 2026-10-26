@@ -47,6 +47,44 @@ Checkpoint selection is local UI state and does not write trip data. Reordering 
 
 For local Supabase, run `task db:migrate` to apply the repeat-city migration without resetting data. The hosted database and Edge Function also need an explicitly approved deployment before using this feature online. See ADR-006 for identity and scheduling rules, ADR-007 for inline expansion, and ADR-010 for quick add and the unfilled selection style.
 
+## Create checklists
+
+Checklists uses U1 from
+[checklists-focused-layout.excalidraw](checklists-focused-layout.excalidraw).
+Desktop and phones share one continuous stack of compact lists and the same
+right-edge dial. There is no sidebar or selected-list detail screen. Desktop
+limits the reading column to 760 px instead of stretching its rows across the
+page. Tap a numbered marker to jump directly, or **All** to choose a full name.
+Numbers mean checklist order, not trip days. Long dials scroll without shrinking
+the 44 px targets. Resizing keeps the same active list and in-panel drafts.
+
+- Hover or focus a dial marker for its title and total item count in a compact
+  card. Its tick grows fully, immediate neighbors grow halfway, and numbers stay
+  fixed. Escape dismisses the card; touch taps still jump directly.
+- **New checklist** opens a title draft. Enter or **Create checklist** saves it and
+  focuses its first item. **List item** adds another item with Enter.
+- Edit titles and item text directly. Enter or **Save** confirms text changes;
+  Escape or **Cancel** discards that text draft. Text wraps instead of truncating.
+- Completed items move into a collapsible, struck-through section. Use an item's
+  `···` menu for assignment and confirmed deletion; checklist `···` actions delete
+  the whole list after confirmation.
+- Drag the six-dot grip beside a checkbox to reorder within that section. Keyboard
+  users can press Space, move with Up/Down, then press Space to drop or Escape to
+  cancel. **Move earlier** and **Move later** in the item menu are non-drag
+  alternatives. The floating row is dark with light text; moving never completes
+  an item or transfers it to another list.
+- Failed saves and conflicts keep drafts, including while switching lists or
+  resizing. A remotely removed list stays visible when it contains a local draft,
+  so you can copy the text or explicitly discard it.
+- Existing packing items retain their IDs, assignments and completion. Departure
+  tools remain under **Departures**, with their independent done/skipped states.
+  Named lists have no city-transition behavior yet.
+
+Owners and editors can edit; viewers can read; family links exclude checklists.
+This feature requires migration 007 and the matching API before the new frontend
+can be used with Supabase. Neither the shared local database nor hosting is
+updated by these source changes. See ADR-011 for compatibility and rollout.
+
 ## Trip access
 
 Open **Share** and click **Copy link**. Send the same invitation link to everyone.

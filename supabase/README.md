@@ -41,7 +41,7 @@ task db:stop
 
 ## Access boundary
 
-The thirteen tables live in the non-exposed `trip_private` schema. All have RLS enabled with no browser policies. Schema/table privileges are explicitly revoked from `anon`, `authenticated` and `service_role`. Only the migration owner can access them directly.
+Application tables live in the non-exposed `trip_private` schema. All have RLS enabled with no browser policies. Schema/table privileges are explicitly revoked from `anon`, `authenticated` and `service_role`. Only the migration owner can access them directly.
 
 The fifteen public routines are executable only by the server-side `service_role`. They use `SECURITY DEFINER`, an empty `search_path`, and fully qualified application objects. The Edge Function validates requests and calls them with its injected server key. The publishable key alone cannot execute them.
 
@@ -55,7 +55,7 @@ The fifteen public routines are executable only by the server-side `service_role
 | `trip_revoke_link` | Owner-only revocation of another member's link and all its derived access |
 | `trip_rate_limit` | Bound global creation, exchange and command request rates |
 | `trip_state` | Read raw state for the trusted handler, never directly for a browser |
-| `trip_commit` | Reauthorize and compare the revision before atomically saving a validated command result |
+| `trip_commit` | Reauthorize and compare the revision before atomically saving a validated command result; migration 007 also requires `p_checklist_version: 1` |
 | `trip_create_online` | Create a complete trip with packing seeds, subject to the creation switch and trip limit |
 | `trip_open_online` | Exchange a link, clean expired sessions and cap retained sessions |
 | `trip_invitations` | List active non-owner links for an owner |

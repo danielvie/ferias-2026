@@ -36,8 +36,12 @@ server.listen(3001, '127.0.0.1');
 - Unknown JSON fields never become domain fields. Bad schemas or references return 422, malformed JSON returns 400, oversized bodies return 413, and non-JSON writes return 415. Request bodies are limited to 128 KiB.
 - Owners and editors mutate trip content and retrieve the common join link. Only owners manage legacy private invitations. Viewers and family links are read-only. A private note is visible and mutable only to its author, including when another member is the owner. Shared notes are editable by owners and editors; only the author can make a shared note private.
 - Note titles, bodies and comments never enter the global activity log. This also prevents older activity from leaking content when a shared note becomes private. Activities describe the operation and actor and retain only the newest 50 entries.
-- Family snapshots contain only explicitly selected places and non-stay events. Descriptions and booking fields are blank, links to unselected places are cleared, and all notes, packing, departures and activity are empty. The member list contains only the session member. Required trip IDs, city IDs and the fixed timezone remain for compatibility with the shared snapshot schema.
+- Family snapshots contain only explicitly selected places and non-stay events. Descriptions and booking fields are blank, links to unselected places are cleared, and all notes, checklists, packing, departures and activity are empty. The member list contains only the session member. Required trip IDs, city IDs and the fixed timezone remain for compatibility with the shared snapshot schema.
 - Changing trip dates or cities is rejected if it would invalidate any event, departure or note link. Deleting a place clears event links and moves linked notes to the trip. Scheduling a place marks it planned. New departures get fresh strategy checklist items and IDs.
+- Named checklists are canonical. Legacy SQLite documents adopt their packing
+  items as checklist `packing` on load, preserving IDs/status/assignment. Subsequent
+  writes store only `checklists`; `packing` in snapshots and the original packing
+  commands are compatibility adapters. A deleted packing list is never recreated.
 
 The database contains unencrypted trip content and private notes. Keep its directory and backups private, on durable storage. The default directory is created with mode `0700`. Application privacy rules do not protect against someone who can read the server's disk. This server does not log request bodies or credentials.
 

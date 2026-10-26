@@ -85,6 +85,58 @@ async function snapshot(page: Page): Promise<TripSnapshot> {
   }, apiBase);
 }
 
+test('named checklists persist through the native Edge API and use the mobile direct-jump dial', async ({ page, browser }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await create(page, 'Online named checklists');
+  await navigate(page, 'Checklists');
+  await page.getByRole('button', { name: 'New checklist', exact: false }).click();
+  await page.getByLabel('Checklist title', { exact: true }).fill('Documents');
+  await page.getByLabel('Checklist title', { exact: true }).press('Enter');
+  const input = page.getByLabel('New item for Documents', { exact: true });
+  await expect(input).toBeFocused();
+  await input.fill('Download tickets');
+  await input.press('Enter');
+  await expect(input).toHaveValue('');
+  await input.fill('Travel insurance');
+  await input.press('Enter');
+  await expect(page.getByRole('checkbox', { name: 'Travel insurance', exact: true })).toBeVisible();
+  const handle = page.getByRole('button', { name: 'Drag Download tickets', exact: true });
+  await expect(handle).toBeEnabled();
+  await handle.scrollIntoViewIfNeeded();
+  await handle.focus();
+  await expect(handle).toBeFocused();
+  await page.keyboard.press('Space');
+  await expect(page.locator('.checklist-drag-preview')).toBeVisible();
+  await page.keyboard.press('ArrowDown');
+  await expect(page.getByRole('status').filter({ hasText: 'Download tickets, position 2 of 2.' })).toHaveCount(1);
+  await page.keyboard.press('Space');
+  await expect.poll(async () => (await snapshot(page)).data.checklists!.find(list => list.title === 'Documents')!.items.map(item => item.title))
+    .toEqual(['Travel insurance', 'Download tickets']);
+  const saved = await snapshot(page);
+  const documents = saved.data.checklists!.find(list => list.title === 'Documents')!;
+  await page.getByRole('checkbox', { name: 'Download tickets', exact: true }).check();
+  await expect(page.getByText('1 completed item', { exact: true })).toBeVisible();
+  await page.reload();
+  await navigate(page, 'Checklists');
+  await page.getByRole('button', { name: 'Go to checklist 2: Documents', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator(`[data-checklist-id="${documents.id}"]`)).toBeFocused();
+  await page.getByText('1 completed item', { exact: true }).click();
+  await expect(page.getByRole('checkbox', { name: 'Download tickets', exact: true })).toBeChecked();
+  expect((await snapshot(page)).data.checklists!.find(list => list.id === documents.id)!.items.find(item => item.title === 'Download tickets')!.status).toBe('done');
+  const viewerLink = await invite(page, 'Checklist viewer', 'viewer');
+  const context = await browser.newContext();
+  try {
+    const viewer = await context.newPage();
+    await viewer.goto(viewerLink);
+    await navigate(viewer, 'Checklists');
+    expect((await snapshot(viewer)).data.checklists).toHaveLength(2);
+    await expect(viewer.getByRole('button', { name: 'New checklist', exact: false })).toHaveCount(0);
+    await expect(viewer.getByRole('checkbox')).toHaveCount(0);
+    await expect(viewer.getByRole('button', { name: /^Drag / })).toHaveCount(0);
+  } finally { await context.close(); }
+});
+
 simpleSharingTests({ create, snapshot });
 
 test('mobile profile and durable history work through the deployed-path Edge transport', async ({ page }) => {
@@ -124,7 +176,9 @@ test('remembered Pages-path access resumes in a fresh tab and isolates link-only
     expect(Object.keys(await page.evaluate(() => ({ ...sessionStorage })))).toHaveLength(1);
     const blank = await page.context().newPage();
     await blank.goto('./');
-    await expect(blank.getByRole('heading', { name: 'Online Belgium trip', exact: true })).toBeVisible();
+    await expect(blank.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Notes', exact: true }))
+      .toHaveAttribute('aria-current', 'page');
+    await expect(blank.getByRole('heading', { name: 'Owner private note', exact: true })).toBeVisible();
     expect((await snapshot(blank)).session.id).toBe((await snapshot(page)).session.id);
     await blank.close();
     expect((await snapshot(editor)).data.notes[0].title).toBe('Editor private note');

@@ -74,7 +74,6 @@
 .day-marker { --tick-width: var(--tick-rest-width); --tick-color: var(--muted); position: relative; display: flex; align-items: center; justify-content: flex-end; width: 100%; min-height: 0; padding: 0 1.5rem 0 .25rem; border: 0; border-radius: 0; background: transparent; color: var(--muted); }
 .day-marker:focus-visible { outline-offset: -2px; }
 .marker-number { position: absolute; right: 2.75rem; top: 50%; transform: translateY(-50%); font-size: .65rem; line-height: 1; opacity: 0; }
-.marker-tick { width: calc(var(--tick-width) + (var(--tick-max-width) - var(--tick-width)) * var(--tick-growth, 0)); height: var(--tick-height); background: var(--tick-color); background: color-mix(in oklab, var(--tick-color), var(--accent) calc(var(--tick-tint, 0) * 100%)); flex-shrink: 0; transition: width .14s ease-out, background-color .14s ease-out; }
 .day-marker[aria-current] { --tick-color: var(--accent); color: var(--accent); }
 .day-marker[aria-current] .marker-tick { height: 3px; }
 .day-marker[aria-current] .marker-number, .day-marker:focus-visible .marker-number { opacity: 1; }

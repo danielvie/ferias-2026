@@ -59,7 +59,7 @@ export function snapshot(revision: number, data: TripData, access: Access, membe
     data: {
       trip: { id: trip.id, title: trip.title, startDate: trip.startDate, endDate: trip.endDate,
         timezone: 'Europe/Brussels', cities: trip.cities.map((city) => ({ id: city.id, name: city.name })) },
-      places, events, notes: [], packing: [], transfers: [], activity: [],
+      places, events, notes: [], checklists: [], packing: [], transfers: [], activity: [],
     },
   };
 }

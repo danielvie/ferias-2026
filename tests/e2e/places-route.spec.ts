@@ -121,7 +121,7 @@ test('inserts at either end from the expanded checkpoint menu', async ({ page })
   await form.getByRole('button', { name: 'Add checkpoint', exact: true }).click();
   const first = (await state(page)).data.trip.cities[0];
   expect(first.name).toBe('Antwerp');
-  expect(await order(page)).toEqual([first.id, ...ids]);
+  await expect.poll(() => order(page)).toEqual([first.id, ...ids]);
   await expect(visit(page, first.id).getByLabel('New activity', { exact: true })).toBeVisible();
   await openCheckpoint(page, ids[3]);
   await visit(page, ids[3]).getByLabel('Actions for checkpoint 5: Brussels', { exact: true }).click();
@@ -133,7 +133,7 @@ test('inserts at either end from the expanded checkpoint menu', async ({ page })
   await expect(form).toHaveCount(0);
   const last = (await state(page)).data.trip.cities.at(-1)!;
   expect(last.name).toBe('Leuven');
-  expect(await order(page)).toEqual([first.id, ...ids, last.id]);
+  await expect.poll(() => order(page)).toEqual([first.id, ...ids, last.id]);
   await expect(visit(page, last.id).locator('.checkpoint-count')).toHaveText('0 activities');
 });
 

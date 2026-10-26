@@ -52,6 +52,7 @@ export interface Note {
 }
 export type CheckStatus = 'pending' | 'done' | 'skipped';
 export interface ChecklistItem { id: string; title: string; assignee: string; status: CheckStatus }
+export interface Checklist { id: string; title: string; items: ChecklistItem[] }
 export interface Transfer {
   id: string;
   fromCityId: string;
@@ -62,7 +63,7 @@ export interface Transfer {
 }
 export interface ActivityLogEntry { id: string; message: string; at: string }
 export interface ChangeTarget {
-  type: 'trip' | 'place' | 'event' | 'note' | 'comment' | 'packing' | 'departure' | 'departure-check' | 'member' | 'link';
+  type: 'trip' | 'place' | 'event' | 'note' | 'comment' | 'packing' | 'checklist' | 'checklist-item' | 'departure' | 'departure-check' | 'member' | 'link';
   id: string;
   parentId: string;
   label: string;
@@ -82,6 +83,9 @@ export interface TripData {
   places: Place[];
   events: TripEvent[];
   notes: Note[];
+  // Optional only for legacy snapshots. Storage adopts packing on first load.
+  checklists?: Checklist[];
+  // Compatibility projection of checklist "packing", not a separate collection.
   packing: ChecklistItem[];
   transfers: Transfer[];
   activity: ActivityLogEntry[];
@@ -105,6 +109,14 @@ export type TripCommand =
   | { type: 'note.save'; note: Pick<Note, 'id' | 'title' | 'body' | 'visibility' | 'linkType' | 'linkId'> }
   | { type: 'note.delete'; id: string }
   | { type: 'note.comment'; id: string; body: string }
+  | { type: 'checklist.add'; id: string; title: string }
+  | { type: 'checklist.rename'; id: string; title: string }
+  | { type: 'checklist.delete'; id: string }
+  | { type: 'checklist.item.add'; checklistId: string; title: string }
+  | { type: 'checklist.item.rename'; checklistId: string; id: string; title: string }
+  | { type: 'checklist.item.update'; checklistId: string; id: string; status: 'pending' | 'done'; assignee: string }
+  | { type: 'checklist.item.move'; checklistId: string; id: string; beforeId: string | null }
+  | { type: 'checklist.item.delete'; checklistId: string; id: string }
   | { type: 'packing.add'; title: string; assignee: string }
   | { type: 'packing.update'; id: string; status: CheckStatus; assignee: string }
   | { type: 'packing.delete'; id: string }

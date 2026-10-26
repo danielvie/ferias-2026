@@ -78,6 +78,63 @@ describe('online API with actual PostgreSQL migrations', () => {
     return response.json();
   }
 
+  test('persists named checklists with isolated items, attribution and read-only projections', async () => {
+    const original = state.data.packing;
+    await command({ type: 'checklist.add', id: 'documents', title: 'Documents' });
+    await command({ type: 'checklist.item.add', checklistId: 'documents', title: 'Tickets' });
+    const item = state.data.checklists![1].items[0];
+    await command({ type: 'checklist.item.rename', checklistId: 'documents', id: item.id, title: 'Downloaded tickets' });
+    await command({ type: 'checklist.item.update', checklistId: 'documents', id: item.id, status: 'done', assignee: 'Owner' });
+    await command({ type: 'checklist.rename', id: 'documents', title: 'Travel documents' });
+    expect((await load()).data.checklists![1]).toEqual({
+      id: 'documents', title: 'Travel documents',
+      items: [{ ...item, title: 'Downloaded tickets', status: 'done', assignee: 'Owner' }],
+    });
+    expect((await load()).data.packing).toEqual(original);
+    const viewer = await invite('viewer'), family = await invite('family'), editor = await invite('editor');
+    expect((await load(viewer.sessionToken)).data.checklists).toHaveLength(2);
+    expect((await load(family.sessionToken)).data.checklists).toEqual([]);
+    const forbidden = await call('/commands', 'POST', {
+      revision: (await load(viewer.sessionToken)).revision, command: { type: 'checklist.delete', id: 'documents' },
+    }, viewer.sessionToken);
+    expect(forbidden.status).toBe(403);
+    await command({ type: 'checklist.item.delete', checklistId: 'documents', id: item.id }, editor.sessionToken);
+    expect((await history()).items).toContainEqual(expect.objectContaining({
+      actorId: editor.snapshot.session.id, action: 'deleted',
+      target: expect.objectContaining({ type: 'checklist-item', parentId: 'documents' }),
+    }));
+    await command({ type: 'checklist.delete', id: 'documents' });
+    expect((await load()).data.checklists).toHaveLength(1);
+    for (const role of ['anon', 'authenticated', 'service_role']) {
+      await db.exec(`set role ${role}`);
+      try { await expect(db.query('select * from trip_private.checklists')).rejects.toMatchObject({ code: '42501' }); }
+      finally { await db.exec('reset role'); }
+    }
+  });
+
+  test('persists checklist item order and attribution without changing completion or ownership', async () => {
+    const original = state.data.packing;
+    const [passport, charger, jacket] = original;
+    await command({ type: 'checklist.item.move', checklistId: 'packing', id: passport.id, beforeId: jacket.id });
+    expect((await load()).data.packing.map(item => item.id)).toEqual([charger.id, passport.id, ...original.slice(2).map(item => item.id)]);
+    expect(new Map((await load()).data.packing.map(item => [item.id, item]))).toEqual(new Map(original.map(item => [item.id, item])));
+    expect((await history()).items[0]).toMatchObject({
+      action: 'changed', actorId: state.session.id, target: { type: 'checklist', id: 'packing' },
+    });
+    await command({ type: 'packing.update', id: charger.id, status: 'done', assignee: 'Ana' });
+    const before = await load();
+    const invalid = await call('/commands', 'POST', {
+      revision: before.revision, command: { type: 'checklist.item.move', checklistId: 'packing', id: passport.id, beforeId: charger.id },
+    });
+    expect(invalid.status).toBe(422);
+    expect(await load()).toEqual(before);
+    const viewer = await invite('viewer');
+    const denied = await call('/commands', 'POST', {
+      revision: viewer.snapshot.revision, command: { type: 'checklist.item.move', checklistId: 'packing', id: passport.id, beforeId: null },
+    }, viewer.sessionToken);
+    expect(denied.status).toBe(403);
+  });
+
   test('shares a reusable join link and registers distinct editors with private notes and attribution', async () => {
     const response = await call('/share');
     expect(response.status).toBe(200);
@@ -385,7 +442,7 @@ describe('online API with actual PostgreSQL migrations', () => {
     );
     const raw = result.rows[0].result;
     raw.data.notes[0].body = 'Unauthorized replacement';
-    await expect(db.query('select public.trip_commit($1, $2, $3)', [await hash(session), raw.revision, raw.data])).rejects.toMatchObject({ code: 'PT403' });
+    await expect(db.query('select public.trip_commit($1, $2, $3, $4, 1)', [await hash(session), raw.revision, raw.data, []])).rejects.toMatchObject({ code: 'PT403' });
     expect((await load(editor.sessionToken)).data.notes[0].body).toBe('Unchanged');
   });
 

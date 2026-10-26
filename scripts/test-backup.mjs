@@ -31,7 +31,7 @@ try {
     authorId: created.memberId, authorName: 'Backup owner', visibility: 'private',
     linkType: 'trip', linkId: created.tripId, updatedAt: new Date().toISOString(), comments: [],
   });
-  sql(source, `select public.trip_commit('${session}', 0, ${literal(original.data)}, ${literal(changesBetween(before, original.data))});`);
+  sql(source, `select public.trip_commit('${session}', 0, ${literal(original.data)}, ${literal(changesBetween(before, original.data))}, 1);`);
   const dump = execFileSync('docker', [
     'exec', container, 'pg_dump', '-U', 'postgres', '-d', source, '--data-only', '--schema=trip_private',
     '--exclude-table-data=trip_private.sessions', '--exclude-table-data=trip_private.request_limits', '--exclude-table-data=trip_private.settings',

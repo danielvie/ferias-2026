@@ -28,7 +28,8 @@ describe('ChecklistsPage', () => {
     const html = render('owner', 'skipped');
     expect(html).toContain('Ready to go');
     expect(html).toContain('1 skipped');
-    expect(html).toContain('0 of 1 packed');
+    expect(html).toContain('Pending items in Packing');
+    expect(html).toContain('aria-label="Go to checklist 1: Packing"');
     expect(html).toContain('type="checkbox"');
     // Only the departure status selector offers skipping.
     expect(html.match(/value="skipped"/g)).toHaveLength(1);
@@ -37,6 +38,13 @@ describe('ChecklistsPage', () => {
   it('does not call a pending departure ready', () => {
     expect(render('owner', 'pending')).toContain('Departure checks pending');
     expect(render('owner', 'pending')).not.toContain('Ready to go');
+  });
+
+  it('uses one dial without a desktop-only navigator or hidden checklist editor', () => {
+    const html = render('owner', 'pending');
+    expect(html).toContain('aria-label="Checklist markers"');
+    expect(html).not.toContain('aria-label="Checklist navigator"');
+    expect(html).not.toContain('hidden=""');
   });
 
   it('shows checklist content but no mutation controls to viewers', () => {
@@ -48,5 +56,7 @@ describe('ChecklistsPage', () => {
     expect(html).not.toContain('Add item');
     expect(html).not.toContain('Delete departure');
     expect(html).not.toContain('New departure');
+    expect(html).not.toContain('New checklist');
+    expect(html).not.toContain('<textarea');
   });
 });

@@ -3,8 +3,9 @@ import type { City, TripEvent } from '../../../shared/model';
 import { displayDate } from '../../app/dates';
 import { ModalPane } from '../../components/ModalPane';
 import { Icon } from '../../components/Icon';
-import { markerEmphasis } from './rail-emphasis';
+import { markerEmphasis } from '../../components/rail-emphasis';
 import { tripWeekday } from './itinerary';
+import '../../components/rail.css';
 
 export interface ItineraryDay { date: string; events: TripEvent[] }
 const dayLabel = (date: string) => displayDate(date, { weekday: 'long', day: 'numeric', month: 'long' });
@@ -126,7 +127,7 @@ export function DayRail({ days, cities, onJump }: {
             setSheet(day.date); dismissPreview();
           } else if (onJump(day.date)) dismissPreview();
         }}>
-        <span className="marker-number" aria-hidden="true">{numbering === 'date' ? displayDate(day.date, { day: 'numeric' }) : index + 1}</span><span className="marker-tick" aria-hidden="true" />
+        <span className="marker-number" aria-hidden="true">{numbering === 'date' ? displayDate(day.date, { day: 'numeric' }) : index + 1}</span><span className="marker-tick rail-tick" aria-hidden="true" />
         <span className="weekday-badge" aria-hidden="true">{weekday.initial}</span>
       </button>;
       })}

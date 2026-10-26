@@ -85,7 +85,7 @@ test('calendar and packing deletions still require confirmation', async ({ page 
 
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Checklists', exact: true }).click();
   const row = page.getByRole('listitem').filter({ has: page.getByRole('checkbox', { name: 'Passport / ID', exact: true }) });
-  await row.getByLabel('Edit owner for Passport / ID', { exact: true }).click();
+  await row.getByLabel('Options for Passport / ID', { exact: true }).click();
   await row.getByRole('button', { name: 'Delete item', exact: true }).click();
   await expect(row.getByRole('group', { name: 'Delete Passport / ID', exact: true })).toBeVisible();
   await row.getByRole('button', { name: 'Keep item', exact: true }).click();

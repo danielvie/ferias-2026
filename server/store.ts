@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { checklistStrategies } from '../shared/checklists';
+import { adoptChecklists, checklistStrategies } from '../shared/checklists';
 import type { CreateTripInput, HistoryPage, HistoryRecord, InviteInfo, InviteInput, Member, TripCommand, TripData } from '../shared/model';
 import { addActivity, applyCommand } from './commands';
 import { changesBetween, memberChange, type Change } from './history';
@@ -104,11 +104,14 @@ export class Store {
   private load(tripId: string): { revision: number; data: TripData } {
     const row = this.db.prepare('SELECT revision, data FROM trips WHERE id = ?').get(tripId) as { revision: number; data: string } | undefined;
     if (!row) throw new HttpError(404, 'Trip not found.');
-    return { revision: row.revision, data: JSON.parse(row.data) };
+    const data: TripData = JSON.parse(row.data);
+    adoptChecklists(data);
+    return { revision: row.revision, data };
   }
 
   private write(tripId: string, revision: number, data: TripData) {
-    this.db.prepare('UPDATE trips SET revision = ?, data = ? WHERE id = ?').run(revision, JSON.stringify(data), tripId);
+    const { packing: _compatibility, ...persisted } = data;
+    this.db.prepare('UPDATE trips SET revision = ?, data = ? WHERE id = ?').run(revision, JSON.stringify(persisted), tripId);
   }
 
   private record(access: Access, changes: Change[], data?: TripData) {
@@ -183,8 +186,10 @@ export class Store {
           timezone: 'Europe/Brussels', cities: input.cities.map((name) => ({ id: randomUUID(), name })) },
         places: [], events: [], notes: [], transfers: [], activity: [], packing: checklistStrategies.packing.create(randomUUID),
       };
+      adoptChecklists(data);
       addActivity(data, `${input.ownerName} created the trip.`);
-      this.db.prepare('INSERT INTO trips (id, revision, data) VALUES (?, ?, ?)').run(tripId, 0, JSON.stringify(data));
+      this.db.prepare('INSERT INTO trips (id, revision, data) VALUES (?, ?, ?)').run(tripId, 0, '{}');
+      this.write(tripId, 0, data);
       const owner = this.insertMember(tripId, { name: input.ownerName, role: 'owner', eventIds: [], placeIds: [] });
       const sessionToken = this.session(owner.id, oldSession);
       const access = this.authenticate(sessionToken);

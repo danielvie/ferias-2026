@@ -1,4 +1,5 @@
 import type { ChangeTarget, HistoryRecord, TripData } from '../shared/model.ts';
+import { tripChecklists } from '../shared/checklists.ts';
 
 // Visibility metadata is storage-only. Never include it in browser history.
 export interface Change {
@@ -22,7 +23,13 @@ function entities(data: TripData) {
   add('trip', data.trip.id, data.trip.title, data.trip);
   for (const place of data.places) add('place', place.id, place.title, place);
   for (const event of data.events) add('event', event.id, event.title, event);
-  for (const item of data.packing) add('packing', item.id, item.title, item);
+  for (const { items, ...list } of tripChecklists(data)) {
+    add('checklist', list.id, list.title, list);
+    for (const item of items) {
+      if (list.id === 'packing') add('packing', item.id, item.title, item);
+      else add('checklist-item', item.id, item.title, item, list.id);
+    }
+  }
   for (const { items, ...departure } of data.transfers) {
     const city = (id: string) => data.trip.cities.find((city) => city.id === id)?.name ?? id;
     const label = `${city(departure.fromCityId)} to ${city(departure.toCityId)} · ${departure.date} ${departure.time}`;
@@ -57,6 +64,22 @@ export function changesBetween(before: TripData, after: TripData): Change[] {
     changes.push({
       action: !old ? 'added' : !current ? 'deleted' : 'changed',
       target: entity.target, noteId: entity.noteId, privateTo: entity.privateTo,
+    });
+  }
+  // Additions and deletions have their own records. Only changed relative order
+  // of surviving items needs an extra parent record.
+  const previousLists = new Map(tripChecklists(before).map(list => [list.id, list]));
+  for (const list of tripChecklists(after)) {
+    const old = previousLists.get(list.id);
+    if (!old) continue;
+    const oldIds = new Set(old.items.map(item => item.id));
+    const newIds = new Set(list.items.map(item => item.id));
+    const oldOrder = old.items.filter(item => newIds.has(item.id)).map(item => item.id);
+    const newOrder = list.items.filter(item => oldIds.has(item.id)).map(item => item.id);
+    if (equal(oldOrder, newOrder) || changes.some(change => change.target.type === 'checklist' && change.target.id === list.id)) continue;
+    changes.push({
+      action: 'changed', target: { type: 'checklist', id: list.id, parentId: '', label: list.title },
+      noteId: '', privateTo: '',
     });
   }
   return changes;

@@ -1,4 +1,4 @@
-import { checklistStrategies } from '../shared/checklists.ts';
+import { adoptChecklists, checklistStrategies } from '../shared/checklists.ts';
 import type { Member, Note, TripCommand, TripData } from '../shared/model.ts';
 import { requireNoteMutation, requirePermission } from './permissions.ts';
 import { check, HttpError } from './validation.ts';
@@ -76,6 +76,8 @@ function validateReferences(data: TripData) {
 // The caller owns the transaction. Mutate a freshly loaded full trip, never a filtered snapshot.
 export function applyCommand(data: TripData, member: Member, command: TripCommand) {
   requirePermission(member, 'mutate');
+  adoptChecklists(data);
+  const checklists = data.checklists!;
   let message: string;
   switch (command.type) {
     case 'visit.add':
@@ -169,7 +171,55 @@ export function applyCommand(data: TripData, member: Member, command: TripComman
       message = `${member.name} commented on a note.`;
       break;
     }
+    case 'checklist.add':
+      check(checklists.length < 100, 'A trip can have at most 100 checklists.');
+      check(command.id !== 'packing' && !checklists.some(list => list.id === command.id), 'This checklist ID already exists.');
+      save(checklists, { id: command.id, title: command.title, items: [] });
+      message = `${member.name} added a checklist.`;
+      break;
+    case 'checklist.rename':
+      find(checklists, command.id).title = command.title;
+      message = `${member.name} renamed a checklist.`;
+      break;
+    case 'checklist.delete':
+      remove(checklists, command.id);
+      message = `${member.name} removed a checklist.`;
+      break;
+    case 'checklist.item.add':
+      save(find(checklists, command.checklistId).items, {
+        id: randomUUID(), title: command.title, assignee: '', status: 'pending',
+      });
+      message = `${member.name} added a checklist item.`;
+      break;
+    case 'checklist.item.rename':
+      find(find(checklists, command.checklistId).items, command.id).title = command.title;
+      message = `${member.name} edited a checklist item.`;
+      break;
+    case 'checklist.item.move': {
+      const items = find(checklists, command.checklistId).items;
+      const item = find(items, command.id);
+      check(command.beforeId !== item.id, 'An item cannot be placed before itself.');
+      if (command.beforeId !== null) {
+        const target = find(items, command.beforeId);
+        check((item.status === 'done') === (target.status === 'done'), 'Reorder items within the same pending or completed section.');
+      }
+      remove(items, item.id);
+      insertBefore(items, item, command.beforeId);
+      message = `${member.name} reordered checklist items.`;
+      break;
+    }
+    case 'checklist.item.update':
+      Object.assign(find(find(checklists, command.checklistId).items, command.id), {
+        status: command.status, assignee: command.assignee,
+      });
+      message = `${member.name} updated a checklist item.`;
+      break;
+    case 'checklist.item.delete':
+      remove(find(checklists, command.checklistId).items, command.id);
+      message = `${member.name} removed a checklist item.`;
+      break;
     case 'packing.add':
+      find(checklists, 'packing');
       save(data.packing, { id: randomUUID(), title: command.title, assignee: command.assignee, status: 'pending' });
       message = `${member.name} added a packing item.`;
       break;
@@ -206,6 +256,7 @@ export function applyCommand(data: TripData, member: Member, command: TripComman
       message = `${member.name} updated a departure check.`;
       break;
   }
+  adoptChecklists(data);
   validateReferences(data);
   // A generic note message still exposes private activity and its timing.
   // Structured note history is separately permission-filtered.

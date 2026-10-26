@@ -84,6 +84,8 @@ async function fixture() {
       insert into trip_private.access_links (id, trip_id, member_id, token_hash)
         values (${literal(linkId)}, ${literal(created.tripId)}, ${literal(memberId)}, ${literal(editorLink)});
       insert into trip_private.sessions (token_hash, link_id) values (${literal(editorSession)}, ${literal(linkId)});
+      insert into trip_private.checklists (trip_id, id, payload, position)
+        values (${literal(created.tripId)}, 'packing', '{"id":"packing","title":"Packing","items":[]}', 0);
       commit;`);
   } catch (error) {
     await query(`delete from trip_private.trips where id = ${literal(created.tripId)};`);
@@ -204,13 +206,13 @@ test('native rename/content races reject stale attribution and stamp the committ
   await withConnections(async (data, holder, waiting) => {
     const state = JSON.parse(await query(`select public.trip_state(${literal(data.editorSession)});`));
     const before = structuredClone(state.data);
-    state.data.packing.push({ id: 'race-item', title: 'Adapter', assignee: '', status: 'pending' });
+    state.data.checklists[0].items.push({ id: 'race-item', title: 'Adapter', assignee: '', status: 'pending' });
     const changes = changesBetween(before, state.data);
     holder.write(`begin;
       select public.trip_profile(${literal(data.editorSession)}, 'Test editor', 'Ana');
       select 'trip-test-ready';`);
     await holder.ready();
-    waiting.write(`select public.trip_commit(${literal(data.editorSession)}, 0, ${json(state.data)}, ${json(changes)});`);
+    waiting.write(`select public.trip_commit(${literal(data.editorSession)}, 0, ${json(state.data)}, ${json(changes)}, 1);`);
     await waitUntilBlocked(waiting.name);
     holder.write('commit;');
     waiting.end('');
@@ -219,7 +221,7 @@ test('native rename/content races reject stale attribution and stamp the committ
     assert.match(result.stderr, /PT409/);
     const saved = JSON.parse(await query(`select public.trip_state(${literal(data.editorSession)});`));
     assert.deepEqual(saved.data.packing, []);
-    await query(`select public.trip_commit(${literal(data.editorSession)}, ${saved.revision}, ${json(state.data)}, ${json(changes)});`);
+    await query(`select public.trip_commit(${literal(data.editorSession)}, ${saved.revision}, ${json(state.data)}, ${json(changes)}, 1);`);
     const history = JSON.parse(await query(`select public.trip_history(${literal(data.editorSession)});`));
     assert.equal(history.items.length, 2);
     assert.equal(history.items[0].actorName, 'Ana');

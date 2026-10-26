@@ -30,7 +30,9 @@ _Avoid_: Using "place" for a scheduled appointment.
 
 **Transfer**: A move between two cities on a specific trip day, with its own departure checklist.
 
-**Packing list**: Items to bring on the whole trip. Packing an item does not complete a departure check.
+**Checklist**: A named, shared list of items for the trip. Its items can be pending or completed and may have an assigned member or shared label. A checklist is not tied to a city or departure.
+
+**Packing list**: The initial checklist of items to bring on the whole trip. Packing an item does not complete a departure check.
 
 **Departure checklist**: Checks to resolve before one transfer. Each transfer starts unchecked, independently of earlier transfers.
 

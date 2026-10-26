@@ -1,4 +1,14 @@
-import type { ChecklistItem } from './model.ts';
+import type { Checklist, ChecklistItem, TripData } from './model.ts';
+
+/** Legacy data is adopted without changing item IDs or completion/assignment. */
+export function tripChecklists(data: Pick<TripData, 'checklists' | 'packing'>): Checklist[] {
+  return data.checklists ?? [{ id: 'packing', title: 'Packing', items: data.packing ?? [] }];
+}
+
+export function adoptChecklists(data: TripData) {
+  data.checklists = tripChecklists(data);
+  data.packing = data.checklists.find(list => list.id === 'packing')?.items ?? [];
+}
 
 interface ChecklistStrategy {
   create: (id: () => string) => ChecklistItem[];

@@ -117,6 +117,9 @@ export function createHandler(rpc: Rpc, allowedOrigins: string[]) {
         const command = commandInput(body.command);
         const state = await rpc('trip_state', { p_session_hash: sessionHash }) as State;
         requirePermission(state.access.member, 'mutate');
+        if (!Array.isArray(state.data.checklists)) {
+          throw new HttpError(503, 'Checklist storage needs its database update. Your changes were not saved.');
+        }
         if (state.revision !== body.revision) throw new HttpError(409, 'The trip changed. Reload before saving.');
         await rpc('trip_rate_limit', { p_bucket: 'write' });
         const before = structuredClone(state.data);
@@ -125,7 +128,7 @@ export function createHandler(rpc: Rpc, allowedOrigins: string[]) {
         // transaction. The earlier state is not permission to finish a save.
         const saved = await rpc('trip_commit', {
           p_session_hash: sessionHash, p_revision: body.revision, p_data: state.data,
-          p_changes: changesBetween(before, state.data),
+          p_changes: changesBetween(before, state.data), p_checklist_version: 1,
         }) as State;
         return reply(project(saved));
       }
