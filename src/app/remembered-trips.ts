@@ -1,4 +1,4 @@
-import type { Member, TripSnapshot } from '../../shared/model';
+import type { Member, Page, TripSnapshot } from '../../shared/model';
 
 export interface RememberedTrip {
   id: string;
@@ -33,6 +33,7 @@ export function createRememberedTrips({ scope, sessionKey, online, local, tab }:
   const lastKey = `${prefix}last`;
   const entryKey = (id: string) => `${prefix}entry:${id}`;
   const forgottenKey = (id: string) => `${prefix}forgotten:${id}`;
+  const pageKey = (id: string) => `${prefix}page:${id}`;
   let warning = '';
   let active: string | null | undefined;
   let activeId: string | null = null;
@@ -117,6 +118,13 @@ export function createRememberedTrips({ scope, sessionKey, online, local, tab }:
   refresh();
   return {
     getSnapshot: () => cached,
+    getPage(id: string): Page {
+      const page = read(pageKey(id));
+      return page === 'places' || page === 'notes' || page === 'checklists' || page === 'sharing' ? page : 'today';
+    },
+    setPage(id: string, page: Page) {
+      if (readEntry(id)?.credential && !read(forgottenKey(id))) write(pageKey(id), page === 'calendar' ? 'today' : page);
+    },
     subscribe(listener: () => void) {
       listeners.add(listener);
       if (listeners.size === 1 && typeof window !== 'undefined') window.addEventListener('storage', onStorage);
@@ -181,6 +189,7 @@ export function createRememberedTrips({ scope, sessionKey, online, local, tab }:
     },
     forget(id: string) {
       write(entryKey(id), null);
+      write(pageKey(id), null);
       write(forgottenKey(id), '1');
       if (read(lastKey) === id) write(lastKey, null);
       if (activeId === id) dropActive();

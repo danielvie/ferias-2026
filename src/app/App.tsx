@@ -19,12 +19,13 @@ import { JoinTripPane } from './JoinTripPane';
 import { OwnerRecovery } from '../features/sharing/OwnerRecovery';
 import { isOnlineBackend } from './api';
 import { quickStartTrip } from './quick-start';
+import { useTripPage } from './useTripPage';
 
 type Panel = 'details' | 'link' | 'member' | 'trips' | 'create' | 'quick-start';
 
 export function App() {
   const session = useTripSession();
-  const [page, setPage] = useState<Page>('today');
+  const [page, setPage] = useTripPage(session.snapshot);
   const [activePanel, setActivePanel] = useState<Panel | null>(null);
   const [quickStart, setQuickStart] = useState<TripDetailsInput>();
   const [setupHint, setSetupHint] = useState('');
@@ -90,17 +91,17 @@ export function App() {
         title: details.title, startDate: details.startDate, endDate: details.endDate, cities: details.cities,
       } });
     } else saved = await session.create({ ...details, cities: details.cities.map((city) => city.name) });
-    if (saved) { setActivePanel(null); setSetupHint(''); setPage('today'); }
+    if (saved) { setActivePanel(null); setSetupHint(''); }
   }
   async function join(token: string, kind: 'access' | 'join' = 'access') {
     if (kind === 'join') {
       setActivePanel(null);
-      if (await session.openJoinLink(token)) { setSetupHint(''); setPage('today'); }
-    } else if (await session.join(token)) { setActivePanel(null); setSetupHint(''); setPage('today'); }
+      if (await session.openJoinLink(token)) { setSetupHint(''); }
+    } else if (await session.join(token)) { setActivePanel(null); setSetupHint(''); }
   }
   async function joinTrip(name: string) {
     if (await session.joinTrip(name)) {
-      setActivePanel(null); setSetupHint(''); setPage('today');
+      setActivePanel(null); setSetupHint('');
       requestAnimationFrame(() => { main.current?.focus(); window.scrollTo({ top: 0 }); });
     }
   }
@@ -108,7 +109,6 @@ export function App() {
     if (!canLeave()) return;
     if (await session.resume(id)) {
       setActivePanel(null);
-      setPage('today');
       requestAnimationFrame(() => { main.current?.focus(); window.scrollTo({ top: 0 }); });
     }
   }
@@ -117,7 +117,6 @@ export function App() {
     if (!entry || (snapshot && tripIdentity(snapshot) === id && !canLeave())) return;
     if (await session.forget(id) && snapshot && tripIdentity(snapshot) === id) {
       setActivePanel(null);
-      setPage('today');
     }
   }
   async function copyRecovery() {
@@ -127,7 +126,6 @@ export function App() {
   async function logout() {
     if (!canLeave()) return;
     await session.logout();
-    setPage('today');
     setActivePanel(null);
   }
   const ownerLink = session.recoveryLink && <section className="recovery-banner" aria-label="Private owner recovery link">

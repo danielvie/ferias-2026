@@ -80,7 +80,11 @@ export function simpleSharingTests({
         await ana.getByRole('button', { name: 'Settings', exact: true }).click();
         await ana.getByLabel('Trip name', { exact: true }).fill('Group trip edited by Ana');
         await ana.getByRole('button', { name: 'Save trip details', exact: true }).click();
+        await expect(ana.getByRole('dialog')).toHaveCount(0);
+        await expect(ana.getByRole('heading', { name: 'Notes', exact: true })).toBeVisible();
         await bob.reload();
+        await expect(bob.getByRole('heading', { name: 'Notes', exact: true })).toBeVisible();
+        await navigate(bob, 'Itinerary');
         await expect(bob.getByRole('heading', { name: 'Group trip edited by Ana', exact: true })).toBeVisible();
         await bob.getByRole('button', { name: 'Your profile: Bob, editor', exact: true }).click();
         await expect(bob.getByRole('list', { name: 'Recorded changes' })).toContainText('Ana changed trip');

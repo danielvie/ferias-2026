@@ -149,7 +149,47 @@ describe('remembered trips', () => {
     const store = createRememberedTrips({ scope: 'blocked', sessionKey: 'session', online: true, tab: () => tab,
       local: () => { throw new Error('Blocked'); } });
     select(store, snapshot());
+    expect(store.getPage('one:owner')).toBe('today');
+    expect(() => store.setPage('one:owner', 'notes')).not.toThrow();
     expect(store.capture().credential).toBe(token('a'));
     expect(store.getSnapshot().warning).toContain('Enable browser storage');
+  });
+
+  it('persists navigation separately for each trip, member and backend scope', () => {
+    const { store, local } = fixture();
+    select(store, snapshot());
+    store.setPage('one:owner', 'notes');
+    select(store, snapshot('one', 'viewer', 'viewer'), token('b'));
+    store.setPage('one:viewer', 'places');
+    select(store, snapshot('two'), token('c'));
+    store.setPage('two:owner', 'sharing');
+    const restored = fixture(local).store;
+    expect(restored.getPage('one:owner')).toBe('notes');
+    expect(restored.getPage('one:viewer')).toBe('places');
+    expect(restored.getPage('two:owner')).toBe('sharing');
+    expect(fixture(local, new MemoryStorage(), 'other-backend').store.getPage('one:owner')).toBe('today');
+  });
+
+  it('defaults missing or invalid pages to the itinerary and normalizes the old calendar page', () => {
+    const { store, local } = fixture();
+    select(store, snapshot());
+    expect(store.getPage('one:owner')).toBe('today');
+    for (const invalid of ['missing-page', '{"page":"notes"}', 'null', 'calendar']) {
+      local.setItem('belgium-together:trips:v1:test:page:one:owner', invalid);
+      expect(store.getPage('one:owner')).toBe('today');
+    }
+    store.setPage('one:owner', 'calendar');
+    expect(local.getItem('belgium-together:trips:v1:test:page:one:owner')).toBe('today');
+  });
+
+  it('clears navigation when forgetting access and prevents stale tabs from restoring it', () => {
+    const { store, local } = fixture();
+    select(store, snapshot());
+    store.setPage('one:owner', 'notes');
+    fixture(local).store.forget('one:owner');
+    store.setPage('one:owner', 'sharing');
+    expect(store.getPage('one:owner')).toBe('today');
+    select(fixture(local).store, snapshot(), token('b'));
+    expect(store.getPage('one:owner')).toBe('today');
   });
 });

@@ -72,6 +72,15 @@ a trip without signing out of the current one. Each tab keeps its own trip.
 Entries distinguish member names and roles, so a saved viewer link never silently
 becomes owner access.
 
+The app also saves the last main page in local storage for each trip and member
+identity. Refreshing, reopening the browser or switching back to a trip returns
+to that page. Open tabs do not navigate when another tab changes pages.
+This remembers navigation only, not unsaved form drafts, dialogs, filters or
+scroll position. Missing or invalid saved pages fall back to Itinerary, and
+family access still opens only permitted pages. Forgetting a trip or using Exit
+also clears its saved page. If local storage is blocked, navigation still works
+but the last page cannot be restored.
+
 Remembered access has no automatic expiry. Use it only on trusted browser
 profiles: anyone using that profile can reopen these trips. **Forget this trip**
 removes saved access without deleting the trip; **Exit** signs out and forgets

@@ -50,15 +50,65 @@ test('resumes after closing and restarting a persistent browser profile', async 
   const profile = testInfo.outputPath('trusted-browser');
   const options = { baseURL, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH };
   const first = await chromium.launchPersistentContext(profile, options);
-  try { await create(await first.newPage(), 'Restarted trip', true); }
+  try {
+    const page = await first.newPage();
+    await create(page, 'Restarted trip', true);
+    await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Places', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Places', exact: true })).toBeVisible();
+  }
   finally { await first.close(); }
   const restored = await chromium.launchPersistentContext(profile, options);
   try {
     const page = await restored.newPage();
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Restarted trip', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Places', exact: true })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Places', exact: true })).toHaveAttribute('aria-current', 'page');
     await expect(page).not.toHaveURL(/access=/);
   } finally { await restored.close(); }
+});
+
+test('restores every main page on reload and in a new tab', async ({ page, context }) => {
+  await create(page, 'Remember my page', true);
+  const navigation = page.getByRole('navigation', { name: 'Main navigation' });
+  for (const label of ['Places', 'Notes', 'Checklists', 'Share', 'Itinerary']) {
+    await navigation.getByRole('button', { name: label, exact: true }).click();
+    await expect(navigation.getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-current', 'page');
+    await page.reload();
+    await expect(navigation.getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-current', 'page');
+  }
+  await navigation.getByRole('button', { name: 'Notes', exact: true }).click();
+  await page.getByRole('button', { name: 'New note', exact: true }).click();
+  await page.getByLabel('Title', { exact: true }).fill('Unsaved draft');
+  await page.reload();
+  await expect(navigation.getByRole('button', { name: 'Notes', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('button', { name: 'New note', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Title', { exact: true })).toHaveCount(0);
+  const fresh = await context.newPage();
+  await fresh.goto('/');
+  await expect(fresh.getByRole('heading', { name: 'Notes', exact: true })).toBeVisible();
+});
+
+test('restores each trip page when switching and keeps existing tabs independent', async ({ page, context }) => {
+  await create(page, 'Trip Alpha', true);
+  const navigation = page.getByRole('navigation', { name: 'Main navigation' });
+  await navigation.getByRole('button', { name: 'Notes', exact: true }).click();
+  await create(page, 'Trip Beta');
+  await navigation.getByRole('button', { name: 'Places', exact: true }).click();
+  await page.getByRole('button', { name: 'Trips', exact: true }).click();
+  await page.getByRole('button', { name: 'Open Trip Alpha as Daniel, owner', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Notes', exact: true })).toBeVisible();
+  const other = await context.newPage();
+  await other.goto('/');
+  await expect(other.getByRole('heading', { name: 'Notes', exact: true })).toBeVisible();
+  await other.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Checklists', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Notes', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Trips', exact: true }).click();
+  await page.getByRole('button', { name: 'Open Trip Beta as Daniel, owner', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Places', exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Places', exact: true })).toBeVisible();
+  await other.reload();
+  await expect(other.getByRole('heading', { name: 'Checklists', exact: true })).toBeVisible();
 });
 
 test('keeps two tabs attached to their own trips and writes to the selected trip only', async ({ page, context }) => {
@@ -132,6 +182,8 @@ test('Exit forgets only the current trip and does not auto-open a different trip
 
 test('explicit member links take precedence without losing the saved owner identity', async ({ page }) => {
   await create(page, 'Trip Alpha', true);
+  const navigation = page.getByRole('navigation', { name: 'Main navigation' });
+  await navigation.getByRole('button', { name: 'Notes', exact: true }).click();
   const response = await page.request.post('/api/invites', { data: { name: 'Reader', role: 'viewer', eventIds: [], placeIds: [] } });
   expect(response.ok()).toBeTruthy();
   const invitation = await response.json();
@@ -141,8 +193,39 @@ test('explicit member links take precedence without losing the saved owner ident
   await expect(page.getByRole('button', { name: 'Your profile: Reader, viewer', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Settings', exact: true })).toHaveCount(0);
   await expect(page).not.toHaveURL(/access=/);
-  await open(page, 'Trip Alpha');
+  await expect(navigation.getByRole('button', { name: 'Itinerary', exact: true })).toHaveAttribute('aria-current', 'page');
+  await navigation.getByRole('button', { name: 'Places', exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Places', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Trips', exact: true }).click();
+  await page.getByRole('button', { name: 'Open Trip Alpha as Daniel, owner', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Notes', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Your profile: Daniel, owner', exact: true })).toBeVisible();
+});
+
+test('falls back safely for corrupt pages and pages forbidden to family access', async ({ page }) => {
+  await create(page, 'Family trip', true);
+  const response = await page.request.post('/api/invites', { data: { name: 'Family', role: 'family', eventIds: [], placeIds: [] } });
+  expect(response.ok()).toBeTruthy();
+  const invitation = await response.json();
+  const link = new URL(page.url());
+  link.hash = new URLSearchParams({ access: invitation.token }).toString();
+  await page.goto(link.href);
+  const navigation = page.getByRole('navigation', { name: 'Main navigation' });
+  await navigation.getByRole('button', { name: 'Places', exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Places', exact: true })).toBeVisible();
+  for (const saved of ['notes', '{"broken":true}', 'unknown-page']) {
+    await page.evaluate(value => {
+      const key = Object.keys(localStorage).find(key => key.includes(':page:'));
+      if (!key) throw new Error('Expected saved navigation');
+      localStorage.setItem(key, value);
+    }, saved);
+    await page.reload();
+    await expect(navigation.getByRole('button', { name: 'Itinerary', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(navigation.getByRole('button', { name: 'Notes', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'New note', exact: true })).toHaveCount(0);
+  }
 });
 
 test('keeps an open draft when another tab forgets its access and blocks further writes', async ({ page, context }) => {
@@ -208,6 +291,8 @@ test('keeps current-tab access usable when persistent browser storage is blocked
   });
   await create(page, 'Tab-only trip', true);
   await expect(page.getByRole('status').filter({ hasText: 'Enable browser storage' })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Notes', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Notes', exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Tab-only trip', exact: true })).toBeVisible();
 });
