@@ -1,16 +1,11 @@
 import { useId, useState, type FormEvent } from 'react';
 import { useTrip } from '../../app/TripContext';
-import { useNavigationGuard } from '../../app/useNavigationGuard';
 
 export function AddItemForm({ transferId }: { transferId?: string }) {
   const { snapshot, busy, command } = useTrip();
   const [title, setTitle] = useState('');
   const [assignee, setAssignee] = useState('');
   const namesId = useId();
-  useNavigationGuard(
-    title.trim().length > 0 || assignee.trim().length > 0,
-    'Leave this checklist item draft? Unsaved changes will be lost.',
-  );
 
   async function add(event: FormEvent) {
     event.preventDefault();

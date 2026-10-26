@@ -2,13 +2,11 @@ import { useState, type FormEvent } from 'react';
 import type { Note } from '../../../shared/model';
 import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
-import { useNavigationGuard } from '../../app/useNavigationGuard';
 
 type NoteDraft = Pick<Note, 'id' | 'title' | 'body' | 'visibility' | 'linkType' | 'linkId'>;
 
 export function NoteForm({ note, onClose }: { note?: Note; onClose: () => void }) {
   const { snapshot, busy, command } = useTrip();
-  useNavigationGuard(true, 'Leave this note form? Unsaved changes will be lost.');
   const { trip, places } = snapshot.data;
   const [draft, setDraft] = useState<NoteDraft>(() => note
     ? { id: note.id, title: note.title, body: note.body, visibility: note.visibility, linkType: note.linkType, linkId: note.linkType === 'trip' ? trip.id : note.linkId }

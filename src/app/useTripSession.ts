@@ -60,8 +60,7 @@ export function useTripSession() {
 
   useEffect(() => {
     // Opening another capability on the same Pages URL is a fragment-only
-    // navigation. Re-bootstrap through a real reload so existing beforeunload
-    // draft protections still apply instead of silently switching identities.
+    // navigation. Reload so it follows the same bootstrap path as a fresh link.
     const reopen = () => {
       const fragment = new URLSearchParams(window.location.hash.slice(1));
       if (fragment.get('access') || fragment.get('join')) window.location.reload();
@@ -90,13 +89,6 @@ export function useTripSession() {
     }).finally(() => setLoading(false));
     return () => window.removeEventListener('hashchange', reopen);
   }, []);
-
-  useEffect(() => {
-    if (!pendingAccess) return;
-    const protect = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
-    window.addEventListener('beforeunload', protect);
-    return () => window.removeEventListener('beforeunload', protect);
-  }, [pendingAccess]);
 
   useEffect(() => {
     if (!snapshot) return;

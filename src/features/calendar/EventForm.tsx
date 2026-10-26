@@ -16,7 +16,7 @@ export function EventForm({ initial, editing, onClose }: {
   const [draft, setDraft] = useState(initial);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  useNavigationGuard(true, 'Leave this event form? Unsaved changes will be lost.', busy || saving);
+  useNavigationGuard(busy || saving);
   const submitting = useRef(false);
   const id = useId();
   const overlaps = overlappingEvents(draft, events);

@@ -1,8 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { Page, TripCommand, TripSnapshot } from '../../shared/model';
 
-export interface NavigationGuard { message: string; blocking?: boolean }
-
 export interface TripContextValue {
   snapshot: TripSnapshot;
   canEdit: boolean;
@@ -10,7 +8,7 @@ export interface TripContextValue {
   command: (command: TripCommand) => Promise<boolean>;
   refresh: () => Promise<void>;
   navigate: (page: Page) => void;
-  registerNavigationGuard?: (id: string, guard: NavigationGuard | null) => void;
+  registerNavigationGuard?: (id: string, active: boolean) => void;
   onOwnerLinkReplaced?: () => void;
 }
 

@@ -3,6 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
 import type { TripSnapshot } from '../../shared/model';
 import { simpleSharingTests } from './simple-sharing-flows';
+import { selectTripDates } from './trip-dates';
+import { recordDialogs } from './dialogs';
 
 const trips = new Set<string>();
 const database = process.env.TRIP_TEST_DATABASE || 'postgres';
@@ -37,8 +39,7 @@ async function create(page: Page, title = 'Online Belgium trip', another = false
   }
   await page.getByLabel('Trip name', { exact: true }).fill(title);
   await page.getByLabel('Your name', { exact: true }).fill('Daniel');
-  await page.getByLabel('Start date', { exact: true }).fill('2030-06-01');
-  await page.getByLabel('End date', { exact: true }).fill('2030-06-06');
+  await selectTripDates(page, '2030-06-01', '2030-06-06');
   const response = page.waitForResponse((r) => r.url().endsWith('/trip-api/trips') && r.request().method() === 'POST');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   const created = await response;
@@ -158,12 +159,12 @@ test('remembered family access stays redacted and revoked access requires a new 
 });
 
 test('remembered owner access follows link replacement without retaining the reusable link', async ({ page, browser }) => {
+  const dialogs = recordDialogs(page);
   const previous = await create(page);
   await note(page, 'Kept after rotation');
   const memberId = (await snapshot(page)).session.id;
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.locator('.owner-recovery > summary').click();
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Replace owner link', exact: true }).click();
   const replacement = await page.getByLabel('Private owner link', { exact: true }).inputValue();
   for (const width of [320, 768, 1024, 1440]) {
@@ -173,10 +174,10 @@ test('remembered owner access follows link replacement without retaining the reu
   const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
   expect(violations.map((violation) => violation.id)).toEqual([]);
   await page.getByRole('button', { name: "I've saved this link", exact: true }).click();
-  page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Close Trip settings', exact: true }).click();
   await page.reload();
   expect((await snapshot(page)).session.id).toBe(memberId);
+  expect(dialogs).toEqual([]);
   await navigate(page, 'Notes');
   await expect(page.getByRole('heading', { name: 'Kept after rotation', exact: true })).toBeVisible();
   const otherContext = await browser.newContext();
@@ -197,7 +198,7 @@ test('online trip settings preserve city IDs and update the continuous day index
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByLabel('City 1', { exact: true }).fill('Brussels Central');
   await page.getByRole('button', { name: 'Move Brussels Central down', exact: true }).click();
-  await page.getByLabel('End date', { exact: true }).fill('2030-06-08');
+  await selectTripDates(page, '2030-06-01', '2030-06-08');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.reload();

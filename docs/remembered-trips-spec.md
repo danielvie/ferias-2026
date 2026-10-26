@@ -41,7 +41,7 @@ forgetting share the same saved access entries and authorization rules.
 - A root-page visit in a new tab or after a browser restart automatically opens
   the last successfully selected trip and member identity, if access is valid.
 - An explicit invitation or owner link takes priority over remembered access,
-  including a fragment-only navigation. Existing draft guards still apply.
+  including a fragment-only navigation, without an unsaved-change prompt.
 - Existing tabs stay on their own trip until explicitly switched. Another tab's
   selection must not change the credentials used by an in-flight read or write.
 - Record recency when the user opens or switches a trip, not on background
@@ -60,16 +60,16 @@ forgetting share the same saved access entries and authorization rules.
   session. Do not silently open a different identity if auto-resume fails.
 - Opening a trip starts at its itinerary. Restoring a feature tab, scroll
   position or unsaved draft is out of scope.
-- Switching uses existing unsaved-change guards and save locks. A failed switch
+- Switching uses save locks but no confirmation prompt. A failed switch
   preserves the current trip, draft and credentials and offers retry.
 - Reopening the same trip/member updates its entry rather than duplicating it.
   Different member identities remain distinguishable even when names repeat.
 
 ### Forgetting and Exit
 
-- Each entry has Forget this trip, with confirmation explaining that only this
-  browser's saved access is removed. It never deletes the trip or revokes the
-  reusable member link.
+- Each entry has Forget this trip, which removes only this browser's saved
+  access without a confirmation prompt. It never deletes the trip or revokes
+  the reusable member link.
 - Forgetting another entry leaves the current trip open.
 - Forgetting the current entry clears its saved/tab access and selection and
   shows the remembered list. Do not immediately auto-open another trip.
@@ -77,7 +77,7 @@ forgetting share the same saved access entries and authorization rules.
   forgets the current session without removing other remembered entries.
 - Honor forgetting in other open tabs. A stale response must not recreate
   forgotten credentials or resume writes with them. Do not erase unsaved draft
-  text without the existing warning or explicit user action.
+  text without an explicit user action. Navigating away does not prompt.
 - Remove local saved access even if the network is unavailable. Report if the
   server session could not be ended; do not claim server revocation succeeded.
 

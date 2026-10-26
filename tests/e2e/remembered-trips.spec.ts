@@ -1,5 +1,7 @@
 import { chromium, expect, test, type Page } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
+import { selectTripDates } from './trip-dates';
+import { recordDialogs } from './dialogs';
 
 async function create(page: Page, title: string, first = false) {
   if (first) {
@@ -12,8 +14,7 @@ async function create(page: Page, title: string, first = false) {
   const form = page.getByRole('dialog', { name: first ? 'Trip details' : 'New trip', exact: true });
   await form.getByLabel('Trip name', { exact: true }).fill(title);
   await form.getByLabel('Your name', { exact: true }).fill('Daniel');
-  await form.getByLabel('Start date', { exact: true }).fill('2030-06-01');
-  await form.getByLabel('End date', { exact: true }).fill('2030-06-05');
+  await selectTripDates(page, '2030-06-01', '2030-06-05');
   const response = page.waitForResponse(result => result.url().endsWith('/api/trips') && result.request().method() === 'POST');
   await form.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
@@ -95,18 +96,14 @@ test('preserves the current trip on a failed switch and can retry', async ({ pag
 });
 
 test('forgets saved access without deleting the trip or disturbing another trip', async ({ page, browser }) => {
+  const dialogs = recordDialogs(page);
   const link = await create(page, 'Trip Alpha', true);
   await create(page, 'Trip Beta');
   await page.getByRole('button', { name: 'Trips', exact: true }).click();
   const pane = page.getByRole('dialog', { name: 'Your trips', exact: true });
-  page.once('dialog', dialog => dialog.dismiss());
-  await pane.getByRole('button', { name: 'Forget Trip Alpha as Daniel, owner', exact: true }).click();
-  await expect(pane.getByRole('listitem')).toHaveCount(2);
-  page.once('dialog', dialog => dialog.accept());
   await pane.getByRole('button', { name: 'Forget Trip Alpha as Daniel, owner', exact: true }).click();
   await expect(pane.getByRole('listitem')).toHaveCount(1);
   await expect(page.getByRole('heading', { name: 'Trip Beta', exact: true })).toBeVisible();
-  page.once('dialog', dialog => dialog.accept());
   await pane.getByRole('button', { name: 'Forget Trip Beta as Daniel, owner', exact: true }).click();
   await expect(pane).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Add trip details', exact: true })).toBeVisible();
@@ -118,6 +115,7 @@ test('forgets saved access without deleting the trip or disturbing another trip'
     await reader.goto(link);
     await expect(reader.getByRole('heading', { name: 'Trip Alpha', exact: true })).toBeVisible();
   } finally { await separate.close(); }
+  expect(dialogs).toEqual([]);
 });
 
 test('Exit forgets only the current trip and does not auto-open a different trip', async ({ page }) => {
@@ -157,7 +155,6 @@ test('keeps an open draft when another tab forgets its access and blocks further
   await page.getByLabel('Title', { exact: true }).fill('Keep this draft');
   await page.getByLabel('Note text', { exact: true }).fill('Unsaved private text');
   await other.getByRole('button', { name: 'Trips', exact: true }).click();
-  other.once('dialog', dialog => dialog.accept());
   await other.getByRole('button', { name: 'Forget Trip Alpha as Daniel, owner', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Your open draft is kept');
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Keep this draft');
@@ -168,16 +165,22 @@ test('keeps an open draft when another tab forgets its access and blocks further
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Keep this draft');
 });
 
-test('keeps drafts when trip switching is cancelled', async ({ page }) => {
+test('opens and closes the trip switcher without confirmation, then switches away from a draft', async ({ page }) => {
+  const dialogs = recordDialogs(page);
   await create(page, 'Trip Alpha', true);
   await create(page, 'Trip Beta');
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Notes', exact: true }).click();
   await page.getByRole('button', { name: 'New note', exact: true }).click();
   await page.getByLabel('Title', { exact: true }).fill('Do not discard');
-  page.once('dialog', dialog => dialog.dismiss());
   await page.getByRole('button', { name: 'Trips', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Your trips', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close Your trips', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Do not discard');
+  await open(page, 'Trip Alpha');
+  await expect(page.getByRole('heading', { name: 'Trip Alpha', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Title', { exact: true })).toHaveCount(0);
+  expect(dialogs).toEqual([]);
 });
 
 test('Trips fits mobile and desktop, passes axe checks and returns keyboard focus', async ({ page }, testInfo) => {
@@ -214,7 +217,6 @@ test('forgets locally while offline without reviving the forgotten trip on reloa
   await create(page, 'Trip Beta');
   await context.setOffline(true);
   await page.getByRole('button', { name: 'Trips', exact: true }).click();
-  page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Forget Trip Beta as Daniel, owner', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Your trips', exact: true })).toBeVisible();
   await expect(page.getByRole('alert')).toContainText('server sign-out could not be confirmed');

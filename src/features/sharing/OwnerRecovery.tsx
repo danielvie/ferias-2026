@@ -9,11 +9,10 @@ export function OwnerRecovery() {
   const [token, setToken] = useState('');
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
-  useNavigationGuard(working, 'Wait for the owner link replacement to finish.', true);
-  useNavigationGuard(Boolean(token), 'Save your replacement owner link before leaving. Leave anyway?');
+  useNavigationGuard(working);
 
   async function replace() {
-    if (working || busy || token || !window.confirm('Replace your private owner link? The old link and other sessions opened with it will stop working.')) return;
+    if (working || busy || token) return;
     setWorking(true); setError('');
     try {
       const result = await api.rotate(snapshot.session.id);

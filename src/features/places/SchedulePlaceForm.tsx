@@ -17,7 +17,7 @@ export function SchedulePlaceForm({ place, onClose }: { place: Place; onClose: (
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  useNavigationGuard(true, 'Leave this scheduling form? Unsaved changes will be lost.', busy || saving);
+  useNavigationGuard(busy || saving);
   const submitting = useRef(false);
   const id = useId();
   const overlaps = overlappingEvents(draft, events);

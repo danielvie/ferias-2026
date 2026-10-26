@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
 import type { TripSnapshot } from '../../shared/model';
+import { selectTripDates } from './trip-dates';
+import { recordDialogs } from './dialogs';
 
 async function createTrip(page: Page) {
   await page.goto('/');
@@ -8,8 +10,7 @@ async function createTrip(page: Page) {
   await page.getByRole('button', { name: 'Add trip details', exact: true }).click();
   await page.getByLabel('Trip name', { exact: true }).fill('Our Belgium trip');
   await page.getByLabel('Your name', { exact: true }).fill('Daniel');
-  await page.getByLabel('Start date', { exact: true }).fill('2030-06-01');
-  await page.getByLabel('End date', { exact: true }).fill('2030-06-06');
+  await selectTripDates(page, '2030-06-01', '2030-06-06');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Our Belgium trip', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Trip details', exact: true })).toHaveCount(0);
@@ -73,7 +74,8 @@ test('mobile identity is visible, editable, and credits separate collaborators',
   } finally { await context.close(); }
 });
 
-test('profile drafts survive save failures and conflicts, and Escape protects unsaved changes', async ({ page }) => {
+test('profile drafts survive save failures and conflicts, and Escape closes without confirmation', async ({ page }) => {
+  const dialogs = recordDialogs(page);
   await createTrip(page);
   await page.getByRole('button', { name: 'Your profile: Daniel, owner' }).click();
   await page.getByLabel('Your name', { exact: true }).fill('My draft name');
@@ -91,13 +93,10 @@ test('profile drafts survive save failures and conflicts, and Escape protects un
   await page.getByRole('button', { name: 'Save name', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Your name is saved' })).toBeVisible();
   await page.getByLabel('Your name', { exact: true }).fill('Unsaved name');
-  page.once('dialog', (dialog) => dialog.dismiss());
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog', { name: 'Your profile', exact: true })).toBeVisible();
-  page.once('dialog', (dialog) => dialog.accept());
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect((await snapshot(page)).session.name).toBe('My draft name');
+  expect(dialogs).toEqual([]);
 });
 
 test('viewer and family profiles support long names without enabling trip editing', async ({ page, browser }) => {
@@ -168,7 +167,7 @@ test('the empty itinerary opens without a fabricated trip and setup uses a modal
   await page.getByRole('button', { name: 'Add trip details', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Trip details' })).toBeVisible();
   await expect(page.getByLabel('Trip name', { exact: true })).toHaveValue('');
-  await expect(page.getByLabel('Start date', { exact: true })).toHaveValue('');
+  await expect(page.getByRole('group', { name: 'Trip dates', exact: true })).toContainText('No dates selected');
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(page.locator('form')).toHaveCount(0);
   await navigate(page, 'Places');
@@ -225,7 +224,7 @@ test('trip settings can be edited and cancelled without losing the trip', async 
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByLabel('Trip name', { exact: true })).toHaveValue('Our Belgium trip');
   await page.getByLabel('Trip name', { exact: true }).fill('Belgium with friends');
-  await page.getByLabel('End date', { exact: true }).fill('2030-06-08');
+  await selectTripDates(page, '2030-06-01', '2030-06-08');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.reload();
@@ -394,15 +393,15 @@ test('a conflicting save keeps the draft and lets the traveler review before ret
   await expect(page.getByRole('heading', { name: 'Draft worth keeping', exact: true })).toBeVisible();
 });
 
-test('navigation warns before discarding a note and retains a locally edited owner after refresh', async ({ page }) => {
+test('navigation leaves a note without confirmation and refresh retains a locally edited owner', async ({ page }) => {
+  const dialogs = recordDialogs(page);
   await createTrip(page);
   await navigate(page, 'Notes');
   await page.getByRole('button', { name: 'New note', exact: true }).click();
   await page.getByLabel('Title', { exact: true }).fill('Keep this draft');
-  page.once('dialog', (dialog) => dialog.dismiss());
   await navigate(page, 'Itinerary');
-  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Keep this draft');
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(page.getByLabel('Title', { exact: true })).toHaveCount(0);
+  expect((await snapshot(page)).data.notes).toHaveLength(0);
   await navigate(page, 'Checklists');
   const row = page.getByRole('listitem').filter({ has: page.getByRole('checkbox', { name: 'Passport / ID', exact: true }) });
   await row.getByText('Owner: Shared', { exact: true }).click();
@@ -416,6 +415,7 @@ test('navigation warns before discarding a note and retains a locally edited own
   await expect(row.getByRole('combobox', { name: 'Owner for Passport / ID', exact: true })).toHaveValue('My unsaved owner');
   await row.getByRole('button', { name: 'Save owner', exact: true }).click();
   await expect(row.getByText('Owner: My unsaved owner', { exact: true })).toBeVisible();
+  expect(dialogs).toEqual([]);
 });
 
 test('a failed link exchange can be retried without exposing its token in the address bar', async ({ page, browser }) => {
@@ -467,14 +467,13 @@ test('trip creation failures stay visible next to the submit button without losi
   await page.getByRole('button', { name: 'Add trip details', exact: true }).click();
   await page.getByLabel('Trip name', { exact: true }).fill('Our Belgium trip');
   await page.getByLabel('Your name', { exact: true }).fill('Daniel');
-  await page.getByLabel('Start date', { exact: true }).fill('2030-06-01');
-  await page.getByLabel('End date', { exact: true }).fill('2030-06-06');
+  await selectTripDates(page, '2030-06-01', '2030-06-06');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   const alert = page.getByRole('alert');
   await expect(alert).toHaveText('The server is unavailable. Please try again.');
   await expect(alert).toBeInViewport();
   await expect(page.getByLabel('Your name', { exact: true })).toHaveValue('Daniel');
-  await expect(page.getByLabel('Start date', { exact: true })).toHaveValue('2030-06-01');
+  await expect(page.getByRole('group', { name: 'Trip dates', exact: true })).toContainText('1 Jun 2030 to 6 Jun 2030');
   await expect(page.getByRole('button', { name: 'Save trip details', exact: true })).toBeEnabled();
 });
 
@@ -508,10 +507,10 @@ test('settings preserve city identities and reject removal or dates that orphan 
   expect((await snapshot(page)).data.trip.cities).toEqual(saved.data.trip.cities);
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await page.getByLabel('Start date', { exact: true }).fill('2030-06-02');
+  await selectTripDates(page, '2030-06-02', '2030-06-06');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toBeVisible();
-  await expect(page.getByLabel('Start date', { exact: true })).toHaveValue('2030-06-02');
+  await expect(page.getByRole('group', { name: 'Trip dates', exact: true })).toContainText('2 Jun 2030 to 6 Jun 2030');
   expect((await snapshot(page)).data.trip.startDate).toBe('2030-06-01');
 });
 
@@ -536,9 +535,6 @@ test('settings retain a conflicting draft, trap focus and return to the same iti
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Someone changed the trip');
   await expect(page.getByLabel('Trip name', { exact: true })).toHaveValue('A draft worth keeping');
-  page.once('dialog', (dialog) => dialog.dismiss());
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeFocused();
@@ -546,7 +542,8 @@ test('settings retain a conflicting draft, trap focus and return to the same iti
   expect((await snapshot(page)).data.trip.title).toBe('A draft worth keeping');
 });
 
-test('day markers support keyboard previews and protect an open activity draft', async ({ page }) => {
+test('day markers support keyboard previews and leave activity drafts without confirmation', async ({ page }) => {
+  const dialogs = recordDialogs(page);
   await createTrip(page);
   const markers = page.getByRole('navigation', { name: 'Trip days' }).getByRole('button');
   await markers.first().focus();
@@ -560,13 +557,10 @@ test('day markers support keyboard previews and protect an open activity draft',
   await page.getByRole('button', { name: 'Add activity on 2030-06-02', exact: true }).click();
   await expect(page.getByLabel('Date', { exact: true })).toHaveValue('2030-06-02');
   await page.getByLabel('Title', { exact: true }).fill('Keep my activity draft');
-  page.once('dialog', (dialog) => dialog.dismiss());
-  await markers.nth(4).click();
-  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Keep my activity draft');
-  page.once('dialog', (dialog) => dialog.accept());
   await markers.nth(4).click();
   await expect(page.getByLabel('Title', { exact: true })).toHaveCount(0);
   await expect(page.locator('#day-2030-06-05')).toBeFocused();
+  expect(dialogs).toEqual([]);
 });
 
 test('touch markers open a preview sheet before jumping to the day', async ({ browser }, testInfo) => {
@@ -603,7 +597,7 @@ test('touch markers open a preview sheet before jumping to the day', async ({ br
 test('longer trips scale every marker into a compact rail without scrolling', async ({ page }) => {
   await createTrip(page);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await page.getByLabel('End date', { exact: true }).fill('2030-09-01');
+  await selectTripDates(page, '2030-06-01', '2030-09-01');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const rail = page.getByRole('navigation', { name: 'Trip days' });
@@ -631,7 +625,7 @@ test('longer trips scale every marker into a compact rail without scrolling', as
 test('weekday badges sit to the right of the dial and distinguish weekends without overcrowding', async ({ page }, testInfo) => {
   await createTrip(page);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await page.getByLabel('End date', { exact: true }).fill('2030-06-14');
+  await selectTripDates(page, '2030-06-01', '2030-06-14');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const rail = page.getByRole('navigation', { name: 'Trip days' });
@@ -688,7 +682,7 @@ test('weekday badges sit to the right of the dial and distinguish weekends witho
 test('dial widths animate with neighbor colors while ordinary thickness stays fixed', async ({ page }, testInfo) => {
   await createTrip(page);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await page.getByLabel('End date', { exact: true }).fill('2030-06-14');
+  await selectTripDates(page, '2030-06-01', '2030-06-14');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const rail = page.getByRole('navigation', { name: 'Trip days' });
@@ -809,8 +803,7 @@ test('Days toggles calendar dates and trip-day numbers without changing selectio
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await createTrip(page);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await page.getByLabel('Start date', { exact: true }).fill('2030-05-29');
-  await page.getByLabel('End date', { exact: true }).fill('2030-06-04');
+  await selectTripDates(page, '2030-05-29', '2030-06-04');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const rail = page.getByRole('navigation', { name: 'Trip days' });

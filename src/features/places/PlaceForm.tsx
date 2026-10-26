@@ -20,7 +20,7 @@ export function PlaceForm({ initial, editing, onClose }: {
   const [draft, setDraft] = useState(initial);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  useNavigationGuard(true, 'Leave this place form? Unsaved changes will be lost.', busy || saving);
+  useNavigationGuard(busy || saving);
   const submitting = useRef(false);
   const id = useId();
   const patch = (change: Partial<Place>) => setDraft(current => ({ ...current, ...change }));

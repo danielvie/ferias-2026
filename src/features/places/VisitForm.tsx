@@ -12,7 +12,7 @@ export function VisitForm({ beforeId, onClose, onSaved }: {
   const visitId = useRef(crypto.randomUUID());
   const submitting = useRef(false);
   const id = useId();
-  useNavigationGuard(true, 'Leave this checkpoint form? Unsaved changes will be lost.', busy || saving);
+  useNavigationGuard(busy || saving);
   const cities = snapshot.data.trip.cities;
   const repeated = cities.some(city => city.name.toLowerCase() === name.trim().toLowerCase());
 

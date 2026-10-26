@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import type { JoinTripInfo } from '../../shared/model';
 import { ModalPane } from '../components/ModalPane';
 
@@ -12,15 +12,9 @@ export function JoinTripPane({ trip, busy, error, onJoin, onRetry, onCancel }: {
 }) {
   const [name, setName] = useState('');
   const [validationError, setValidationError] = useState('');
-  useEffect(() => {
-    if (!name && !busy) return;
-    const protect = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
-    window.addEventListener('beforeunload', protect);
-    return () => window.removeEventListener('beforeunload', protect);
-  }, [name, busy]);
 
   function cancel() {
-    if (busy || (name && !window.confirm('Leave without joining? Your entered name will be lost.'))) return;
+    if (busy) return;
     onCancel();
   }
   function submit(event: FormEvent) {

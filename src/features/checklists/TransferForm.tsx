@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
-import { useNavigationGuard } from '../../app/useNavigationGuard';
 
 export function TransferForm({ onCreated }: { onCreated: () => void }) {
   const { snapshot, busy, command } = useTrip();
@@ -11,7 +10,6 @@ export function TransferForm({ onCreated }: { onCreated: () => void }) {
   const [date, setDate] = useState(trip.startDate);
   const [time, setTime] = useState('09:00');
   const [error, setError] = useState('');
-  useNavigationGuard(true, 'Leave this departure form? Unsaved changes will be lost.');
 
   async function add(event: FormEvent) {
     event.preventDefault();

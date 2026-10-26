@@ -48,7 +48,6 @@ export function CalendarPage() {
 
   function jumpToDay(date: string) {
     if (busy) return false;
-    if (form && !window.confirm('Leave this event form? Unsaved changes will be lost.')) return false;
     trigger.current = null;
     setForm(null);
     requestAnimationFrame(() => {

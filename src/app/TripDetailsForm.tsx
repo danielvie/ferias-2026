@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import type { City, CreateTripInput, Trip } from '../../shared/model';
+import { DateRangePicker } from '../components/DateRangePicker';
+import type { DateRange } from '../components/date-range';
 
 export type TripDetailsInput = Omit<CreateTripInput, 'cities'> & { cities: City[] };
 
@@ -13,6 +15,7 @@ interface Props {
 
 export function TripDetailsForm({ trip, busy, error, onSave, onCancel }: Props) {
   const [validationError, setValidationError] = useState('');
+  const [dates, setDates] = useState<DateRange>(() => ({ startDate: trip?.startDate ?? '', endDate: trip?.endDate ?? '' }));
   const [cities, setCities] = useState<City[]>(() => trip?.cities.map((city) => ({ ...city })) ??
     ['Brussels', 'Ghent', 'Bruges'].map((name) => ({ id: crypto.randomUUID(), name })));
   function moveCity(index: number, direction: -1 | 1) {
@@ -28,10 +31,13 @@ export function TripDetailsForm({ trip, busy, error, onSave, onCancel }: Props) 
     const details: TripDetailsInput = {
       title: String(form.get('title')).trim(),
       ownerName: String(form.get('name') ?? '').trim(),
-      startDate: String(form.get('startDate')),
-      endDate: String(form.get('endDate')),
+      ...dates,
       cities: cities.map((city) => ({ ...city, name: city.name.trim() })),
     };
+    if (!details.startDate || !details.endDate) {
+      setValidationError('Choose a start and end date for your trip.');
+      return;
+    }
     if (details.endDate < details.startDate) {
       setValidationError('The end date must not be before the start date.');
       return;
@@ -50,8 +56,7 @@ export function TripDetailsForm({ trip, busy, error, onSave, onCancel }: Props) 
         <legend className="visually-hidden">Trip details</legend>
         <div className="field"><label htmlFor="trip-title">Trip name</label><input id="trip-title" name="title" defaultValue={trip?.title ?? ''} placeholder="Our Belgium trip" autoFocus required maxLength={120} /></div>
         {!trip && <div className="field"><label htmlFor="owner-name">Your name</label><input id="owner-name" name="name" autoComplete="given-name" placeholder="Your name" required maxLength={80} /></div>}
-        <div className="field"><label htmlFor="start-date">Start date</label><input id="start-date" name="startDate" type="date" defaultValue={trip?.startDate ?? ''} required /></div>
-        <div className="field"><label htmlFor="end-date">End date</label><input id="end-date" name="endDate" type="date" defaultValue={trip?.endDate ?? ''} required /></div>
+        <DateRangePicker value={dates} onChange={(range) => { setDates(range); setValidationError(''); }} />
         <div className="field details-cities">
           <h3>Cities, in trip order</h3>
           <ol className="settings-cities">

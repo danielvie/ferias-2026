@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { Member } from '../../shared/model';
-import { useNavigationGuard } from './useNavigationGuard';
 import { HistoryList } from './HistoryList';
 
 export function MemberPane({ member, revision, busy, error, onSave, onCancel, onExpired }: {
@@ -15,7 +14,6 @@ export function MemberPane({ member, revision, busy, error, onSave, onCancel, on
   const [name, setName] = useState(member.name);
   const [notice, setNotice] = useState('');
   const dirty = name !== member.name;
-  useNavigationGuard(dirty, 'Leave your profile? Your unsaved name will be lost.');
   async function save(event: React.SubmitEvent) {
     event.preventDefault();
     if (busy || !name.trim()) return;

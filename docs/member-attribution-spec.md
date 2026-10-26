@@ -41,8 +41,8 @@ Payments and bill settlement will be planned separately.
   value, allow at most 100 characters, and reject invalid control characters.
   Names need not be unique. IDs, never names, distinguish members.
 - Update the header and current member list after a confirmed save. Preserve the
-  draft and show an error if saving fails. Preserve focus, unsaved-change guards,
-  and conflicting-edit protection.
+  draft and show an inline error if saving fails. Preserve focus and
+  conflicting-edit protection. Closing a profile does not prompt to discard edits.
 - Explain that sharing the private link also shares this identity and access.
 
 ### Change history

@@ -1,7 +1,6 @@
 import { useId, useState, type FormEvent } from 'react';
 import type { ChecklistItem, CheckStatus } from '../../../shared/model';
 import { useTrip } from '../../app/TripContext';
-import { useNavigationGuard } from '../../app/useNavigationGuard';
 
 export function ChecklistItemRow({ item, transferId }: { item: ChecklistItem; transferId?: string }) {
   const { snapshot, busy, canEdit, command } = useTrip();
@@ -9,7 +8,6 @@ export function ChecklistItemRow({ item, transferId }: { item: ChecklistItem; tr
   const assignee = ownerDraft ?? item.assignee;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const namesId = useId();
-  useNavigationGuard(ownerDraft !== null && ownerDraft.trim() !== item.assignee, 'Leave this owner assignment? Unsaved changes will be lost.');
 
   async function update(status: CheckStatus, owner: string) {
     if (busy) return false;

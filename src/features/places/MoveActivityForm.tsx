@@ -19,7 +19,7 @@ export function MoveActivityForm({ place, onClose, onMoved }: {
   const [saving, setSaving] = useState(false);
   const submitting = useRef(false);
   const id = useId();
-  useNavigationGuard(true, 'Leave this activity move? Your choices will be lost.', busy || saving);
+  useNavigationGuard(busy || saving);
   const destination = trip.cities.find(city => city.id === cityId);
   const destinationActivities = places.filter(item => item.cityId === cityId && item.id !== place.id);
   const missingPosition = beforeId !== null && !destinationActivities.some(item => item.id === beforeId);

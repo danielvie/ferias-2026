@@ -115,7 +115,8 @@ Use disposable fixtures, not real trip data or hosted writes.
 ## Boundaries
 
 - Always preserve member identities, author attribution, private-note filtering,
-  draft guards and remembered access. Validate names and joins server-side.
+  pending-save locks and remembered access. Leaving drafts does not prompt;
+  confirmation is reserved for deletion. Validate names and joins server-side.
 - Feature-specific source migrations are part of this proposed scope.
 - Ask before unrelated schema changes, dependencies, CI changes, changing real
   trip data, applying hosted migrations or publishing the feature.

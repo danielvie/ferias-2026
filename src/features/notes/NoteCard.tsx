@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import type { Note } from '../../../shared/model';
 import { useTrip } from '../../app/TripContext';
-import { useNavigationGuard } from '../../app/useNavigationGuard';
 
 export function NoteCard({ note, linkLabel, writable, editingDisabled, onEdit }: {
   note: Note; linkLabel: string; writable: boolean; editingDisabled: boolean; onEdit: () => void;
@@ -9,7 +8,6 @@ export function NoteCard({ note, linkLabel, writable, editingDisabled, onEdit }:
   const { command, busy } = useTrip();
   const [comment, setComment] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
-  useNavigationGuard(comment.trim().length > 0, 'Leave this comment draft? Unsaved text will be lost.');
 
   async function addComment(event: FormEvent) {
     event.preventDefault();

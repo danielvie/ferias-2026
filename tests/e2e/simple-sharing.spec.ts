@@ -1,14 +1,14 @@
 import { expect, type Page } from '@playwright/test';
 import { simpleSharingTests } from './simple-sharing-flows';
 import type { TripSnapshot } from '../../shared/model';
+import { selectTripDates } from './trip-dates';
 
 async function create(page: Page, title = 'Simple sharing trip') {
   await page.goto('/');
   await page.getByRole('button', { name: 'Add trip details', exact: true }).click();
   await page.getByLabel('Trip name', { exact: true }).fill(title);
   await page.getByLabel('Your name', { exact: true }).fill('Daniel');
-  await page.getByLabel('Start date', { exact: true }).fill('2030-06-01');
-  await page.getByLabel('End date', { exact: true }).fill('2030-06-06');
+  await selectTripDates(page, '2030-06-01', '2030-06-06');
   const response = page.waitForResponse(result => result.url().endsWith('/api/trips') && result.request().method() === 'POST');
   await page.getByRole('button', { name: 'Save trip details', exact: true }).click();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();

@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
 import { join } from 'node:path';
 import type { TripSnapshot } from '../../shared/model';
+import { recordDialogs } from './dialogs';
 
 export function simpleSharingTests({
   create, snapshot,
@@ -127,6 +128,7 @@ export function simpleSharingTests({
       const guestContext = await browser.newContext();
       try {
         const guest = await guestContext.newPage();
+        const dialogs = recordDialogs(guest);
         await create(guest, 'Previous remembered trip');
         await guest.route('**/join/preview', route => route.fulfill({ status: 503, json: { error: 'Temporary preview failure' } }));
         await guest.goto(link);
@@ -139,7 +141,6 @@ export function simpleSharingTests({
         await pane.getByRole('button', { name: 'Join trip', exact: true }).click();
         await expect(pane.getByRole('alert')).toHaveText('Temporary join failure');
         await expect(pane.getByLabel('Your name', { exact: true })).toHaveValue('Keep this name');
-        guest.once('dialog', dialog => dialog.accept());
         await pane.getByRole('button', { name: 'Cancel', exact: true }).click();
         await guest.goto('./');
         await expect(guest.getByRole('heading', { name: 'Previous remembered trip', exact: true })).toBeVisible();
@@ -147,26 +148,24 @@ export function simpleSharingTests({
         await joinTrip(guest, link, 'Keep this name');
         await guest.getByRole('button', { name: 'Trips', exact: true }).click();
         await expect(guest.getByRole('list', { name: 'Remembered trips' }).getByRole('listitem')).toHaveCount(2);
+        expect(dialogs).toEqual([]);
       } finally { await guestContext.close(); }
     });
 
-    test('opens a pasted invitation and keeps existing drafts protected', async ({ page, browser }) => {
+    test('opens a pasted invitation from a draft without confirmation and locks pending joins', async ({ page, browser }) => {
       await create(page, 'Pasted invitation trip');
       const link = await share(page);
       const guestContext = await browser.newContext();
       try {
         const guest = await guestContext.newPage();
+        const dialogs = recordDialogs(guest);
         await create(guest, 'Original drafting trip');
         await navigate(guest, 'Notes');
         await guest.getByRole('button', { name: 'New note', exact: true }).click();
         await guest.getByLabel('Title', { exact: true }).fill('Unsaved draft');
-        guest.once('dialog', dialog => dialog.dismiss());
         await guest.getByRole('button', { name: 'Trips', exact: true }).click();
+        await expect(guest.getByRole('dialog', { name: 'Your trips', exact: true })).toBeVisible();
         await expect(guest.getByLabel('Title', { exact: true })).toHaveValue('Unsaved draft');
-        await expect(guest.getByRole('dialog')).toHaveCount(0);
-        guest.once('dialog', dialog => dialog.accept());
-        await guest.getByRole('button', { name: 'Trips', exact: true }).click();
-        guest.once('dialog', dialog => dialog.accept());
         await guest.getByRole('button', { name: 'Open trip link', exact: true }).click();
         await guest.getByLabel('Invitation or owner recovery link', { exact: true }).fill(link);
         await guest.getByRole('button', { name: 'Open trip', exact: true }).click();
@@ -188,6 +187,7 @@ export function simpleSharingTests({
         await expect(pane).toHaveCount(0);
         expect(requests).toBe(1);
         await expect(guest.getByRole('heading', { name: 'Pasted invitation trip', exact: true })).toBeVisible();
+        expect(dialogs).toEqual([]);
       } finally { await guestContext.close(); }
     });
 
