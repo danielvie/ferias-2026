@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented locally. Supersedes ADR-006's alternating route layout and separate checkpoint details presentation. Its identity, command and scheduling rules remain unchanged.
+Implemented locally. Supersedes ADR-006's alternating route layout and separate checkpoint details presentation. Its identity, command and scheduling rules remain unchanged. ADR-010 later replaces the continuous rail and collapsed ideas with unfilled checkpoint rows and inline quick add; the expansion and sorting rules below still apply.
 
 ## Context
 

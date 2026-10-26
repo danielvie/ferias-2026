@@ -90,8 +90,8 @@ test('inserts a separate visit from the checkpoint menu and keeps its activities
   expect(saved.data.places.filter(place => place.cityId === inserted.id)).toEqual([]);
   expect(await order(page)).toEqual([ids[0], inserted.id, ...ids.slice(1)]);
   await expect(visit(page, inserted.id).locator('.checkpoint-count')).toHaveText('0 activities');
-  await expect(page.locator('#checkpoint-details')).toContainText('No activities yet.');
-  await page.getByRole('button', { name: '+ Add activity', exact: true }).click();
+  await expect(page.getByLabel('New activity', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Full form', exact: true }).click();
   await page.getByLabel('Title', { exact: true }).fill('Return walk');
   await expect(page.getByRole('combobox', { name: 'Checkpoint', exact: true })).toHaveValue(inserted.id);
   await page.getByRole('button', { name: 'Save activity', exact: true }).click();
@@ -121,7 +121,7 @@ test('inserts at either end from the expanded checkpoint menu', async ({ page })
   const first = (await state(page)).data.trip.cities[0];
   expect(first.name).toBe('Antwerp');
   expect(await order(page)).toEqual([first.id, ...ids]);
-  await expect(visit(page, first.id).locator('#checkpoint-details')).toContainText('No activities yet.');
+  await expect(visit(page, first.id).getByLabel('New activity', { exact: true })).toBeVisible();
   await openCheckpoint(page, ids[3]);
   await visit(page, ids[3]).getByLabel('Actions for checkpoint 5: Brussels', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Move later', exact: true })).toBeDisabled();
@@ -129,6 +129,7 @@ test('inserts at either end from the expanded checkpoint menu', async ({ page })
   await expect(form).toContainText('Add to the end of your route.');
   await form.getByLabel('City name', { exact: true }).fill('Leuven');
   await form.getByRole('button', { name: 'Add checkpoint', exact: true }).click();
+  await expect(form).toHaveCount(0);
   const last = (await state(page)).data.trip.cities.at(-1)!;
   expect(last.name).toBe('Leuven');
   expect(await order(page)).toEqual([first.id, ...ids, last.id]);
@@ -204,7 +205,7 @@ test('moves activities within and between visits without copying or moving booke
   expect((await state(page)).data.events[0].date).toBe('2030-06-02');
 });
 
-test('shows a compact straight rail with inline expansion without overflow or accessibility violations', async ({ page }, testInfo) => {
+test('shows compact unfilled checkpoint rows with inline quick add without overflow or accessibility violations', async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   const ids = await setup(page);
@@ -238,6 +239,20 @@ test('shows a compact straight rail with inline expansion without overflow or ac
     await expect(page.getByRole('heading', { name: 'Gravensteen', exact: true })).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(visit(page, ids[1]).locator('#checkpoint-details')).toBeVisible();
+    const selected = visit(page, ids[1]);
+    await expect(selected.locator('.checkpoint-open')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await selected.locator('.checkpoint-open').hover();
+    await expect(selected.locator('.checkpoint-open')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(selected.locator('.checkpoint-name')).toHaveCSS('font-weight', '700');
+    await expect(selected.locator('.checkpoint-name')).toHaveCSS('color', 'rgb(52, 94, 194)');
+    await expect(selected.locator('.checkpoint-number')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(selected.locator('.checkpoint-number')).toHaveCSS('border-left-width', '2px');
+    await expect(page.locator('#checkpoint-details')).toHaveCSS('border-left-width', '0px');
+    expect(await selected.evaluate(element => getComputedStyle(element, '::before').content)).toBe('none');
+    const full = selected.getByRole('button', { name: 'Full form', exact: true });
+    const add = selected.getByRole('button', { name: 'Add', exact: true });
+    expect((await full.boundingBox())!.height).toBe(width >= 768 ? 32 : 44);
+    expect((await add.boundingBox())!.height).toBe(width >= 768 ? 32 : 44);
     await expect(page.locator('body')).toHaveCSS('overflow', 'visible');
     const header = (await visit(page, ids[1]).locator('.route-visit').boundingBox())!;
     const details = (await page.locator('#checkpoint-details').boundingBox())!;
@@ -290,12 +305,12 @@ test('keeps viewer routes read-only', async ({ page, browser }) => {
     const reader = await context.newPage();
     await reader.goto(new URL('/', page.url()).href); await places(reader);
     await expect(reader.getByText('Read-only route.', { exact: false })).toBeVisible();
-    await expect(reader.locator('.route-drag-handle, .route-insert, .visit-add-activity')).toHaveCount(0);
+    await expect(reader.locator('.route-drag-handle, .route-insert, .checkpoint-quick-add')).toHaveCount(0);
     await expect(reader.getByRole('button', { name: 'Add checkpoint', exact: true })).toHaveCount(0);
     await expect(reader.getByRole('button', { name: 'Move', exact: true })).toHaveCount(0);
     await openCheckpoint(reader, ids[0]);
     await expect(reader.getByRole('heading', { name: 'Grand Place walk', exact: true })).toBeVisible();
-    await expect(reader.locator('.visit-add-activity')).toHaveCount(0);
+    await expect(reader.locator('.checkpoint-quick-add, .checkpoint-ideas, .route-menu')).toHaveCount(0);
   } finally { await context.close(); }
 });
 
@@ -430,13 +445,13 @@ test('keeps inline selection through resizing and restores focus after phone act
   const panel = visit(page, ids[0]).locator('#checkpoint-details');
   await expect(panel).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await panel.getByRole('button', { name: '+ Add activity', exact: true }).click();
-  await expect(panel.getByRole('button', { name: '+ Add activity', exact: true })).toBeDisabled();
+  await panel.getByRole('button', { name: 'Full form', exact: true }).click();
+  await expect(panel.getByRole('button', { name: 'Full form', exact: true })).toBeDisabled();
   await expect(page.getByLabel('Title', { exact: true })).toBeFocused();
   await page.getByLabel('Title', { exact: true }).fill('Discard this draft');
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(panel).toBeVisible();
-  await expect(panel.getByRole('button', { name: '+ Add activity', exact: true })).toBeFocused();
+  await expect(panel.getByRole('button', { name: 'Full form', exact: true })).toBeFocused();
   await panel.locator('[data-activity-id="trail"]').getByRole('button', { name: 'Add to calendar', exact: true }).click();
   await expect(panel.locator('[data-activity-id="trail"]').getByRole('button', { name: 'Add to calendar', exact: true })).toBeDisabled();
   await expect(page.getByLabel('Date', { exact: true })).toBeFocused();
@@ -483,7 +498,6 @@ test('keeps the selected checkpoint by ID when its route number changes', async 
 test('saves an idea into the selected return checkpoint without merging same-name checkpoints', async ({ page }) => {
   const ids = await setup(page);
   await openCheckpoint(page, ids[3]);
-  await page.getByText('Activity ideas', { exact: true }).click();
   await page.getByRole('button', { name: 'Save suggestion: Grand Place', exact: true }).click();
   await expect(page.locator('#checkpoint-details').getByRole('heading', { name: 'Grand Place', exact: true })).toBeVisible();
   await expect(visit(page, ids[0]).locator('.checkpoint-count')).toHaveText('2 activities');
@@ -513,9 +527,160 @@ test('handles 30 checkpoints and a long city name without sideways scrolling', a
     await expect(visit(page, 'limit-29').locator('.checkpoint-count')).toHaveText('0 activities');
   }
   await openCheckpoint(page, 'limit-29');
-  await expect(page.locator('#checkpoint-details')).toContainText('No activities yet.');
-  await expect(page.getByRole('button', { name: '+ Add activity', exact: true })).toBeEnabled();
+  await expect(page.getByLabel('New activity', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Full form', exact: true })).toBeEnabled();
   await visit(page, 'limit-29').getByLabel(/Actions for checkpoint 30:/).click();
   await expect(page.getByRole('button', { name: 'Insert checkpoint before', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Insert checkpoint after', exact: true })).toBeDisabled();
+});
+
+test('quick adds unscheduled ideas to the selected return checkpoint and keeps input focus', async ({ page }) => {
+  const ids = await setup(page);
+  const before = await state(page);
+  await openCheckpoint(page, ids[3]);
+  const form = page.getByRole('form', { name: 'Add activity to Brussels', exact: true });
+  const input = form.getByRole('textbox', { name: 'New activity', exact: true });
+  const add = form.getByRole('button', { name: 'Add', exact: true });
+  await expect(add).toBeDisabled();
+  await input.fill('   ');
+  await expect(add).toBeDisabled();
+  await input.fill('  Return walk  ');
+  await input.press('Enter');
+  await expect(input).toHaveValue('');
+  await expect(input).toBeFocused();
+  await expect(form.getByRole('status')).toContainText('Return walk saved as an idea');
+  await expect(visit(page, ids[3]).locator('.checkpoint-count')).toHaveText('2 activities');
+  const saved = await state(page);
+  expect(saved.data.places.find(place => place.title === 'Return walk')).toMatchObject({
+    cityId: ids[3], status: 'idea', category: 'sight', durationMinutes: 60,
+    description: '', address: '', url: '', cost: '',
+  });
+  expect(saved.data.places.filter(place => place.cityId === ids[0])).toEqual(
+    before.data.places.filter(place => place.cityId === ids[0]));
+  expect(saved.data.events).toEqual(before.data.events);
+  await input.fill('Coffee by the canal');
+  await add.click();
+  await expect(input).toHaveValue('');
+  await expect(input).toBeFocused();
+  await expect(visit(page, ids[3]).locator('.checkpoint-count')).toHaveText('3 activities');
+  await page.reload(); await places(page); await openCheckpoint(page, ids[3]);
+  await expect(page.getByRole('heading', { name: 'Return walk', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Coffee by the canal', exact: true })).toBeVisible();
+});
+
+test('carries the quick-add draft into the full form, preserves it on cancel and clears it on save', async ({ page }) => {
+  const ids = await setup(page);
+  await openCheckpoint(page, ids[1]);
+  const quick = page.getByRole('form', { name: 'Add activity to Ghent', exact: true });
+  const input = quick.getByRole('textbox', { name: 'New activity', exact: true });
+  const full = quick.getByRole('button', { name: 'Full form', exact: true });
+  await input.fill('Canal walk');
+  await full.click();
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Canal walk');
+  await expect(page.getByLabel('Checkpoint', { exact: true })).toHaveValue(ids[1]);
+  await expect(input).toBeDisabled();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(full).toBeFocused();
+  await expect(input).toHaveValue('Canal walk');
+  await full.click();
+  await page.getByLabel('Title', { exact: true }).fill('Evening canal walk');
+  await page.getByRole('button', { name: 'Save activity', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Evening canal walk', exact: true })).toBeVisible();
+  await expect(full).toBeFocused();
+  await expect(input).toHaveValue('');
+  expect((await state(page)).data.places.filter(place => place.title.includes('canal walk'))).toHaveLength(1);
+});
+
+test('keeps a quick-add draft through errors and conflicts and retries a lost response without duplicates', async ({ page }) => {
+  const ids = await setup(page);
+  await openCheckpoint(page, ids[1]);
+  const quick = page.getByRole('form', { name: 'Add activity to Ghent', exact: true });
+  const input = quick.getByRole('textbox', { name: 'New activity', exact: true });
+  const add = quick.getByRole('button', { name: 'Add', exact: true });
+  await input.fill('Retry this walk');
+  await page.route('**/api/commands', route => route.abort());
+  await add.click();
+  await expect(quick.getByRole('alert')).toContainText('draft is kept');
+  await expect(input).toHaveValue('Retry this walk');
+  await page.unroute('**/api/commands');
+  await command(page, { type: 'visit.move', id: ids[0], beforeId: null });
+  await add.click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Someone changed the trip' })).toBeVisible();
+  await expect(input).toHaveValue('Retry this walk');
+  await page.route('**/api/commands', async route => {
+    await route.fetch();
+    await route.abort();
+  });
+  await add.click();
+  await expect(quick.getByRole('alert')).toBeVisible();
+  await expect(input).toHaveValue('Retry this walk');
+  await page.unroute('**/api/commands');
+  await add.click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Someone changed the trip' })).toBeVisible();
+  await add.click();
+  await expect(input).toHaveValue('');
+  const saved = await state(page);
+  expect(saved.data.places.filter(place => place.title === 'Retry this walk')).toHaveLength(1);
+  await expect(visit(page, ids[1]).locator('.checkpoint-count')).toHaveText('2 activities');
+});
+
+test('blocks repeated quick-add submissions and other checkpoint writes while saving', async ({ page }) => {
+  const ids = await setup(page);
+  await openCheckpoint(page, ids[3]);
+  const quick = page.getByRole('form', { name: 'Add activity to Brussels', exact: true });
+  await quick.getByLabel('New activity', { exact: true }).fill('Only once');
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  let posts = 0;
+  await page.route('**/api/commands', async route => {
+    posts++;
+    await pending;
+    await route.continue();
+  });
+  try {
+    await quick.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(quick.getByRole('button', { name: 'Saving…', exact: true })).toBeDisabled();
+    await expect(quick.getByLabel('New activity', { exact: true })).toBeDisabled();
+    await expect(quick.getByRole('button', { name: 'Full form', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Save suggestion: Grand Place', exact: true })).toBeDisabled();
+    await expect(visit(page, ids[0]).locator('.checkpoint-open')).toBeDisabled();
+    await quick.evaluate(form => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+    expect(posts).toBe(1);
+  } finally { release(); }
+  await expect(quick.getByLabel('New activity', { exact: true })).toHaveValue('');
+  expect((await state(page)).data.places.filter(place => place.title === 'Only once')).toHaveLength(1);
+});
+
+test('replaces the empty state with quick add and keyboard-saveable idea chips on phones and desktop', async ({ page }, testInfo) => {
+  await setup(page);
+  await command(page, { type: 'visit.add', visit: { id: 'empty-ghent', name: 'Ghent' }, beforeId: null });
+  await page.reload(); await places(page); await openCheckpoint(page, 'empty-ghent');
+  const panel = page.locator('#checkpoint-details');
+  const input = panel.getByLabel('New activity', { exact: true });
+  const suggestion = panel.getByRole('button', { name: 'Save suggestion: Gravensteen', exact: true });
+  const before = await state(page);
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(input).toHaveValue('');
+    await expect(panel.getByRole('button', { name: 'Add', exact: true })).toBeDisabled();
+    await expect(suggestion).toBeVisible();
+    await expect(panel.getByText('No activities yet.', { exact: true })).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
+    expect((await suggestion.boundingBox())!.height).toBe(width >= 768 ? 32 : 44);
+    const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+    expect(result.violations.map(violation => violation.id)).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath(`places-quick-add-empty-${width}.png`), fullPage: true });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await suggestion.focus();
+  await suggestion.press('Enter');
+  await expect(panel.getByRole('heading', { name: 'Gravensteen', exact: true })).toBeVisible();
+  await expect(input).toBeFocused();
+  await expect(panel.getByRole('status').filter({ hasText: 'Gravensteen saved as an idea.' })).toBeVisible();
+  await expect(suggestion).toHaveCount(0);
+  const saved = await state(page);
+  expect(saved.data.places.find(place => place.cityId === 'empty-ghent')).toMatchObject({
+    title: 'Gravensteen', status: 'idea', durationMinutes: 120,
+  });
+  expect(saved.data.events).toEqual(before.data.events);
 });

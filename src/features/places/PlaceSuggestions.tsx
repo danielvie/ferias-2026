@@ -13,19 +13,20 @@ export function PlaceSuggestions({ formOpen, cityId }: { formOpen: boolean; city
       place.title.trim().toLowerCase() === suggestion.title.toLowerCase())) return [];
     return [{ suggestion, city }];
   });
-  if (!canEdit || available.length === 0) return null;
+  if (!canEdit || (available.length === 0 && !message)) return null;
 
   return (
-    <section className="panel stack" aria-labelledby="place-suggestions">
-      <div><p className="eyebrow">A few starting points</p><h2 id="place-suggestions">Ideas, not bookings</h2>
-        <p className="muted">These examples are not in your trip until you save them. Check opening hours, prices and availability.</p></div>
-      <ul className="place-suggestions">
+    <section className="checkpoint-ideas" aria-label="Activity ideas">
+      {available.length > 0 && <>
+      <h3>Activity ideas</h3>
+      <ul className="place-suggestions" aria-label="Suggested activities">
         {available.map(({ suggestion, city }) => <li key={suggestion.title}>
-          <div><h3>{suggestion.title}</h3><p className="muted">{city.name} · {suggestion.durationMinutes} minutes, suggested</p></div>
           <button className="button secondary" type="button" disabled={busy || saving || formOpen}
             aria-label={`Save suggestion: ${suggestion.title}`}
-            onClick={async () => {
-              if (busy || submitting.current) return;
+            title={`${suggestion.description} ${suggestion.durationMinutes} minutes, suggested. Saves an idea, not a booking.`}
+            onClick={async event => {
+              if (busy || formOpen || submitting.current) return;
+              const input = event.currentTarget.closest('#checkpoint-details')?.querySelector<HTMLInputElement>('.checkpoint-quick-add input');
               submitting.current = true;
               setSaving(true);
               try {
@@ -33,15 +34,19 @@ export function PlaceSuggestions({ formOpen, cityId }: { formOpen: boolean; city
                 if (await command({
                   type: 'place.save',
                   place: { ...newPlace(city.id), title, category, description, durationMinutes },
-                })) setMessage(`${title} saved as an idea.`);
+                })) {
+                  setMessage(`${title} saved as an idea.`);
+                  requestAnimationFrame(() => input?.focus());
+                }
               } finally {
                 submitting.current = false;
                 setSaving(false);
               }
-            }}>Save suggestion</button>
+            }}>+ {suggestion.title}</button>
         </li>)}
       </ul>
-      <p role="status">{message}</p>
+      </>}
+      <p className="checkpoint-ideas-status" role="status">{message}</p>
     </section>
   );
 }

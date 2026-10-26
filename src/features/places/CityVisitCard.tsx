@@ -3,12 +3,14 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { City } from '../../../shared/model';
 import { useTrip } from '../../app/TripContext';
+import type { RouteActions } from './RouteBoard';
 
-export function CityVisitCard({ city, index, activityCount, selected, disabled, conflict, onSelect, children }: {
+export function CityVisitCard({ city, index, activityCount, selected, disabled, conflict, actions, onSelect, children }: {
   city: City; index: number; activityCount: number; selected: boolean; disabled: boolean;
-  conflict: boolean; onSelect: (id: string) => void; children?: ReactNode;
+  conflict: boolean; actions: RouteActions; onSelect: (id: string) => void; children?: ReactNode;
 }) {
-  const { canEdit } = useTrip();
+  const { canEdit, snapshot } = useTrip();
+  const cities = snapshot.data.trip.cities;
   const checkpointLabel = `${index + 1}: ${city.name}`;
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: `visit:${city.id}`, data: { kind: 'visit', id: city.id }, disabled: disabled || !canEdit,
@@ -30,9 +32,29 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
           {conflict && <span className="checkpoint-date-warning">Review dates</span>}
         </span>
         <svg className="checkpoint-chevron" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-          <path d={selected ? 'm4 6 4 4 4-4' : 'm6 4 4 4-4 4'} fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <path d={selected ? 'm4 6 4 4 4-4' : 'm6 4 4 4-4 4'} fill="none" stroke="currentColor" strokeWidth={selected ? 2.5 : 1.5} />
         </svg>
       </button></h2>
+      {selected && canEdit && <details className="route-menu">
+        <summary aria-label={`Actions for checkpoint ${checkpointLabel}`} aria-disabled={disabled}
+          onClick={event => { if (disabled) event.preventDefault(); }}>···</summary>
+        <div className="route-menu-content">
+          <button type="button" className="button ghost" disabled={disabled || index === 0}
+            onClick={event => {
+              event.currentTarget.closest('details')?.removeAttribute('open');
+              actions.moveVisit(city.id, cities[index - 1].id);
+            }}>Move earlier</button>
+          <button type="button" className="button ghost" disabled={disabled || index === cities.length - 1}
+            onClick={event => {
+              event.currentTarget.closest('details')?.removeAttribute('open');
+              actions.moveVisit(city.id, cities[index + 2]?.id ?? null);
+            }}>Move later</button>
+          <button type="button" className="button ghost" disabled={disabled || cities.length >= 30}
+            onClick={event => actions.insert(city.id, event.currentTarget)}>Insert checkpoint before</button>
+          <button type="button" className="button ghost" disabled={disabled || cities.length >= 30}
+            onClick={event => actions.insert(cities[index + 1]?.id ?? null, event.currentTarget)}>Insert checkpoint after</button>
+        </div>
+      </details>}
     </div>
     {children}
   </li>;

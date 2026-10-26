@@ -54,6 +54,7 @@ test('mobile identity is visible, editable, and credits separate collaborators',
     await expect(editor.getByRole('status').filter({ hasText: 'Your name is saved' })).toBeVisible();
     await editor.getByRole('button', { name: 'Close Your profile', exact: true }).click();
     await navigate(editor, 'Places');
+    await editor.locator('.checkpoint-open').first().click();
     await editor.getByRole('button', { name: 'Save suggestion: Grand Place', exact: true }).click();
     await expect(editor.getByRole('heading', { name: 'Grand Place', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Your profile: Daniel Vieira, owner' }).click();
@@ -284,7 +285,6 @@ test('a traveler saves a place, schedules it, writes a note and checks separate 
   await createTrip(page);
   await navigate(page, 'Places');
   await page.locator('.checkpoint-open').first().click();
-  await page.getByText('Activity ideas', { exact: true }).click();
   await page.getByRole('button', { name: 'Save suggestion: Grand Place', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Grand Place', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add to calendar', exact: true }).click();

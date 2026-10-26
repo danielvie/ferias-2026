@@ -11,7 +11,7 @@ export interface RouteActions {
   moveVisit: (id: string, beforeId: string | null) => void;
   moveActivity: (place: Place, button: HTMLButtonElement) => void;
   insert: (beforeId: string | null, button: HTMLButtonElement) => void;
-  addActivity: (cityId: string, button: HTMLButtonElement) => void;
+  addActivity: (draft: Place, button: HTMLButtonElement, onSaved: () => void) => void;
   details: (place: Place, button: HTMLButtonElement) => void;
   edit: (place: Place, button: HTMLButtonElement) => void;
   schedule: (place: Place, button: HTMLButtonElement) => void;
@@ -58,7 +58,7 @@ export function RouteBoard({ places, selectedId, disabled, actions, onSelect, ch
       <SortableContext items={trip.cities.map(city => `visit:${city.id}`)} strategy={verticalListSortingStrategy}>
         {trip.cities.map((city, index) => <CityVisitCard key={city.id} city={city} index={index}
           activityCount={places.filter(place => place.cityId === city.id).length} selected={selectedId === city.id}
-          disabled={disabled} conflict={conflicts.includes(city.id)} onSelect={onSelect}>
+          disabled={disabled} conflict={conflicts.includes(city.id)} actions={actions} onSelect={onSelect}>
           {selectedId === city.id && children}
         </CityVisitCard>)}
       </SortableContext>

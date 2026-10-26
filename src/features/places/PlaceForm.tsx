@@ -13,8 +13,8 @@ export function isWebUrl(value: string): boolean {
   }
 }
 
-export function PlaceForm({ initial, editing, onClose }: {
-  initial: Place; editing: boolean; onClose: () => void;
+export function PlaceForm({ initial, editing, onClose, onSaved }: {
+  initial: Place; editing: boolean; onClose: () => void; onSaved?: () => void;
 }) {
   const { snapshot, canEdit, busy, command } = useTrip();
   const [draft, setDraft] = useState(initial);
@@ -38,7 +38,10 @@ export function PlaceForm({ initial, editing, onClose }: {
     try {
       if (await command({
         type: 'place.save', place: { ...draft, title: draft.title.trim(), url: draft.url.trim() },
-      })) onClose();
+      })) {
+        onSaved?.();
+        onClose();
+      }
     } finally {
       submitting.current = false;
       setSaving(false);

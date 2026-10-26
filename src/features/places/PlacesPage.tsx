@@ -10,10 +10,9 @@ import { SchedulePlaceForm } from './SchedulePlaceForm';
 import { RouteBoard, type RouteActions } from './RouteBoard';
 import { VisitForm } from './VisitForm';
 import { MoveActivityForm } from './MoveActivityForm';
-import { newPlace } from './suggestions';
 import './places.css';
 
-type ActiveForm = { kind: 'edit'; place: Place; editing: boolean } |
+type ActiveForm = { kind: 'edit'; place: Place; editing: boolean; onSaved?: () => void } |
   { kind: 'schedule' | 'details' | 'move'; placeId: string } | { kind: 'visit'; beforeId: string | null };
 
 export function PlacesPage() {
@@ -64,7 +63,7 @@ export function PlacesPage() {
 
   const actions: RouteActions = {
     insert: (beforeId, button) => openForm({ kind: 'visit', beforeId }, button),
-    addActivity: (cityId, button) => openForm({ kind: 'edit', place: newPlace(cityId), editing: false }, button),
+    addActivity: (place, button, onSaved) => openForm({ kind: 'edit', place, editing: false, onSaved }, button),
     details: (place, button) => openForm({ kind: 'details', placeId: place.id }, button),
     edit: (place, button) => openForm({ kind: 'edit', place, editing: true }, button),
     schedule: (place, button) => openForm({ kind: 'schedule', placeId: place.id }, button),
@@ -106,7 +105,7 @@ export function PlacesPage() {
         {canEdit && form.kind === 'visit' && <VisitForm beforeId={form.beforeId} onClose={closeForm}
           onSaved={(name, id) => { closeForm(); setCheckpointId(id); setNotice({ text: `${name} added as a separate checkpoint.` }); }} />}
         {canEdit && form.kind === 'edit' && <PlaceForm key={form.place.id} initial={form.place}
-          editing={form.editing} onClose={closeForm} />}
+          editing={form.editing} onClose={closeForm} onSaved={form.onSaved} />}
         {form.kind === 'details' && selected && <div className="stack">
           <div><button className="button secondary" type="button" onClick={closeForm}>Close activity details</button></div>
           <PlaceCard place={selected} formOpen={false} onEdit={button => actions.edit(selected, button)}
@@ -131,7 +130,7 @@ export function PlacesPage() {
       <section className="route-workspace" aria-label="Your route">
         <RouteBoard places={places} selectedId={checkpoint?.id ?? null} disabled={disabled} actions={actions}
           onSelect={id => setCheckpointId(id === checkpointId ? null : id)}>
-          {checkpoint && <CheckpointDetails key={checkpoint.id} city={checkpoint} index={checkpointIndex}
+          {checkpoint && <CheckpointDetails key={checkpoint.id} city={checkpoint}
             places={places.filter(place => place.cityId === checkpoint.id)} disabled={!!form}
             conflict={dateConflicts.includes(checkpoint.id)} actions={actions} />}
         </RouteBoard>
