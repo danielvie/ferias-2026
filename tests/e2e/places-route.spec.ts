@@ -223,6 +223,12 @@ test('shows compact unfilled checkpoint rows with inline quick add without overf
     await expect(page.locator('.checkpoint-count')).toHaveText([
       '2 activities', '1 activity', '1 activity', '1 activity', '0 activities', '0 activities', '0 activities', '0 activities',
     ]);
+    const number = visit(page, ids[0]).locator('.checkpoint-number');
+    await expect(number).toHaveCSS('font-weight', '700');
+    await expect(number).toHaveCSS('border-left-width', '0px');
+    await expect(number).toHaveCSS('border-radius', '0px');
+    await visit(page, ids[0]).locator('.route-drag-handle').hover();
+    await expect(number).toHaveCSS('border-left-width', '0px');
     const boxes = await page.locator('.route-visit').evaluateAll(nodes => nodes.map(node => {
       const rect = node.getBoundingClientRect(); return { x: rect.x, y: rect.y };
     }));
@@ -247,7 +253,8 @@ test('shows compact unfilled checkpoint rows with inline quick add without overf
     await expect(selected.locator('.checkpoint-name')).toHaveCSS('font-weight', '700');
     await expect(selected.locator('.checkpoint-name')).toHaveCSS('color', 'rgb(52, 94, 194)');
     await expect(selected.locator('.checkpoint-number')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-    await expect(selected.locator('.checkpoint-number')).toHaveCSS('border-left-width', '2px');
+    await expect(selected.locator('.checkpoint-number')).toHaveCSS('font-weight', '700');
+    await expect(selected.locator('.checkpoint-number')).toHaveCSS('border-left-width', '0px');
     await expect(page.locator('#checkpoint-details')).toHaveCSS('border-left-width', '0px');
     expect(await selected.evaluate(element => getComputedStyle(element, '::before').content)).toBe('none');
     const full = selected.getByRole('button', { name: 'Full form', exact: true });
