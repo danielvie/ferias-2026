@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
 import type { Place, TripCommand, TripSnapshot } from '../../shared/model';
+import { recordDialogs } from './dialogs';
 
 async function state(page: Page): Promise<TripSnapshot> {
   const response = await page.request.get('/api/trip');
@@ -683,4 +684,16 @@ test('replaces the empty state with quick add and keyboard-saveable idea chips o
     title: 'Gravensteen', status: 'idea', durationMinutes: 120,
   });
   expect(saved.data.events).toEqual(before.data.events);
+});
+
+test('leaves an unsaved quick-add draft without confirmation after the main rebase', async ({ page }) => {
+  const ids = await setup(page);
+  const dialogs = recordDialogs(page);
+  await openCheckpoint(page, ids[1]);
+  await page.getByLabel('New activity', { exact: true }).fill('Unsaved quick idea');
+  expect(await page.evaluate(() => window.dispatchEvent(new Event('beforeunload', { cancelable: true })))).toBe(true);
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Itinerary', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Our Belgium route', exact: true })).toBeVisible();
+  expect((await state(page)).data.places.some(place => place.title === 'Unsaved quick idea')).toBe(false);
+  expect(dialogs).toEqual([]);
 });

@@ -18,8 +18,7 @@ export function QuickAddActivity({ city, disabled, onFullForm }: {
   const input = useRef<HTMLInputElement>(null);
   const id = useId();
   const blocked = disabled || busy || saving || !canEdit;
-  useNavigationGuard(!!draft.title.trim() && !disabled,
-    'Leave this activity draft? Unsaved changes will be lost.', saving);
+  useNavigationGuard(busy || saving);
 
   function clearDraft() {
     setDraft(newPlace(city.id));

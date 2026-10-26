@@ -4,7 +4,7 @@
   "source": "https://excalidraw.com",
   "elements": [
     {"id":"comparison-title","type":"text","x":40,"y":26,"width":3000,"height":55,"text":"Checkpoint details / four layout options","fontSize":44,"fontFamily":5,"strokeColor":"#242933","roughness":0},
-    {"id":"comparison-guide","type":"text","x":40,"y":104,"width":3000,"height":30,"text":"Read left to right, then down. Each option includes empty and populated desktop views plus a phone layout. Option 1 is recommended.","fontSize":24,"fontFamily":5,"strokeColor":"#526174","roughness":0},
+    {"id":"comparison-guide","type":"text","x":40,"y":104,"width":3000,"height":30,"text":"Read left to right, then down. Each option includes empty and populated desktop views plus a phone layout. Option 4 is selected and implemented.","fontSize":24,"fontFamily":5,"strokeColor":"#526174","roughness":0},
     {"id":"a-title","type":"text","x":40,"y":206,"width":1040,"height":45,"text":"1. Compact accordion","fontSize":36,"fontFamily":5,"strokeColor":"#242933","roughness":0},
     {"id":"a-intro","type":"text","x":40,"y":264,"width":1450,"height":25,"text":"Keep the current interaction. Put actions in the heading and make an empty stop one short row.","fontSize":20,"fontFamily":5,"strokeColor":"#526174","roughness":0},
     {"id":"a-empty","type":"frame","name":"1. Compact accordion / Desktop / empty checkpoint","x":40,"y":340,"width":1040,"height":340,"strokeColor":"#d4dbe5"},
@@ -245,7 +245,7 @@
     {"id":"c-note1","type":"text","x":40,"y":2720,"width":1040,"height":25,"text":"Best for longer lists. Ideas never add another section below the saved activities.","fontSize":20,"fontFamily":5,"strokeColor":"#242933"},
     {"id":"c-note2","type":"text","x":40,"y":2762,"width":1040,"height":75,"text":"No background highlight or vertical bars. Use blue and thicker outlines for selection.\nTabs use a short 3 px underline, not a filled pill. The toolbar stays visible in either tab.\nTradeoff: comparing ideas with saved activities takes a tab switch. Remember the tab per checkpoint.","fontSize":18,"fontFamily":5,"strokeColor":"#526174"},
     {"id":"c-m-note","type":"text","x":1140,"y":2474,"width":370,"height":100,"text":"The phone shows the other tab.\nSave adds an idea to Activities.\nAdd activity still opens the form.\n44 px tab and button targets.","fontSize":18,"fontFamily":5,"strokeColor":"#526174"},
-    {"id":"d-title","type":"text","x":1680,"y":1646,"width":1040,"height":45,"text":"4. Inline quick add","fontSize":36,"fontFamily":5,"strokeColor":"#242933","roughness":0},
+    {"id":"d-title","type":"text","x":1680,"y":1646,"width":1040,"height":45,"text":"4. Inline quick add / selected","fontSize":36,"fontFamily":5,"strokeColor":"#242933","roughness":0},
     {"id":"d-intro","type":"text","x":1680,"y":1704,"width":1450,"height":25,"text":"Replace the empty message and oversized Add button with a useful writing row. Add details later.","fontSize":20,"fontFamily":5,"strokeColor":"#526174"},
     {"id":"d-empty","type":"frame","name":"4. Inline quick add / Desktop / empty checkpoint / composer","x":1680,"y":1780,"width":1040,"height":390,"strokeColor":"#d4dbe5"},
     {"id":"d-e-page","type":"text","frameId":"d-empty","x":1704,"y":1800,"width":110,"height":32.5,"text":"Places","fontSize":26,"fontFamily":5,"strokeColor":"#242933"},
