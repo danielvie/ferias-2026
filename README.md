@@ -85,8 +85,8 @@ the 44 px targets. Resizing keeps the same active list and in-panel drafts.
 
 Owners and editors can edit; viewers can read; family links exclude checklists.
 Named checklists require migration 007. City checklist creation also requires the
-matching API before the frontend can be used with Supabase. These source changes
-do not update hosting or import local trip data. See ADR-011 and ADR-012 for
+matching API before the frontend can be used with Supabase. Local SQLite trip
+data is not automatically imported. See ADR-011 and ADR-012 for
 compatibility and rollout.
 
 ## Trip access

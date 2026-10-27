@@ -3,15 +3,16 @@
 ## Current deployment
 
 The current application is live at https://danielvie.github.io/ferias-2026/.
-The owner authorized the `main` merge/push and Supabase/Pages deployment, and
-reconfirmed the Free plan. Application commit `97f7741bf4313973b8135866e9e72d6819fd6bac`
-passed [Pages run 40246530711](https://github.com/danielvie/ferias-2026/actions/runs/40246530711).
+The owner authorized the `main` push and Supabase/Pages deployment and reconfirmed
+the Free plan. Application commit `f59117d2498cb5ae63789d6e7eb664eabde45bdd`
+passed [Pages run 40447381364](https://github.com/danielvie/ferias-2026/actions/runs/40447381364).
 
-Hosted project `oljadunrwnagspncclha` has migrations 001 through 006 and the
-matching API/frontend. This includes member attribution, remembered access
-and simple sharing. Private backups preceded migrations 005/006. Hosted API
-and public-browser checks passed; synthetic fixtures were removed. Existing
-content, members, private links, history and settings match their baseline.
+Hosted project `oljadunrwnagspncclha` has migrations 001 through 007 and the
+matching city-checklist API/frontend. Migration 007 was already applied; this
+rollout required no new schema or data migration. A private backup preceded
+deployment. Read-only fingerprints for 15 private tables matched before and after;
+the deployed API health/access checks and public-browser smoke checks passed.
+No local SQLite data was imported.
 
 The rollout instructions below retain earlier implementation-state notes.
 Their statements about undeployed features, empty hosted data or disabled

@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented in the worktree. Hosted deployment requires separate approval.
+Implemented and deployed to the hosted project and Pages after owner approval.
 
 ## Context
 
@@ -36,7 +36,7 @@ necessary to interpret their ownership and would add a data migration.
 New lists use `checklist.addCity` and store a city ID and position in the existing
 checklist JSON payload. SQLite and Supabase therefore need no new schema migration,
 but the Supabase Edge API must be updated before publishing a frontend that sends
-the new command. Deployments and any data transfer require separate approval.
+the new command. Future deployments and any data transfer require approval.
 The older Edge API does not validate city-checklist references, and older clients
 do not display the new placement. Avoid old writers after rollout; do not assume
 that they enforce the new ownership rule.

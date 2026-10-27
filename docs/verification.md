@@ -721,6 +721,30 @@ cards alongside the checklist work. Restoration had no conflicts. Tests, build
 and typecheck remain skipped by request; only static Git checks were performed.
 The local commit does not authorize a push, deployment or hosted migration.
 
+### City checklist hosted rollout
+
+After owner approval and Free-plan confirmation, application commit `f59117d`
+was pushed to `main`. Hosted migration history included 001 through 007; a dry
+run reported no pending migrations. The existing hosted checklists needed no
+between-city conversion. A private database export including sessions and
+settings was saved outside the repository; its 15 included table row counts
+matched a read-only baseline. This export was not restore-tested.
+
+The `trip-api` Edge Function was deployed with the existing custom-auth JWT
+setting. Health returned 200; unauthenticated trip access and direct private
+RPC access returned 401. The manually dispatched
+[Pages run 40447381364](https://github.com/danielvie/ferias-2026/actions/runs/40447381364)
+passed for `f59117d`. The published frontend asset contains the new command and
+targets the intended Supabase project; fresh public browser contexts rendered at
+390 and 1440 px without overflow or page errors. No authenticated hosted
+checklist mutation was tested. Read-only counts and row fingerprints for the 15
+exported tables matched before and after deployment. No hosted rows were
+intentionally changed and no local SQLite data was imported.
+
+Local verification used `npm test` (179 tests), `npm run build`, Deno's Edge
+typecheck, and 100 browser tests against a temporary SQLite database and built
+client. The native Supabase browser suite was not run for this rollout.
+
 ## Not verified or delivered
 
-No two-physical-device acceptance check, hosted backup/restore, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.
+No two-physical-device acceptance check, hosted backup restore test, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.
