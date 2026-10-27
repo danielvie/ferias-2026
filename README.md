@@ -78,12 +78,16 @@ the 44 px targets. Resizing keeps the same active list and in-panel drafts.
   so you can copy the text or explicitly discard it.
 - Existing packing items retain their IDs, assignments and completion. Departure
   tools remain under **Departures**, with their independent done/skipped states.
-  Named lists have no city-transition behavior yet.
+- In Places, add an arriving checklist above a checkpoint or a leaving checklist
+  below it. Each stays with that visit when the route changes. A copy starts with
+  new unchecked items; existing between-city lists appear under leaving the
+  original starting visit, with their items and completion unchanged.
 
 Owners and editors can edit; viewers can read; family links exclude checklists.
-This feature requires migration 007 and the matching API before the new frontend
-can be used with Supabase. Neither the shared local database nor hosting is
-updated by these source changes. See ADR-011 for compatibility and rollout.
+Named checklists require migration 007. City checklist creation also requires the
+matching API before the frontend can be used with Supabase. These source changes
+do not update hosting or import local trip data. See ADR-011 and ADR-012 for
+compatibility and rollout.
 
 ## Trip access
 

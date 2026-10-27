@@ -13,12 +13,13 @@ const collisionDetection: CollisionDetection = args =>
 /** One context per completion section prevents a reorder from changing status.
  * https://docs.dndkit.com/presets/sortable
  */
-export function ChecklistItems({ checklistId, items, label, disabled, onDirtyChange }: {
+export function ChecklistItems({ checklistId, items, label, disabled, onDirtyChange, directDelete = false }: {
   checklistId: string;
   items: ChecklistItem[];
   label: string;
   disabled: boolean;
   onDirtyChange: (id: string, dirty: boolean) => void;
+  directDelete?: boolean;
 }) {
   const { command, canEdit } = useTrip();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export function ChecklistItems({ checklistId, items, label, disabled, onDirtyCha
         {items.map((item, index) => <CompactChecklistItem key={item.id} checklistId={checklistId} item={item}
           sortingDisabled={disabled} first={index === 0} last={index === items.length - 1}
           onMove={direction => { void move(index, index + (direction === 'up' ? -1 : 1)); }}
-          onDirtyChange={onDirtyChange} />)}
+          onDirtyChange={onDirtyChange} directDelete={directDelete} />)}
       </SortableContext>
     </ul>
     <DragOverlay dropAnimation={null}>{active && <div className="checklist-drag-preview" aria-hidden="true">

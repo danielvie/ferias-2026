@@ -6,9 +6,9 @@ import { useTrip } from '../../app/TripContext';
 import { Icon } from '../../components/Icon';
 import type { RouteActions } from './RouteBoard';
 
-export function CityVisitCard({ city, index, activityCount, selected, disabled, conflict, actions, onSelect, children, after }: {
+export function CityVisitCard({ city, index, activityCount, selected, disabled, actions, onSelect, children, before, after }: {
   city: City; index: number; activityCount: number; selected: boolean; disabled: boolean;
-  conflict: boolean; actions: RouteActions; onSelect: (id: string) => void; children?: ReactNode; after?: ReactNode;
+  actions: RouteActions; onSelect: (id: string) => void; children?: ReactNode; before?: ReactNode; after?: ReactNode;
 }) {
   const { canEdit, snapshot } = useTrip();
   const cities = snapshot.data.trip.cities;
@@ -19,6 +19,7 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
 
   return <li ref={setNodeRef} className={`route-visit-item${isDragging ? ' is-dragging' : ''}`}
     style={{ transform: CSS.Transform.toString(transform), transition }} data-visit-id={city.id}>
+    {before}
     <div className={`route-visit${selected ? ' is-selected' : ''}`}>
       {canEdit ? <button ref={setActivatorNodeRef} className="route-drag-handle" type="button" disabled={disabled}
         {...attributes} {...listeners} id={`visit-handle-${city.id}`} aria-label={`Drag checkpoint ${checkpointLabel}`}
@@ -32,7 +33,6 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
         <span className="checkpoint-copy">
           <span className="checkpoint-name">{city.name}</span>
           <span className="checkpoint-count">{activityCount} {activityCount === 1 ? 'activity' : 'activities'}</span>
-          {conflict && <span className="checkpoint-date-warning">Review dates</span>}
         </span>
         <svg className="checkpoint-chevron" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
           <path d={selected ? 'm4 6 4 4 4-4' : 'm6 4 4 4-4 4'} fill="none" stroke="currentColor" strokeWidth={selected ? 2.5 : 1.5} />

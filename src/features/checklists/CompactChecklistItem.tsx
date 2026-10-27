@@ -7,7 +7,7 @@ import { Icon } from '../../components/Icon';
 import { InlineChecklistText } from './InlineChecklistText';
 import { useChecklistOptions } from './useChecklistOptions';
 
-export function CompactChecklistItem({ checklistId, item, sortingDisabled, first, last, onMove, onDirtyChange }: {
+export function CompactChecklistItem({ checklistId, item, sortingDisabled, first, last, onMove, onDirtyChange, directDelete }: {
   checklistId: string;
   item: ChecklistItem;
   sortingDisabled: boolean;
@@ -15,12 +15,14 @@ export function CompactChecklistItem({ checklistId, item, sortingDisabled, first
   last: boolean;
   onMove: (direction: 'up' | 'down') => void;
   onDirtyChange: (id: string, dirty: boolean) => void;
+  directDelete: boolean;
 }) {
   const { snapshot, command, busy, canEdit } = useTrip();
   const [textDirty, setTextDirty] = useState(false);
   const [ownerDraft, setOwnerDraft] = useState<string | null>(null);
   const [ownerFailed, setOwnerFailed] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteFailed, setDeleteFailed] = useState(false);
   const [completion, setCompletion] = useState<boolean | null>(null);
   const namesId = useId();
   const options = useChecklistOptions();
@@ -62,7 +64,16 @@ export function CompactChecklistItem({ checklistId, item, sortingDisabled, first
       </label> : <span className="readonly-check" aria-label={item.status === 'done' ? 'Completed' : 'Pending'}>{item.status === 'done' ? '☑' : '☐'}</span>}
       <InlineChecklistText value={item.title} label={`Item text: ${item.title}`} onDirtyChange={setTextDirty}
         onSave={title => command({ type: 'checklist.item.rename', checklistId, id: item.id, title })} />
-      {canEdit ? <details className="compact-item-options" {...options}>
+      {canEdit && directDelete ? <button type="button" className="transition-item-delete"
+        disabled={busy || textDirty || ownerDirty} aria-label={`Delete item ${item.title}`} title="Delete"
+        onClick={async () => {
+          setDeleteFailed(false);
+          if (await command({ type: 'checklist.item.delete', checklistId, id: item.id })) {
+            document.getElementById(`add-item-${checklistId}`)?.focus({ preventScroll: true });
+          } else {
+            setDeleteFailed(true);
+          }
+        }}><Icon name="close" /></button> : canEdit ? <details className="compact-item-options" {...options}>
         <summary aria-label={`Options for ${item.title}`}>···</summary>
         <div className="compact-options-content">
           <p className="fine-print">Owner: {item.assignee || 'Shared'}</p>
@@ -113,6 +124,7 @@ export function CompactChecklistItem({ checklistId, item, sortingDisabled, first
         </div>
       </details> : item.assignee && <span className="compact-assignee">{item.assignee}</span>}
     </div>
+    {deleteFailed && <p role="status" className="checklist-save-error">Couldn't delete this item. Try again.</p>}
     {(textDirty || ownerDirty) && <small className="checklist-edit-hint">Save or cancel edits before changing completion.</small>}
   </li>;
 }

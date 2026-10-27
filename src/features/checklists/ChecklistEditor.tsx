@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Checklist, ChecklistItem } from '../../../shared/model';
-import { visitLabel } from '../../../shared/route';
+import { checklistPosition, checklistPositionLabel } from '../../../shared/checklists';
 import { useTrip } from '../../app/TripContext';
+import { Icon } from '../../components/Icon';
 import { ChecklistItems } from './ChecklistItems';
 import { InlineChecklistText } from './InlineChecklistText';
 import { useChecklistOptions } from './useChecklistOptions';
 
-export function ChecklistEditor({ list, focusNewItem, removed, onDeleted, onActivate, onDirtyChange, onDiscard }: {
+export function ChecklistEditor({ list, focusNewItem, removed, onDeleted, onActivate, onDirtyChange, onDiscard, transitionHeading }: {
   list: Checklist;
   focusNewItem: boolean;
   removed: boolean;
@@ -14,6 +15,7 @@ export function ChecklistEditor({ list, focusNewItem, removed, onDeleted, onActi
   onActivate: (id: string) => void;
   onDirtyChange: (id: string, dirty: boolean) => void;
   onDiscard: (id: string) => void;
+  transitionHeading?: { progress: string; onClose: () => void; closeDisabled: boolean };
 }) {
   const { command, busy, canEdit, snapshot } = useTrip();
   const [newItem, setNewItem] = useState('');
@@ -40,6 +42,7 @@ export function ChecklistEditor({ list, focusNewItem, removed, onDeleted, onActi
   const pending = items.filter(item => !isDone(item));
   const completed = items.filter(isDone);
   const dirty = Boolean(titleDirty || dirtyItems.size || newItem.trim());
+  const position = checklistPosition(list);
   useEffect(() => {
     onDirtyChange(list.id, dirty);
     return () => onDirtyChange(list.id, false);
@@ -50,25 +53,37 @@ export function ChecklistEditor({ list, focusNewItem, removed, onDeleted, onActi
   return <article className="checklist-editor" data-checklist-id={list.id} id={`checklist-${list.id}`}
     tabIndex={-1} aria-labelledby={`checklist-title-${list.id}`} onFocusCapture={() => onActivate(list.id)}>
     <h2 className="visually-hidden" id={`checklist-title-${list.id}`}>{list.title}</h2>
+    {transitionHeading && <div className="transition-card-heading">
+      <Icon name="checklists" />
+      <span>{transitionHeading.progress}</span>
+      {canEdit && <button type="button" className="transition-card-action" disabled={busy}
+        aria-label={`Delete checklist ${list.title}`} title="Delete checklist" onClick={() => setDeleting(true)}>
+        <Icon name="delete" />
+      </button>}
+      <button type="button" className="transition-card-action" disabled={transitionHeading.closeDisabled}
+        aria-label={`Close ${list.title}`} title="Close checklist" onClick={transitionHeading.onClose}>
+        <Icon name="close" />
+      </button>
+    </div>}
     {removed && <div className="inline-error">
       <p>This checklist was removed elsewhere. Your unsaved edits are kept here so you can copy them.</p>
       <button className="button secondary" type="button" onClick={() => onDiscard(list.id)}>Discard retained drafts</button>
     </div>}
-    {list.transition && <p className="checklist-transition-label">
-      {visitLabel(snapshot.data.trip.cities, list.transition.fromCityId)} to {visitLabel(snapshot.data.trip.cities, list.transition.toCityId)}
+    {position && <p className="checklist-transition-label">
+      {checklistPositionLabel(snapshot.data.trip.cities, position)}
     </p>}
     <header className="compact-list-header">
       <InlineChecklistText value={list.title} label={`Checklist title: ${list.title}`} title
         onDirtyChange={setTitleDirty}
         onSave={title => command({ type: 'checklist.rename', id: list.id, title })} />
-      {canEdit && <details className="compact-list-options" {...options}>
+      {canEdit && !transitionHeading && <details className="compact-list-options" {...options}>
         <summary aria-label={`Checklist actions for ${list.title}`}>···</summary>
         <button className="button ghost" type="button" disabled={busy} onClick={() => setDeleting(true)}>Delete checklist</button>
       </details>}
     </header>
     {list.items.length === 0 && <p className="compact-list-empty">{canEdit ? 'Add your first item below.' : 'No items yet.'}</p>}
     <ChecklistItems checklistId={list.id} items={pending} label={`Pending items in ${list.title}`}
-      disabled={busy || removed || dirtyItems.size > 0} onDirtyChange={itemDirty} />
+      disabled={busy || removed || dirtyItems.size > 0} onDirtyChange={itemDirty} directDelete={Boolean(transitionHeading)} />
     {canEdit && <form className="compact-add-item" aria-label={`Add item to ${list.title}`} onSubmit={async event => {
       event.preventDefault();
       if (busy || !newItem.trim()) return;
@@ -88,7 +103,7 @@ export function ChecklistEditor({ list, focusNewItem, removed, onDeleted, onActi
     {completed.length > 0 && <details className="completed-checklist-items">
       <summary id={`completed-${list.id}`}>{completed.length} completed {completed.length === 1 ? 'item' : 'items'}</summary>
       <ChecklistItems checklistId={list.id} items={completed} label={`Completed items in ${list.title}`}
-        disabled={busy || removed || dirtyItems.size > 0} onDirtyChange={itemDirty} />
+        disabled={busy || removed || dirtyItems.size > 0} onDirtyChange={itemDirty} directDelete={Boolean(transitionHeading)} />
     </details>}
     <p role="status" className="checklist-save-status">{busy ? 'Saving…' :
       titleDirty || dirtyItems.size || newItem ? 'Unsaved changes' : canEdit ? 'Saved' : 'Read only'}</p>

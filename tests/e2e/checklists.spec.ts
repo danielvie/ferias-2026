@@ -364,7 +364,8 @@ test('checklist summaries wrap long names and stay within the viewport', async (
   await page.getByRole('button', { name: 'Refresh', exact: true }).click();
   for (const [width, height] of [[320, 440], [768, 700], [1440, 700]]) {
     await page.setViewportSize({ width, height });
-    await page.getByRole('navigation', { name: 'Checklist markers' }).getByRole('button').last().hover();
+    await page.getByRole('navigation', { name: 'Checklist markers' })
+      .getByRole('button', { name: `Go to checklist 2: ${title}`, exact: true }).hover();
     const tooltip = page.getByRole('tooltip');
     await expect(tooltip).toContainText(title);
     await expect(tooltip.getByText('0 items', { exact: true })).toBeInViewport();
@@ -523,6 +524,7 @@ test('long dials keep 44px markers, scroll independently and support keyboard ju
   for (const width of [320, 1440]) {
     await page.setViewportSize({ width, height: 700 });
     const nav = page.getByRole('navigation', { name: 'Checklist markers' });
+    await expect(nav.getByRole('button')).toHaveCount(25);
     expect(await nav.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
     const first = nav.getByRole('button').first();
     expect((await first.boundingBox())!.height).toBeGreaterThanOrEqual(44);

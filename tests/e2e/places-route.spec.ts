@@ -81,26 +81,39 @@ async function drag(page: Page, handle: Locator, target: Locator) {
   await page.mouse.up();
 }
 
-test('adds a fresh checklist to each transition and keeps their checks independent', async ({ page }, testInfo) => {
+test('adds a fresh checklist to each city side and keeps their checks independent', async ({ page }, testInfo) => {
   const ids = await setup(page);
   await command(page, { type: 'checklist.add', id: 'documents', title: 'Check documents' });
   await command(page, { type: 'checklist.item.add', checklistId: 'documents', title: 'Passport' });
   await page.reload();
   await places(page);
-  const first = visit(page, ids[0]).locator('.transition-connector');
-  await first.getByRole('button', { name: /Add checklist from/ }).click();
-  await first.getByLabel('Start with').selectOption('documents');
-  await first.getByRole('button', { name: 'Add checklist', exact: true }).click();
+  const first = visit(page, ids[0]).locator('.city-checklist-leaving');
+  const add = first.getByRole('button', { name: /Add checklist Leaving/ });
+  await expect(add.locator('svg')).toHaveCount(1);
+  await expect(add).toHaveText('');
+  await expect(add.locator('svg')).toHaveCSS('width', '14px');
+  await expect(add).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  expect((await add.boundingBox())!.width).toBeGreaterThanOrEqual(44);
+  expect((await add.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await add.focus();
+  await page.keyboard.press('Enter');
+  await expect(add).toHaveAttribute('aria-expanded', 'true');
+  await first.getByRole('group', { name: /Choose a checklist/ }).getByRole('button', { name: 'Check documents Trip checklist', exact: true }).click();
   await expect(first.getByRole('checkbox', { name: 'Passport' })).not.toBeChecked();
   await first.getByRole('checkbox', { name: 'Passport' }).check();
   await expect(first.getByText('All checks complete')).toBeVisible();
   await first.getByRole('button', { name: 'Close Check documents' }).click();
-  await expect(first.getByRole('button', { name: /Open Check documents/ })).toBeVisible();
+  const checklistIcon = first.getByRole('button', { name: /Open Check documents/ });
+  await expect(checklistIcon).toBeVisible();
+  await expect(checklistIcon.locator('svg')).toHaveCSS('width', '14px');
+  await expect(checklistIcon).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  expect((await checklistIcon.boundingBox())!.width).toBeGreaterThanOrEqual(44);
+  expect((await checklistIcon.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await page.screenshot({ path: testInfo.outputPath('transition-icons-desktop.png'), fullPage: true });
 
-  const second = visit(page, ids[1]).locator('.transition-connector');
-  await second.getByRole('button', { name: /Add checklist from/ }).click();
-  await second.getByLabel('Start with').selectOption('documents');
-  await second.getByRole('button', { name: 'Add checklist', exact: true }).click();
+  const second = visit(page, ids[1]).locator('.city-checklist-arriving');
+  await second.getByRole('button', { name: /Add checklist Arriving/ }).click();
+  await second.getByRole('group', { name: /Choose a checklist/ }).getByRole('button', { name: 'Check documents Trip checklist', exact: true }).click();
   await expect(second.getByRole('checkbox', { name: 'Passport' })).not.toBeChecked();
   await page.reload();
   await places(page);
@@ -116,17 +129,112 @@ test('adds a fresh checklist to each transition and keeps their checks independe
   await page.screenshot({ path: testInfo.outputPath('transition-mobile.png'), fullPage: true });
 });
 
-test('creates a new transition checklist and adds a check', async ({ page }) => {
+test('creates a new city checklist and adds a check', async ({ page }) => {
   const ids = await setup(page);
-  const connector = visit(page, ids[0]).locator('.transition-connector');
-  await connector.getByRole('button', { name: /Add checklist from/ }).click();
-  await connector.getByLabel('Checklist title').fill('Check documents');
-  await connector.getByRole('button', { name: 'Add checklist', exact: true }).click();
+  const connector = visit(page, ids[0]).locator('.city-checklist-leaving');
+  await connector.getByRole('button', { name: /Add checklist Leaving/ }).click();
+  const picker = connector.getByRole('group', { name: /Choose a checklist/ });
+  await expect(picker.getByRole('button').last()).toHaveText('+ Add new');
+  await picker.getByRole('button', { name: 'Add new' }).click();
+  const title = connector.getByRole('textbox', { name: 'Checklist title: Untitled checklist' });
+  await expect(title).toBeFocused();
+  await title.fill('Check documents');
+  await title.press('Enter');
   await expect(connector.getByText('No checks yet')).toBeVisible();
   await connector.getByRole('textbox', { name: 'New item for Check documents' }).fill('Passport');
   await connector.getByRole('textbox', { name: 'New item for Check documents' }).press('Enter');
   await expect(connector.getByRole('checkbox', { name: 'Passport' })).not.toBeChecked();
   await expect(connector.getByText('1 check left')).toBeVisible();
+});
+
+test('deletes transition items directly and confirms checklist deletion', async ({ page }, testInfo) => {
+  const ids = await setup(page);
+  await command(page, { type: 'checklist.add', id: 'source', title: 'Travel checks' });
+  await command(page, { type: 'checklist.item.add', checklistId: 'source', title: 'Passport' });
+  await command(page, { type: 'checklist.item.add', checklistId: 'source', title: 'Tickets' });
+  await page.reload();
+  await places(page);
+  const connector = visit(page, ids[0]).locator('.city-checklist-leaving');
+  await connector.getByRole('button', { name: /Add checklist Leaving/ }).click();
+  await connector.getByRole('button', { name: 'Travel checks Trip checklist' }).click();
+  const deleteItem = connector.getByRole('button', { name: 'Delete item Passport' });
+  const deleteList = connector.getByRole('button', { name: 'Delete checklist Travel checks' });
+  const close = connector.getByRole('button', { name: 'Close Travel checks' });
+  await expect(connector.locator('.transition-card')).toHaveCSS('background-color', 'rgb(238, 243, 252)');
+  await expect(deleteList.locator('svg')).toHaveCount(1);
+  await expect(close.locator('svg')).toHaveCount(1);
+  await deleteList.hover();
+  await expect(deleteList).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  expect((await deleteItem.boundingBox())!.width).toBeGreaterThanOrEqual(44);
+  await deleteItem.focus();
+  await expect(deleteItem).toHaveCSS('opacity', '1');
+  await page.screenshot({ path: testInfo.outputPath('transition-actions-desktop.png'), fullPage: true });
+  await page.keyboard.press('Enter');
+  await expect(connector.getByRole('checkbox', { name: 'Passport' })).toHaveCount(0);
+  await expect(connector.getByRole('textbox', { name: 'New item for Travel checks' })).toBeFocused();
+  await connector.getByRole('checkbox', { name: 'Tickets' }).check();
+  await connector.getByText('1 completed item').click();
+  await connector.getByRole('button', { name: 'Delete item Tickets' }).click();
+  await expect(connector.getByText('No checks yet')).toBeVisible();
+  const source = (await state(page)).data.checklists!.find(list => list.id === 'source');
+  expect(source?.items.map(item => item.title)).toEqual(['Passport', 'Tickets']);
+  await page.setViewportSize({ width: 320, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
+  const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+  expect(result.violations.map(violation => violation.id)).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath('transition-actions-mobile.png'), fullPage: true });
+  await deleteList.click();
+  const confirm = connector.getByRole('group', { name: 'Delete checklist Travel checks' });
+  await confirm.getByRole('button', { name: 'Keep checklist' }).click();
+  await expect(confirm).toHaveCount(0);
+  await deleteList.click();
+  await confirm.getByRole('button', { name: 'Confirm delete checklist' }).click();
+  await expect(connector.getByRole('button', { name: /Open Travel checks/ })).toHaveCount(0);
+  await expect(connector.getByRole('button', { name: /Add checklist Leaving/ })).toBeFocused();
+  expect((await state(page)).data.checklists!.some(list => list.id === 'source')).toBeTruthy();
+});
+
+test('keeps a checklist selection for retry when a response is lost', async ({ page }, testInfo) => {
+  const ids = await setup(page);
+  const connector = visit(page, ids[0]).locator('.city-checklist-leaving');
+  const add = connector.getByRole('button', { name: /Add checklist Leaving/ });
+  await add.click();
+  const picker = connector.getByRole('group', { name: /Choose a checklist/ });
+  const packing = picker.getByRole('button', { name: 'Packing Trip checklist', exact: true });
+  await expect(packing).toBeVisible();
+  await expect(picker).toHaveCSS('background-color', 'rgb(245, 247, 251)');
+  await expect(picker).toHaveCSS('border-radius', '0px');
+  await packing.hover();
+  await expect(packing).toHaveCSS('background-color', 'rgb(238, 243, 252)');
+  const hovered = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+  expect(hovered.violations.map(violation => violation.id)).toEqual([]);
+  await packing.focus();
+  await page.keyboard.press('Escape');
+  await expect(picker).toHaveCount(0);
+  await expect(add).toBeFocused();
+  await add.click();
+  await page.screenshot({ path: testInfo.outputPath('picker-desktop.png'), fullPage: true });
+  await page.setViewportSize({ width: 320, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
+  const addBox = (await add.boundingBox())!, pickerBox = (await picker.boundingBox())!;
+  expect(pickerBox.x).toBeGreaterThanOrEqual(addBox.x + addBox.width);
+  expect(Math.abs(pickerBox.y - addBox.y)).toBeLessThanOrEqual(1);
+  const accessibility = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+  expect(accessibility.violations.map(violation => violation.id)).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath('picker-mobile.png'), fullPage: true });
+  await page.route('**/api/commands', async route => {
+    await route.fetch();
+    await route.abort();
+  });
+  await packing.click();
+  await expect(picker.getByRole('alert')).toContainText("Couldn't add the checklist");
+  await page.unroute('**/api/commands');
+  await picker.getByRole('button', { name: 'Retry' }).click();
+  await expect(connector.getByRole('textbox', { name: 'Checklist title: Packing' })).toBeVisible();
+  const matching = (await state(page)).data.checklists!.filter(list =>
+    list.city?.cityId === ids[0] && list.city.phase === 'leaving');
+  expect(matching).toHaveLength(1);
+  expect(matching[0].items.every(item => item.status === 'pending')).toBeTruthy();
 });
 
 test('inserts a separate visit from the checkpoint menu and keeps its activities empty', async ({ page }) => {
@@ -215,6 +323,117 @@ test('drags a whole visit, undoes it, and uses the same order in the itinerary a
   expect((await state(page)).data.events[0].date).toBe('2030-06-02');
 });
 
+test('aligns the drag preview with the grabbed city, including an open arriving checklist', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const ids = await setup(page);
+  await command(page, { type: 'checklist.addCity', id: 'arrival', title: 'Hotel',
+    cityId: ids[1], phase: 'arriving', sourceId: null });
+  await page.reload();
+  await places(page);
+  const arriving = visit(page, ids[1]).locator('.city-checklist-arriving');
+  await arriving.getByRole('button', { name: 'Open Hotel, Arriving in Ghent' }).click();
+  for (const id of [ids[0], ids[1]]) {
+    const handle = visit(page, id).getByRole('button', { name: /Drag checkpoint/ });
+    await handle.scrollIntoViewIfNeeded();
+    const box = (await handle.boundingBox())!;
+    const pointer = { x: box.x + box.width / 2 + 10, y: box.y + box.height / 2 };
+    await page.mouse.move(pointer.x - 10, pointer.y);
+    await page.mouse.down();
+    await page.mouse.move(pointer.x, pointer.y, { steps: 3 });
+    const preview = page.locator('.route-drag-preview');
+    await expect(preview).toBeVisible();
+    await expect.poll(async () => {
+      const bounds = await preview.boundingBox();
+      return bounds && pointer.y >= bounds.y && pointer.y <= bounds.y + bounds.height;
+    }).toBeTruthy();
+    if (id === ids[1]) await page.screenshot({ path: testInfo.outputPath('aligned-city-drag.png') });
+    await page.keyboard.press('Escape');
+    await page.mouse.up();
+    await expect(preview).toHaveCount(0);
+  }
+  expect(await order(page)).toEqual(ids);
+});
+
+test('reorders checkpoints without route warnings while preserving dates and checklists', async ({ page }) => {
+  const ids = await setup(page);
+  await command(page, { type: 'event.save', event: {
+    id: 'later-event', title: 'Later event', cityId: ids[1], placeId: '', date: '2030-06-03',
+    startTime: '10:00', endTime: '11:00', kind: 'activity', status: 'planned', description: '',
+  } });
+  await command(page, { type: 'checklist.addTransition', id: 'first-leg', title: 'First leg',
+    fromCityId: ids[0], toCityId: ids[1], sourceId: null });
+  await command(page, { type: 'checklist.addTransition', id: 'second-leg', title: 'Second leg',
+    fromCityId: ids[1], toCityId: ids[2], sourceId: null });
+  const before = await state(page);
+  await page.reload();
+  await places(page);
+  await openCheckpoint(page, ids[1]);
+  await visit(page, ids[1]).getByLabel('Actions for checkpoint 2: Ghent', { exact: true }).click();
+  await visit(page, ids[1]).getByRole('button', { name: 'Move earlier', exact: true }).click();
+  await expect.poll(() => order(page)).toEqual([ids[1], ids[0], ids[2], ids[3]]);
+  await expect(page.getByText('Some scheduled dates run against your route order', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('checkpoints that are no longer adjacent', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('Review dates', { exact: true })).toHaveCount(0);
+  const after = await state(page);
+  expect(after.data.events).toEqual(before.data.events);
+  expect(after.data.checklists).toEqual(before.data.checklists);
+  await page.getByRole('button', { name: 'Undo move', exact: true }).click();
+  await expect.poll(() => order(page)).toEqual(ids);
+  await expect(visit(page, ids[0]).getByRole('button', { name: /Open First leg/ })).toBeVisible();
+  await expect(visit(page, ids[1]).getByRole('button', { name: /Open Second leg/ })).toBeVisible();
+});
+
+test('keeps arriving and leaving checklists with their city when reordered', async ({ page }, testInfo) => {
+  const ids = await setup(page);
+  await command(page, { type: 'checklist.addTransition', id: 'legacy', title: 'Old journey',
+    fromCityId: ids[0], toCityId: ids[1], sourceId: null });
+  await command(page, { type: 'checklist.item.add', checklistId: 'legacy', title: 'Tickets' });
+  const legacyItem = (await state(page)).data.checklists!.find(list => list.id === 'legacy')!.items[0];
+  await command(page, { type: 'checklist.item.update', checklistId: 'legacy', id: legacyItem.id, status: 'done', assignee: 'Daniel' });
+  await command(page, { type: 'checklist.addCity', id: 'arrival', title: 'Hotel',
+    cityId: ids[1], phase: 'arriving', sourceId: null });
+  await command(page, { type: 'checklist.addCity', id: 'leaving', title: 'Bags',
+    cityId: ids[1], phase: 'leaving', sourceId: null });
+  await page.reload();
+  await places(page);
+  const first = visit(page, ids[0]);
+  const second = visit(page, ids[1]);
+  const legacy = first.locator('.city-checklist-leaving');
+  const arrival = second.locator('.city-checklist-arriving');
+  const leaving = second.locator('.city-checklist-leaving');
+  await expect(first.locator('.city-checklist-arriving').getByRole('button', { name: /Add checklist Arriving/ })).toBeVisible();
+  await expect(visit(page, ids[3]).locator('.city-checklist-leaving').getByRole('button', { name: /Add checklist Leaving/ })).toBeVisible();
+  await expect(legacy.getByRole('button', { name: /Open Old journey, Leaving/ })).toBeVisible();
+  await expect(arrival.getByRole('button', { name: 'Open Hotel, Arriving in Ghent' })).toBeVisible();
+  await expect(leaving.getByRole('button', { name: 'Open Bags, Leaving Ghent' })).toBeVisible();
+  await expect(legacy.locator('.transition-checklists')).toHaveCSS('background-color', 'rgb(245, 247, 251)');
+  const departureBox = (await legacy.locator('.transition-checklists').boundingBox())!;
+  const arrivalBox = (await arrival.locator('.transition-checklists').boundingBox())!;
+  expect(arrivalBox.y - (departureBox.y + departureBox.height)).toBeGreaterThanOrEqual(40);
+  const cityBox = (await first.locator('.route-visit').boundingBox())!;
+  expect(departureBox.y - (cityBox.y + cityBox.height)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: testInfo.outputPath('city-checklist-desktop.png'), fullPage: true });
+  await openCheckpoint(page, ids[1]);
+  await second.getByLabel('Actions for checkpoint 2: Ghent', { exact: true }).click();
+  await second.getByRole('button', { name: 'Move later', exact: true }).click();
+  await expect.poll(() => order(page)).toEqual([ids[0], ids[2], ids[1], ids[3]]);
+  await expect(arrival.getByRole('button', { name: 'Open Hotel, Arriving in Ghent' })).toBeVisible();
+  await expect(leaving.getByRole('button', { name: 'Open Bags, Leaving Ghent' })).toBeVisible();
+  await legacy.getByRole('button', { name: /Open Old journey, Leaving/ }).click();
+  await expect(legacy.getByText('All checks complete', { exact: false })).toBeVisible();
+  const after = (await state(page)).data.checklists!.find(list => list.id === 'legacy')!;
+  expect(after.items[0]).toEqual({ ...legacyItem, status: 'done', assignee: 'Daniel' });
+  await page.reload();
+  await places(page);
+  await expect(arrival.getByRole('button', { name: 'Open Hotel, Arriving in Ghent' })).toBeVisible();
+  await expect(leaving.getByRole('button', { name: 'Open Bags, Leaving Ghent' })).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
+  const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+  expect(result.violations.map(violation => violation.id)).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath('city-checklist-mobile.png'), fullPage: true });
+});
+
 test('moves activities within and between visits without copying or moving booked times', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const ids = await setup(page);
@@ -290,8 +509,11 @@ test('shows compact unfilled checkpoint rows with inline quick add without overf
     expect(boxes[1].y).toBeGreaterThan(boxes[0].y);
     const heights = await page.locator('.route-visit').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().height));
     expect(heights.every(height => height <= 60)).toBeTruthy();
-    await expect(page.locator('.transition-add')).toHaveCount(7);
-    expect(boxes[7].y - boxes[0].y).toBeLessThanOrEqual(7 * 110);
+    const borders = await page.locator('.route-visit-item').evaluateAll(nodes =>
+      nodes.map(node => getComputedStyle(node).borderBottomWidth));
+    expect(borders.every(width => width === '0px')).toBeTruthy();
+    await expect(page.locator('.transition-connector').first()).toHaveCSS('border-left-width', '2px');
+    await expect(page.locator('.transition-add')).toHaveCount(16);
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     expect(result.violations.map(violation => violation.id)).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath(`places-${width}.png`), fullPage: true });
@@ -382,9 +604,13 @@ test('supports keyboard visit dragging and cancels a failed save without changin
   await handle.focus(); await page.keyboard.press('Space');
   const preview = page.locator('.route-drag-preview');
   await expect(preview).toBeVisible();
-  const startY = (await preview.boundingBox())!.y;
+  const handleBox = (await handle.boundingBox())!;
+  const previewBox = (await preview.boundingBox())!;
+  expect(Math.abs(previewBox.y - handleBox.y)).toBeLessThanOrEqual(2);
+  // dnd-kit's keyboard sensor installs its key listener in a timer after pickup.
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await page.keyboard.press('ArrowDown');
-  await expect.poll(async () => (await preview.boundingBox())?.y ?? startY).toBeGreaterThan(startY + 20);
+  await expect(page.locator('[role="status"]').filter({ hasText: `droppable area visit:${ids[1]}` })).toBeAttached();
   await page.keyboard.press('Space');
   await expect.poll(() => order(page)).toEqual([ids[1], ids[0], ids[2], ids[3]]);
   await page.getByRole('button', { name: 'Undo move', exact: true }).click();
@@ -486,7 +712,11 @@ test('supports touch dragging compact checkpoints', async ({ browser, baseURL })
     const point = (x: number, y: number) => [{ x, y, id: 1 }];
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: point(from.x + 16, from.y + 22) });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: point(from.x + 26, from.y + 22) });
-    await expect(page.locator('.route-drag-preview')).toBeVisible();
+    const preview = page.locator('.route-drag-preview');
+    await expect(preview).toBeVisible();
+    const previewBox = (await preview.boundingBox())!;
+    expect(from.y + 22).toBeGreaterThanOrEqual(previewBox.y);
+    expect(from.y + 22).toBeLessThanOrEqual(previewBox.y + previewBox.height);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: point(to.x + to.width / 2, to.y + to.height / 2) });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect.poll(() => order(page)).toEqual([ids[1], ids[2], ids[3], ids[0]]);

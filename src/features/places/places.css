@@ -76,10 +76,9 @@
 .route-workspace { min-width: 0; }
 .places-route { display: flex; flex-direction: column; width: 100%; padding: 0; margin: 0; list-style: none; }
 .route-visit-item { min-width: 0; position: relative; }
-.route-visit-item:not(:last-child) { border-bottom: 1px solid var(--line); }
 .route-visit { position: relative; display: flex; align-items: flex-start; min-width: 0; scroll-margin-top: 12rem; }
 .checkpoint-heading { flex: 1; min-width: 0; margin: 0; }
-.checkpoint-open { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 56px; padding: .5rem .75rem; border: 0; background: transparent; color: var(--ink); text-align: left; scroll-margin-top: 12rem; }
+.checkpoint-open { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 44px; padding: .5rem .75rem; border: 0; background: transparent; color: var(--ink); text-align: left; scroll-margin-top: 12rem; }
 .checkpoint-open:hover:not(:disabled) .checkpoint-name { color: var(--accent); }
 .checkpoint-copy { display: flex; flex-direction: column; gap: .125rem; min-width: 0; }
 .checkpoint-name { font-weight: 500; font-size: 1rem; line-height: 1.3; overflow-wrap: anywhere; }
@@ -89,10 +88,8 @@
 .checkpoint-count { color: var(--muted); font-size: .8rem; font-weight: 400; line-height: 1.4; }
 .checkpoint-chevron { color: var(--muted); }
 .is-selected .checkpoint-chevron { color: var(--accent); }
-.checkpoint-date-warning { color: #674c18; font-size: .7rem; }
 .checkpoint-details { min-width: 0; margin: 0 0 .5rem 44px; padding: .25rem .75rem .5rem; }
 .checkpoint-facts { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: .5rem 0; color: var(--muted); font-size: .8rem; }
-.checkpoint-facts .route-date-warning { margin: 0; }
 .checkpoint-filters { margin-block: .25rem; font-size: .8rem; }
 .checkpoint-filter-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin: .5rem 0 1rem; }
 .checkpoint-filter-fields > :first-child { grid-column: 1 / -1; }
@@ -102,7 +99,7 @@
 .checkpoint-ideas h3 { color: var(--muted); font-size: .8rem; font-weight: 500; margin: 0; }
 .checkpoint-ideas-status { flex-basis: 100%; margin: 0; font-size: .75rem; color: var(--muted); }
 .route-activity-heading { display: flex; align-items: flex-start; gap: .25rem; min-width: 0; }
-.route-drag-handle, .checkpoint-marker { display: grid; place-items: center; width: 44px; min-height: 56px; flex-shrink: 0; padding: 0; background: transparent; border: 0; }
+.route-drag-handle, .checkpoint-marker { display: grid; place-items: center; width: 44px; min-height: 44px; flex-shrink: 0; padding: 0; background: transparent; border: 0; }
 .route-drag-handle { display: flex; align-items: center; justify-content: center; gap: .25rem; color: var(--muted); touch-action: none; cursor: grab; }
 .route-drag-handle svg { width: 16px; height: 20px; flex-shrink: 0; stroke-width: 3; }
 .route-drag-handle:active { cursor: grabbing; }
@@ -134,35 +131,52 @@
 .quick-add-status { margin: 0; color: var(--muted); font-size: .8rem; overflow-wrap: anywhere; }
 .checkpoint-quick-add .inline-error { margin: .375rem 0 0; font-size: .8rem; }
 .is-dragging { opacity: .35; }
-.route-drag-preview { display: flex; align-items: center; gap: .75rem; width: 100%; max-width: calc(100vw - 2rem); padding: .5rem .75rem; border: 1px solid var(--ink); border-radius: var(--radius); color: var(--surface); background: var(--ink); box-shadow: 0 4px 18px rgb(24 32 48 / 16%); font-size: .875rem; font-weight: 600; overflow-wrap: anywhere; }
+.route-drag-preview { position: relative; display: flex; align-items: center; gap: .75rem; width: 100%; max-width: calc(100vw - 2rem); padding: .5rem .75rem; border: 1px solid var(--ink); border-radius: var(--radius); color: var(--surface); background: var(--ink); box-shadow: 0 4px 18px rgb(24 32 48 / 16%); font-size: .875rem; font-weight: 600; overflow-wrap: anywhere; }
 .route-drag-preview svg { width: 16px; height: 20px; flex-shrink: 0; color: inherit; stroke-width: 3; }
 .route-drag-preview span { min-width: 0; }
 .route-footnote { font-size: .8rem; color: var(--muted); margin: 1rem 0 0; }
 .route-notice { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .75rem 1rem; border-radius: var(--radius); background: var(--soft-green); color: var(--forest-dark); font-size: .875rem; }
 .route-notice .button { flex-shrink: 0; }
-.route-date-warning { display: inline-block; padding: .3rem .5rem; margin-bottom: .75rem; border-radius: 4px; background: var(--amber); color: #674c18; font-size: .75rem; }
 .route-menu-content { width: min(220px, 65vw); }
 .route-notice { flex-wrap: wrap; }
 
 .transition-connector { position: relative; margin-left: 21px; padding-left: 23px; border-left: 2px solid var(--line); }
-.transition-checklists { display: flex; flex-wrap: wrap; align-items: flex-start; gap: .5rem; min-width: 0; }
-.transition-icon, .transition-add { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; min-height: 44px; padding: .5rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--accent); }
-.transition-icon { width: 44px; }
-.transition-add { font-size: .8rem; }
-.transition-card, .transition-add-form { flex: 1 0 100%; min-width: 0; padding: .75rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.city-checklist-arriving { padding-top: 2.5rem; }
+.route-visit-item:first-child .city-checklist-arriving { padding-top: 0; }
+.transition-checklists { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0; width: fit-content; min-width: 0; max-width: 100%; border-radius: var(--radius); background: var(--paper); }
+.transition-checklists.is-expanded { width: 100%; background: transparent; }
+.transition-icon, .transition-add { display: inline-flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; padding: .5rem; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--muted); }
+.transition-icon svg, .transition-add svg { width: 14px; height: 14px; }
+.transition-icon:hover:not(:disabled), .transition-add:hover:not(:disabled) { background: var(--soft-green); color: var(--accent); }
+.transition-card { flex: 1 0 100%; min-width: 0; padding: .75rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--soft-green); }
 .transition-card-heading { display: flex; align-items: center; gap: .5rem; color: var(--accent); font-size: .8rem; }
 .transition-card-heading > span { flex: 1; }
+.transition-card-action, .transition-item-delete { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius); background: transparent; color: var(--muted); }
+.transition-card-action:hover:not(:disabled), .transition-item-delete:hover:not(:disabled) { background: var(--surface); color: var(--accent); }
+.transition-card-action svg, .transition-item-delete svg { width: 18px; height: 18px; }
+@media (hover: hover) and (pointer: fine) {
+  .transition-item-delete { opacity: 0; }
+  .compact-checklist-item:hover .transition-item-delete, .compact-checklist-item:focus-within .transition-item-delete { opacity: 1; }
+}
 .transition-card .checklist-editor { padding-bottom: 0; }
 .transition-card .checklist-transition-label { display: none; }
 .transition-card .compact-list-title, .transition-card .inline-list-title textarea { font-size: 1.125rem; }
-.transition-add-form { display: grid; gap: .75rem; }
-.transition-add-form h3, .transition-add-form p { margin: 0; }
+.transition-picker-anchor { display: flex; align-items: flex-start; gap: .5rem; min-width: 0; max-width: 100%; }
+.transition-picker-anchor.is-open { flex: 1 1 18rem; max-width: calc(24rem + 3.25rem); }
+.transition-picker-anchor .transition-add { flex: 0 0 44px; }
+.transition-picker { flex: 1 1 auto; display: flex; flex-direction: column; align-items: stretch; min-width: 0; max-width: 24rem; max-height: 18rem; overflow-y: auto; background: var(--paper); }
+.transition-picker-label { margin: 0; padding: .625rem .75rem .25rem; color: var(--muted); font-size: .8rem; }
+.transition-picker > button { display: flex; flex-direction: column; align-items: flex-start; gap: .125rem; min-height: 44px; padding: .625rem .75rem; border: 0; background: transparent; color: var(--ink); text-align: left; overflow-wrap: anywhere; }
+.transition-picker > button:hover:not(:disabled), .transition-picker > button:focus-visible { background: var(--soft-green); }
+.transition-picker > button small { color: #566171; font-size: .75rem; }
+.transition-picker > .transition-picker-new { color: var(--accent); }
+.transition-picker-error { padding: .75rem; color: var(--danger); font-size: .875rem; }
+.transition-picker-error button { min-height: 44px; margin-left: .5rem; border: 0; background: transparent; color: var(--accent); }
 
 @media (min-width: 768px) {
   .checkpoint-page-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: .5rem 1rem; }
   .checkpoint-copy { display: grid; grid-template-columns: minmax(6rem, 10rem) auto; align-items: baseline; gap: .125rem 1rem; }
   .checkpoint-count { white-space: nowrap; }
-  .checkpoint-date-warning { grid-column: 1 / -1; }
   .quick-add-controls { grid-template-columns: minmax(0, 1fr) auto auto; }
   .quick-add-controls input { grid-column: auto; min-height: 36px; padding: .375rem .75rem; font-size: .875rem; }
   .route-activity { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 .75rem; }

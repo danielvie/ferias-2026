@@ -32,7 +32,8 @@ _Avoid_: Using "place" for a scheduled appointment.
 
 **Checklist**: A named, shared list of items for the trip. Its items can be pending or completed and may have an assigned member or shared label. A trip-wide checklist is not tied to a city or departure.
 
-**Transition checklist**: A named checklist attached to the ordered pair of checkpoint visits it sits between. Creating one from another checklist copies its items with new identities and resets them to pending. Later edits and completion are independent. Reordering visits does not move or delete the checklist; if its checkpoints are no longer adjacent, it remains in Checklists for review.
+**City checklist**: A named checklist attached to one checkpoint, either for arriving or leaving. It stays with that visit when the route is reordered. Creating one from another checklist copies its items with new identities and resets them to pending; later edits and completion are independent.
+_Avoid_: Treating the city name or a pair of neighboring checkpoints as its identity.
 
 **Packing list**: The initial checklist of items to bring on the whole trip. Packing an item does not complete a departure check.
 

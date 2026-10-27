@@ -1,4 +1,15 @@
-import type { Checklist, ChecklistItem, TripData } from './model.ts';
+import type { Checklist, ChecklistItem, City, CityChecklistPosition, TripData } from './model.ts';
+import { visitLabel } from './route.ts';
+
+/** Read legacy transitions as leaving their original starting visit without rewriting stored items. */
+export function checklistPosition(list: Checklist): CityChecklistPosition | undefined {
+  return list.city ?? (list.transition ? { cityId: list.transition.fromCityId, phase: 'leaving' } : undefined);
+}
+
+export function checklistPositionLabel(cities: City[], position: CityChecklistPosition): string {
+  const city = visitLabel(cities, position.cityId);
+  return position.phase === 'arriving' ? `Arriving in ${city}` : `Leaving ${city}`;
+}
 
 /** Legacy data is adopted without changing item IDs or completion/assignment. */
 export function tripChecklists(data: Pick<TripData, 'checklists' | 'packing'>): Checklist[] {

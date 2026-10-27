@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { Store } from '../server/store';
 import { commandInput } from '../server/validation';
-import { tripChecklists } from '../shared/checklists';
+import { checklistPosition, tripChecklists } from '../shared/checklists';
 import type { TripCommand, TripData } from '../shared/model';
 
 const stores: Store[] = [];
@@ -87,8 +87,44 @@ describe('named checklists', () => {
     expect(() => commandInput({ ...list, sourceId: undefined })).toThrow();
     expect(() => store.command({ ...access, member: { ...access.member, role: 'viewer' } },
       state.revision, { ...list, id: 'viewer' })).toThrow('does not allow');
-    expect(() => command({ type: 'trip.update', trip: { ...state.data.trip, cities: [first] } })).toThrow();
+    expect(() => command({ type: 'trip.update', trip: { ...state.data.trip, cities: [second] } })).toThrow();
     expect(store.snapshot(access).data.checklists!.find(item => item.id === 'reminder')).toBeDefined();
+  });
+
+  it('attaches arriving and leaving checklists to one visit and interprets old transitions as leaving', () => {
+    const { command, store, access } = setup();
+    const [first, second] = store.snapshot(access).data.trip.cities;
+    const original = store.snapshot(access).data.checklists![0].items[0];
+    command({ type: 'packing.update', id: original.id, status: 'done', assignee: 'Ana' });
+    command({ type: 'checklist.addTransition', id: 'legacy', title: 'Old leg',
+      fromCityId: first.id, toCityId: second.id, sourceId: 'packing' });
+    const legacyItem = store.snapshot(access).data.checklists!.find(list => list.id === 'legacy')!.items[0];
+    command({ type: 'checklist.item.update', checklistId: 'legacy', id: legacyItem.id, status: 'done', assignee: 'Ana' });
+    command({ type: 'checklist.addCity', id: 'arrival', title: 'Hotel', cityId: second.id, phase: 'arriving', sourceId: 'legacy' });
+    let state = command({ type: 'checklist.addCity', id: 'departure', title: 'Bags', cityId: second.id, phase: 'leaving', sourceId: null });
+    const legacy = state.data.checklists!.find(list => list.id === 'legacy')!;
+    const arrival = state.data.checklists!.find(list => list.id === 'arrival')!;
+    expect(checklistPosition(legacy)).toEqual({ cityId: first.id, phase: 'leaving' });
+    expect(legacy.items[0]).toEqual({ ...legacyItem, status: 'done', assignee: 'Ana' });
+    expect(arrival.city).toEqual({ cityId: second.id, phase: 'arriving' });
+    expect(arrival.items[0]).toMatchObject({ title: legacyItem.title, status: 'pending', assignee: 'Ana' });
+    expect(arrival.items[0].id).not.toBe(legacyItem.id);
+    state = command({ type: 'visit.move', id: second.id, beforeId: first.id });
+    expect(checklistPosition(state.data.checklists!.find(list => list.id === 'legacy')!)).toEqual({ cityId: first.id, phase: 'leaving' });
+    expect(state.data.checklists!.find(list => list.id === 'arrival')).toEqual(arrival);
+    expect(() => command({ type: 'checklist.addCity', id: 'bad', title: 'Bad', cityId: 'missing', phase: 'arriving', sourceId: null })).toThrow('does not exist');
+    expect(() => commandInput({ type: 'checklist.addCity', id: 'bad', title: 'Bad', cityId: first.id, phase: 'during', sourceId: null })).toThrow();
+  });
+
+  it('does not keep a legacy checklist attached to its former destination', () => {
+    const { command, store, access } = setup();
+    const [first, second] = store.snapshot(access).data.trip.cities;
+    const before = command({ type: 'checklist.addTransition', id: 'legacy', title: 'Leave',
+      fromCityId: first.id, toCityId: second.id, sourceId: null });
+    const after = command({ type: 'trip.update', trip: { ...before.data.trip, cities: [first] } });
+    const list = after.data.checklists!.find(item => item.id === 'legacy')!;
+    expect(checklistPosition(list)).toEqual({ cityId: first.id, phase: 'leaving' });
+    expect(list.id).toBe('legacy');
   });
 
   it('reorders items without changing their data and records the list order under the trusted actor', () => {

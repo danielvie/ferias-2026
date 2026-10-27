@@ -128,6 +128,26 @@ describe('online API with actual PostgreSQL migrations', () => {
     expect((await load((await invite('family')).sessionToken)).data.checklists).toEqual([]);
   });
 
+  test('persists city checklists and preserves legacy checklist items across route moves', async () => {
+    const [from, to] = state.data.trip.cities;
+    await command({ type: 'checklist.addTransition', id: 'legacy-city', title: 'Old journey',
+      fromCityId: from.id, toCityId: to.id, sourceId: null });
+    await command({ type: 'checklist.item.add', checklistId: 'legacy-city', title: 'Ticket' });
+    const item = state.data.checklists!.find(list => list.id === 'legacy-city')!.items[0];
+    await command({ type: 'checklist.item.update', checklistId: 'legacy-city', id: item.id, status: 'done', assignee: 'Ana' });
+    await command({ type: 'checklist.addCity', id: 'arrival-city', title: 'Arrival',
+      cityId: to.id, phase: 'arriving', sourceId: 'legacy-city' });
+    await command({ type: 'visit.move', id: to.id, beforeId: from.id });
+    const lists = (await load()).data.checklists!;
+    expect(lists.find(list => list.id === 'legacy-city')).toMatchObject({
+      transition: { fromCityId: from.id, toCityId: to.id }, items: [{ ...item, status: 'done', assignee: 'Ana' }],
+    });
+    expect(lists.find(list => list.id === 'arrival-city')).toMatchObject({
+      city: { cityId: to.id, phase: 'arriving' }, items: [{ title: 'Ticket', status: 'pending', assignee: 'Ana' }],
+    });
+    expect(lists.find(list => list.id === 'arrival-city')!.items[0].id).not.toBe(item.id);
+  });
+
   test('persists checklist item order and attribution without changing completion or ownership', async () => {
     const original = state.data.packing;
     const [passport, charger, jacket] = original;

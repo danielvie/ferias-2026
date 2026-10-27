@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Place, TripCommand } from '../../../shared/model';
-import { routeDateConflicts, visitLabel } from '../../../shared/route';
+import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { ModalPane } from '../../components/ModalPane';
 import { PlaceCard } from './PlaceCard';
@@ -16,7 +16,7 @@ type ActiveForm = { kind: 'edit'; place: Place; editing: boolean; onSaved?: () =
   { kind: 'schedule' | 'details' | 'move'; placeId: string } | { kind: 'visit'; beforeId: string | null };
 
 export function PlacesPage() {
-  const { snapshot, canEdit, busy, command, navigate } = useTrip();
+  const { snapshot, canEdit, busy, command } = useTrip();
   const { places, trip } = snapshot.data;
   const [checkpointId, setCheckpointId] = useState<string | null>(null);
   const [form, setForm] = useState<ActiveForm | null>(null);
@@ -28,7 +28,6 @@ export function PlacesPage() {
   const checkpointIndex = trip.cities.findIndex(city => city.id === checkpointId);
   const checkpoint = trip.cities[checkpointIndex];
   const selected = form && 'placeId' in form ? places.find(place => place.id === form.placeId) : undefined;
-  const dateConflicts = routeDateConflicts(trip.cities, snapshot.data.events);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -126,16 +125,12 @@ export function PlacesPage() {
         {'placeId' in form && !selected &&
           <div className="panel"><p>This activity is no longer available.</p><button className="button secondary" onClick={closeForm}>Close</button></div>}
       </div>}
-      {dateConflicts.length > 0 && <div className="places-warning">
-        Some scheduled dates run against your route order. No bookings were moved.{' '}
-        <button className="button ghost" type="button" onClick={() => navigate('calendar')}>Review calendar</button>
-      </div>}
       <section className="route-workspace" aria-label="Your route">
         <RouteBoard places={places} selectedId={checkpoint?.id ?? null} disabled={disabled} actions={actions}
           onSelect={id => setCheckpointId(id === checkpointId ? null : id)}>
           {checkpoint && <CheckpointDetails key={checkpoint.id} city={checkpoint}
             places={places.filter(place => place.cityId === checkpoint.id)} disabled={!!form}
-            conflict={dateConflicts.includes(checkpoint.id)} actions={actions} />}
+            actions={actions} />}
         </RouteBoard>
         <p className="route-footnote">Tap a checkpoint to expand or collapse its activities.{canEdit && ' Drag the grip beside a checkpoint number to reorder.'}{' '}
           Same city, separate checkpoints. Reordering never changes scheduled dates or times.</p>

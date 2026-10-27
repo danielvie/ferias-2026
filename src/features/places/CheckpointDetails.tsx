@@ -7,8 +7,8 @@ import { PlaceSuggestions } from './PlaceSuggestions';
 import { QuickAddActivity } from './QuickAddActivity';
 import type { RouteActions } from './RouteBoard';
 
-export function CheckpointDetails({ city, places, conflict, disabled, actions }: {
-  city: City; places: Place[]; conflict: boolean; disabled: boolean;
+export function CheckpointDetails({ city, places, disabled, actions }: {
+  city: City; places: Place[]; disabled: boolean;
   actions: RouteActions;
 }) {
   const { snapshot, canEdit, busy } = useTrip();
@@ -24,9 +24,8 @@ export function CheckpointDetails({ city, places, conflict, disabled, actions }:
   // https://www.w3.org/WAI/ARIA/apg/patterns/accordion/
   return <section id="checkpoint-details" className="checkpoint-details" data-checkpoint-id={city.id}
     aria-labelledby={`checkpoint-${city.id}`}>
-    {(events.length > 0 || conflict) && <div className="checkpoint-facts">
-      {events.length > 0 && <span>{formatTripDate(events[0].date)}</span>}
-      {conflict && <span className="route-date-warning">Review dates</span>}
+    {events.length > 0 && <div className="checkpoint-facts">
+      <span>{formatTripDate(events[0].date)}</span>
     </div>}
     {places.length > 0 && <details className="checkpoint-filters">
       <summary>Find an activity</summary>

@@ -1,4 +1,4 @@
-import { adoptChecklists, checklistStrategies } from '../shared/checklists.ts';
+import { adoptChecklists, checklistPosition, checklistStrategies } from '../shared/checklists.ts';
 import type { Member, Note, TripCommand, TripData } from '../shared/model.ts';
 import { requireNoteMutation, requirePermission } from './permissions.ts';
 import { check, HttpError } from './validation.ts';
@@ -67,10 +67,8 @@ function validateReferences(data: TripData) {
     inRange(data, transfer.date);
   }
   for (const list of data.checklists ?? []) {
-    if (list.transition) {
-      city(list.transition.fromCityId);
-      city(list.transition.toCityId);
-    }
+    const position = checklistPosition(list);
+    if (position) city(position.cityId);
   }
   for (const note of data.notes) {
     // Invisible annotations must not block or reveal themselves through shared itinerary edits.
@@ -196,6 +194,18 @@ export function applyCommand(data: TripData, member: Member, command: TripComman
         items: source?.items.map(item => ({ ...item, id: randomUUID(), status: 'pending' as const })) ?? [],
       });
       message = `${member.name} added a transition checklist.`;
+      break;
+    }
+    case 'checklist.addCity': {
+      check(checklists.length < 100, 'A trip can have at most 100 checklists.');
+      check(command.id !== 'packing' && !checklists.some(list => list.id === command.id), 'This checklist ID already exists.');
+      find(data.trip.cities, command.cityId);
+      const source = command.sourceId === null ? null : find(checklists, command.sourceId);
+      save(checklists, {
+        id: command.id, title: command.title, city: { cityId: command.cityId, phase: command.phase },
+        items: source?.items.map(item => ({ ...item, id: randomUUID(), status: 'pending' as const })) ?? [],
+      });
+      message = `${member.name} added a city checklist.`;
       break;
     }
     case 'checklist.rename':
