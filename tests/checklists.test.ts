@@ -46,6 +46,51 @@ describe('named checklists', () => {
     expect(next.data.checklists![1].items).toEqual([]);
   });
 
+  it('copies checks independently for each transition and keeps their state across reordering', () => {
+    const { command, store, access } = setup();
+    const [first, second] = store.snapshot(access).data.trip.cities;
+    command({ type: 'visit.add', visit: { id: 'third', name: 'Bruges' }, beforeId: null });
+    command({ type: 'checklist.add', id: 'documents', title: 'Check documents' });
+    let state = command({ type: 'checklist.item.add', checklistId: 'documents', title: 'Passport' });
+    const original = state.data.checklists!.find(list => list.id === 'documents')!.items[0];
+    command({ type: 'checklist.item.update', checklistId: 'documents', id: original.id, status: 'done', assignee: 'Ana' });
+    command({ type: 'checklist.addTransition', id: 'first-leg', title: 'Check documents',
+      fromCityId: first.id, toCityId: second.id, sourceId: 'documents' });
+    state = command({ type: 'checklist.addTransition', id: 'second-leg', title: 'Check documents',
+      fromCityId: second.id, toCityId: 'third', sourceId: 'first-leg' });
+    const firstCopy = state.data.checklists!.find(list => list.id === 'first-leg')!;
+    const secondCopy = state.data.checklists!.find(list => list.id === 'second-leg')!;
+    expect(firstCopy.items[0]).toMatchObject({ title: 'Passport', status: 'pending', assignee: 'Ana' });
+    expect(secondCopy.items[0]).toMatchObject({ title: 'Passport', status: 'pending', assignee: 'Ana' });
+    expect(new Set([original.id, firstCopy.items[0].id, secondCopy.items[0].id]).size).toBe(3);
+    command({ type: 'checklist.item.update', checklistId: 'first-leg', id: firstCopy.items[0].id, status: 'done', assignee: 'Ana' });
+    state = command({ type: 'visit.move', id: second.id, beforeId: null });
+    expect(state.data.checklists!.find(list => list.id === 'documents')!.items[0].status).toBe('done');
+    expect(state.data.checklists!.find(list => list.id === 'second-leg')!.items[0].status).toBe('pending');
+    expect(state.data.checklists!.find(list => list.id === 'first-leg')!.transition)
+      .toEqual({ fromCityId: first.id, toCityId: second.id });
+    expect(() => command({ type: 'checklist.addTransition', id: 'invalid', title: 'Invalid',
+      fromCityId: first.id, toCityId: second.id, sourceId: null })).toThrow('consecutive');
+  });
+
+  it('creates an empty transition list and enforces references and access', () => {
+    const { command, store, access } = setup();
+    const [first, second] = store.snapshot(access).data.trip.cities;
+    const list = { type: 'checklist.addTransition', id: 'reminder', title: 'Check documents',
+      fromCityId: first.id, toCityId: second.id, sourceId: null } as const;
+    const state = command(list);
+    expect(state.data.checklists!.find(item => item.id === 'reminder')).toMatchObject({
+      title: 'Check documents', items: [], transition: { fromCityId: first.id, toCityId: second.id },
+    });
+    expect(() => command({ ...list, id: 'bad-source', sourceId: 'missing' })).toThrow('does not exist');
+    expect(() => command({ ...list, id: 'bad-visit', toCityId: 'missing' })).toThrow('consecutive');
+    expect(() => commandInput({ ...list, sourceId: undefined })).toThrow();
+    expect(() => store.command({ ...access, member: { ...access.member, role: 'viewer' } },
+      state.revision, { ...list, id: 'viewer' })).toThrow('does not allow');
+    expect(() => command({ type: 'trip.update', trip: { ...state.data.trip, cities: [first] } })).toThrow();
+    expect(store.snapshot(access).data.checklists!.find(item => item.id === 'reminder')).toBeDefined();
+  });
+
   it('reorders items without changing their data and records the list order under the trusted actor', () => {
     const { store, access, command, created } = setup();
     const original = created.snapshot.data.packing;

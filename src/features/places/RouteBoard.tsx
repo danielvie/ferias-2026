@@ -3,10 +3,12 @@ import { closestCenter, DndContext, DragOverlay, KeyboardSensor, PointerSensor, 
   useSensor, useSensors, type CollisionDetection, type DragEndEvent } from '@dnd-kit/core';
 import { verticalListSortingStrategy, SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { Place } from '../../../shared/model';
+import { tripChecklists } from '../../../shared/checklists';
 import { routeDateConflicts } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { Icon } from '../../components/Icon';
 import { CityVisitCard } from './CityVisitCard';
+import { TransitionChecklists } from './TransitionChecklists';
 
 export interface RouteActions {
   moveVisit: (id: string, beforeId: string | null) => void;
@@ -29,7 +31,7 @@ export function RouteBoard({ places, selectedId, disabled, actions, onSelect, ch
   places: Place[]; selectedId: string | null; disabled: boolean; actions: RouteActions; onSelect: (id: string) => void;
   children?: ReactNode;
 }) {
-  const { snapshot, canEdit } = useTrip();
+  const { snapshot, canEdit, navigate } = useTrip();
   const { trip, events } = snapshot.data;
   const [activeId, setActiveId] = useState<string | null>(null);
   // Handle-only touch-action:none leaves the rest of the board scrollable.
@@ -51,6 +53,11 @@ export function RouteBoard({ places, selectedId, disabled, actions, onSelect, ch
   }
 
   const activeTitle = trip.cities.find(city => city.id === activeId)?.name;
+  const displaced = tripChecklists(snapshot.data).filter(list => {
+    if (!list.transition) return false;
+    const index = trip.cities.findIndex(city => city.id === list.transition!.fromCityId);
+    return trip.cities[index + 1]?.id !== list.transition.toCityId;
+  });
 
   return <DndContext sensors={sensors} collisionDetection={collisionDetection}
     onDragStart={({ active }) => setActiveId(active.data.current?.id)}
@@ -59,11 +66,18 @@ export function RouteBoard({ places, selectedId, disabled, actions, onSelect, ch
       <SortableContext items={trip.cities.map(city => `visit:${city.id}`)} strategy={verticalListSortingStrategy}>
         {trip.cities.map((city, index) => <CityVisitCard key={city.id} city={city} index={index}
           activityCount={places.filter(place => place.cityId === city.id).length} selected={selectedId === city.id}
-          disabled={disabled} conflict={conflicts.includes(city.id)} actions={actions} onSelect={onSelect}>
+          disabled={disabled} conflict={conflicts.includes(city.id)} actions={actions} onSelect={onSelect}
+          after={trip.cities[index + 1] && snapshot.session.role !== 'family' && <TransitionChecklists
+            from={city} to={trip.cities[index + 1]} disabled={disabled} />}>
           {selectedId === city.id && children}
         </CityVisitCard>)}
       </SortableContext>
     </ol>
+    {displaced.length > 0 && <div className="places-warning">
+      {displaced.length} {displaced.length === 1 ? 'checklist belongs' : 'checklists belong'} to checkpoints
+      that are no longer adjacent. The checklists are unchanged.{' '}
+      <button className="button ghost" type="button" onClick={() => navigate('checklists')}>View checklists</button>
+    </div>}
     <DragOverlay dropAnimation={null}>{activeId && <div className="route-drag-preview" aria-hidden="true">
       <Icon name="grip" /><span>{activeTitle}</span>
     </div>}</DragOverlay>

@@ -112,6 +112,22 @@ describe('online API with actual PostgreSQL migrations', () => {
     }
   });
 
+  test('persists independent transition checklist copies in PostgreSQL', async () => {
+    const [from, to] = state.data.trip.cities;
+    await command({ type: 'checklist.add', id: 'documents', title: 'Documents' });
+    await command({ type: 'checklist.item.add', checklistId: 'documents', title: 'Passport' });
+    const item = state.data.checklists!.find(list => list.id === 'documents')!.items[0];
+    await command({ type: 'checklist.item.update', checklistId: 'documents', id: item.id, status: 'done', assignee: '' });
+    await command({ type: 'checklist.addTransition', id: 'journey', title: 'Documents',
+      fromCityId: from.id, toCityId: to.id, sourceId: 'documents' });
+    const saved = (await load()).data.checklists!.find(list => list.id === 'journey')!;
+    expect(saved.transition).toEqual({ fromCityId: from.id, toCityId: to.id });
+    expect(saved.items[0]).toMatchObject({ title: 'Passport', status: 'pending' });
+    expect(saved.items[0].id).not.toBe(item.id);
+    expect((await load()).data.checklists!.find(list => list.id === 'documents')!.items[0].status).toBe('done');
+    expect((await load((await invite('family')).sessionToken)).data.checklists).toEqual([]);
+  });
+
   test('persists checklist item order and attribution without changing completion or ownership', async () => {
     const original = state.data.packing;
     const [passport, charger, jacket] = original;

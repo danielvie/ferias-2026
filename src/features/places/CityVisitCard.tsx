@@ -6,9 +6,9 @@ import { useTrip } from '../../app/TripContext';
 import { Icon } from '../../components/Icon';
 import type { RouteActions } from './RouteBoard';
 
-export function CityVisitCard({ city, index, activityCount, selected, disabled, conflict, actions, onSelect, children }: {
+export function CityVisitCard({ city, index, activityCount, selected, disabled, conflict, actions, onSelect, children, after }: {
   city: City; index: number; activityCount: number; selected: boolean; disabled: boolean;
-  conflict: boolean; actions: RouteActions; onSelect: (id: string) => void; children?: ReactNode;
+  conflict: boolean; actions: RouteActions; onSelect: (id: string) => void; children?: ReactNode; after?: ReactNode;
 }) {
   const { canEdit, snapshot } = useTrip();
   const cities = snapshot.data.trip.cities;
@@ -60,5 +60,6 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
       </details>}
     </div>
     {children}
+    {after}
   </li>;
 }

@@ -35,6 +35,9 @@ export function PlacesPage() {
       if (form && form.kind !== 'move') {
         formArea.current?.querySelector<HTMLElement>('input, select, button')?.focus();
       } else if (!form && trigger.current) {
+        // Do not steal focus if the user moved on before this frame ran.
+        if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body &&
+          document.activeElement !== document.documentElement && document.activeElement.isConnected) return;
         const button = trigger.current.isConnected ? trigger.current : document.getElementById(trigger.current.id);
         (button ?? document.querySelector<HTMLElement>('.checkpoint-open[aria-expanded="true"]') ??
           document.querySelector<HTMLElement>('.places-page h1'))?.focus();

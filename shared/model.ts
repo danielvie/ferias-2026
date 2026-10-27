@@ -52,7 +52,12 @@ export interface Note {
 }
 export type CheckStatus = 'pending' | 'done' | 'skipped';
 export interface ChecklistItem { id: string; title: string; assignee: string; status: CheckStatus }
-export interface Checklist { id: string; title: string; items: ChecklistItem[] }
+export interface Checklist {
+  id: string;
+  title: string;
+  items: ChecklistItem[];
+  transition?: { fromCityId: string; toCityId: string };
+}
 export interface Transfer {
   id: string;
   fromCityId: string;
@@ -110,6 +115,7 @@ export type TripCommand =
   | { type: 'note.delete'; id: string }
   | { type: 'note.comment'; id: string; body: string }
   | { type: 'checklist.add'; id: string; title: string }
+  | { type: 'checklist.addTransition'; id: string; title: string; fromCityId: string; toCityId: string; sourceId: string | null }
   | { type: 'checklist.rename'; id: string; title: string }
   | { type: 'checklist.delete'; id: string }
   | { type: 'checklist.item.add'; checklistId: string; title: string }

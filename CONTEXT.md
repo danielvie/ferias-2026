@@ -30,7 +30,9 @@ _Avoid_: Using "place" for a scheduled appointment.
 
 **Transfer**: A move between two cities on a specific trip day, with its own departure checklist.
 
-**Checklist**: A named, shared list of items for the trip. Its items can be pending or completed and may have an assigned member or shared label. A checklist is not tied to a city or departure.
+**Checklist**: A named, shared list of items for the trip. Its items can be pending or completed and may have an assigned member or shared label. A trip-wide checklist is not tied to a city or departure.
+
+**Transition checklist**: A named checklist attached to the ordered pair of checkpoint visits it sits between. Creating one from another checklist copies its items with new identities and resets them to pending. Later edits and completion are independent. Reordering visits does not move or delete the checklist; if its checkpoints are no longer adjacent, it remains in Checklists for review.
 
 **Packing list**: The initial checklist of items to bring on the whole trip. Packing an item does not complete a departure check.
 

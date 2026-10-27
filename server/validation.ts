@@ -168,6 +168,11 @@ export function commandInput(value: unknown): TripCommand {
     case 'note.comment': return { type, id: id(v.id), body: text(v.body, 'Comment', 5000) };
     case 'checklist.add':
     case 'checklist.rename': return { type, id: id(v.id), title: text(v.title, 'Checklist title') };
+    case 'checklist.addTransition': return {
+      type, id: id(v.id), title: text(v.title, 'Checklist title'),
+      fromCityId: id(v.fromCityId), toCityId: id(v.toCityId),
+      sourceId: v.sourceId === null ? null : id(v.sourceId),
+    };
     case 'checklist.item.add': return { type, checklistId: id(v.checklistId), title: text(v.title, 'Item title') };
     case 'checklist.item.rename': return { type, checklistId: id(v.checklistId), id: id(v.id), title: text(v.title, 'Item title') };
     case 'checklist.item.move': return { type, checklistId: id(v.checklistId), id: id(v.id), beforeId: beforeId() };

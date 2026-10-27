@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Checklist, ChecklistItem } from '../../../shared/model';
+import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { ChecklistItems } from './ChecklistItems';
 import { InlineChecklistText } from './InlineChecklistText';
@@ -14,7 +15,7 @@ export function ChecklistEditor({ list, focusNewItem, removed, onDeleted, onActi
   onDirtyChange: (id: string, dirty: boolean) => void;
   onDiscard: (id: string) => void;
 }) {
-  const { command, busy, canEdit } = useTrip();
+  const { command, busy, canEdit, snapshot } = useTrip();
   const [newItem, setNewItem] = useState('');
   const [failed, setFailed] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -53,6 +54,9 @@ export function ChecklistEditor({ list, focusNewItem, removed, onDeleted, onActi
       <p>This checklist was removed elsewhere. Your unsaved edits are kept here so you can copy them.</p>
       <button className="button secondary" type="button" onClick={() => onDiscard(list.id)}>Discard retained drafts</button>
     </div>}
+    {list.transition && <p className="checklist-transition-label">
+      {visitLabel(snapshot.data.trip.cities, list.transition.fromCityId)} to {visitLabel(snapshot.data.trip.cities, list.transition.toCityId)}
+    </p>}
     <header className="compact-list-header">
       <InlineChecklistText value={list.title} label={`Checklist title: ${list.title}`} title
         onDirtyChange={setTitleDirty}

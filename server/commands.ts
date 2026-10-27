@@ -66,6 +66,12 @@ function validateReferences(data: TripData) {
     city(transfer.toCityId);
     inRange(data, transfer.date);
   }
+  for (const list of data.checklists ?? []) {
+    if (list.transition) {
+      city(list.transition.fromCityId);
+      city(list.transition.toCityId);
+    }
+  }
   for (const note of data.notes) {
     // Invisible annotations must not block or reveal themselves through shared itinerary edits.
     // Their authors can relink them when editing; preserve the original context until then.
@@ -177,6 +183,21 @@ export function applyCommand(data: TripData, member: Member, command: TripComman
       save(checklists, { id: command.id, title: command.title, items: [] });
       message = `${member.name} added a checklist.`;
       break;
+    case 'checklist.addTransition': {
+      check(checklists.length < 100, 'A trip can have at most 100 checklists.');
+      check(command.id !== 'packing' && !checklists.some(list => list.id === command.id), 'This checklist ID already exists.');
+      const index = data.trip.cities.findIndex(city => city.id === command.fromCityId);
+      check(index >= 0 && data.trip.cities[index + 1]?.id === command.toCityId, 'Choose two consecutive checkpoints.');
+      const source = command.sourceId === null ? null : find(checklists, command.sourceId);
+      save(checklists, {
+        id: command.id, title: command.title,
+        transition: { fromCityId: command.fromCityId, toCityId: command.toCityId },
+        // A copied checklist starts fresh without changing the source or another journey.
+        items: source?.items.map(item => ({ ...item, id: randomUUID(), status: 'pending' as const })) ?? [],
+      });
+      message = `${member.name} added a transition checklist.`;
+      break;
+    }
     case 'checklist.rename':
       find(checklists, command.id).title = command.title;
       message = `${member.name} renamed a checklist.`;

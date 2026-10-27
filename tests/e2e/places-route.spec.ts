@@ -66,14 +66,68 @@ async function drag(page: Page, handle: Locator, target: Locator) {
   await handle.scrollIntoViewIfNeeded();
   const from = await handle.boundingBox();
   const to = await target.boundingBox();
+  const startScroll = await page.evaluate(() => scrollY);
   expect(from).not.toBeNull(); expect(to).not.toBeNull();
   await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
   await page.mouse.down();
   await page.mouse.move(from!.x + from!.width / 2 + 10, from!.y + from!.height / 2, { steps: 3 });
   await expect(page.locator('.route-drag-preview')).toBeVisible();
   await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 20 });
+  // Auto-scrolling can move the target while the pointer is travelling.
+  if (await page.evaluate(() => scrollY) !== startScroll) {
+    const current = await target.boundingBox();
+    if (current) await page.mouse.move(current.x + current.width / 2, current.y + current.height / 2);
+  }
   await page.mouse.up();
 }
+
+test('adds a fresh checklist to each transition and keeps their checks independent', async ({ page }, testInfo) => {
+  const ids = await setup(page);
+  await command(page, { type: 'checklist.add', id: 'documents', title: 'Check documents' });
+  await command(page, { type: 'checklist.item.add', checklistId: 'documents', title: 'Passport' });
+  await page.reload();
+  await places(page);
+  const first = visit(page, ids[0]).locator('.transition-connector');
+  await first.getByRole('button', { name: /Add checklist from/ }).click();
+  await first.getByLabel('Start with').selectOption('documents');
+  await first.getByRole('button', { name: 'Add checklist', exact: true }).click();
+  await expect(first.getByRole('checkbox', { name: 'Passport' })).not.toBeChecked();
+  await first.getByRole('checkbox', { name: 'Passport' }).check();
+  await expect(first.getByText('All checks complete')).toBeVisible();
+  await first.getByRole('button', { name: 'Close Check documents' }).click();
+  await expect(first.getByRole('button', { name: /Open Check documents/ })).toBeVisible();
+
+  const second = visit(page, ids[1]).locator('.transition-connector');
+  await second.getByRole('button', { name: /Add checklist from/ }).click();
+  await second.getByLabel('Start with').selectOption('documents');
+  await second.getByRole('button', { name: 'Add checklist', exact: true }).click();
+  await expect(second.getByRole('checkbox', { name: 'Passport' })).not.toBeChecked();
+  await page.reload();
+  await places(page);
+  await first.getByRole('button', { name: /Open Check documents/ }).click();
+  await expect(first.getByText('All checks complete')).toBeVisible();
+  await second.getByRole('button', { name: /Open Check documents/ }).click();
+  await expect(second.getByRole('checkbox', { name: 'Passport' })).not.toBeChecked();
+  await page.screenshot({ path: testInfo.outputPath('transition-desktop.png'), fullPage: true });
+  await page.setViewportSize({ width: 320, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
+  const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+  expect(result.violations.map(violation => violation.id)).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath('transition-mobile.png'), fullPage: true });
+});
+
+test('creates a new transition checklist and adds a check', async ({ page }) => {
+  const ids = await setup(page);
+  const connector = visit(page, ids[0]).locator('.transition-connector');
+  await connector.getByRole('button', { name: /Add checklist from/ }).click();
+  await connector.getByLabel('Checklist title').fill('Check documents');
+  await connector.getByRole('button', { name: 'Add checklist', exact: true }).click();
+  await expect(connector.getByText('No checks yet')).toBeVisible();
+  await connector.getByRole('textbox', { name: 'New item for Check documents' }).fill('Passport');
+  await connector.getByRole('textbox', { name: 'New item for Check documents' }).press('Enter');
+  await expect(connector.getByRole('checkbox', { name: 'Passport' })).not.toBeChecked();
+  await expect(connector.getByText('1 check left')).toBeVisible();
+});
 
 test('inserts a separate visit from the checkpoint menu and keeps its activities empty', async ({ page }) => {
   const ids = await setup(page);
@@ -236,8 +290,8 @@ test('shows compact unfilled checkpoint rows with inline quick add without overf
     expect(boxes[1].y).toBeGreaterThan(boxes[0].y);
     const heights = await page.locator('.route-visit').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().height));
     expect(heights.every(height => height <= 60)).toBeTruthy();
-    expect(boxes[7].y - boxes[0].y).toBeLessThanOrEqual(7 * 60);
-    await expect(visit(page, 'extra-Dinant')).toBeInViewport();
+    await expect(page.locator('.transition-add')).toHaveCount(7);
+    expect(boxes[7].y - boxes[0].y).toBeLessThanOrEqual(7 * 110);
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     expect(result.violations.map(violation => violation.id)).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath(`places-${width}.png`), fullPage: true });
