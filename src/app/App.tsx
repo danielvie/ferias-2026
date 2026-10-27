@@ -18,16 +18,15 @@ import { tripIdentity } from './remembered-trips';
 import { JoinTripPane } from './JoinTripPane';
 import { OwnerRecovery } from '../features/sharing/OwnerRecovery';
 import { isOnlineBackend } from './api';
-import { quickStartTrip } from './quick-start';
 import { useTripPage } from './useTripPage';
 
-type Panel = 'details' | 'link' | 'member' | 'trips' | 'create' | 'quick-start';
+type Panel = 'details' | 'link' | 'member' | 'trips' | 'create';
 
 export function App() {
   const session = useTripSession();
   const [page, setPage] = useTripPage(session.snapshot);
   const [activePanel, setActivePanel] = useState<Panel | null>(null);
-  const [quickStart, setQuickStart] = useState<TripDetailsInput>();
+  const [quickStarting, setQuickStarting] = useState(false);
   const [setupHint, setSetupHint] = useState('');
   const [copied, setCopied] = useState(false);
   const main = useRef<HTMLElement>(null);
@@ -50,17 +49,20 @@ export function App() {
     setSetupHint('');
     setActivePanel(panel);
   }
-  function openQuickStart() {
+  async function openQuickStart() {
     if (!canLeave()) return;
-    setQuickStart(quickStartTrip());
-    openPanel('quick-start');
+    setQuickStarting(true);
+    try {
+      if (await session.quickStart()) {
+        requestAnimationFrame(() => { main.current?.focus(); window.scrollTo({ top: 0 }); });
+      }
+    } finally { setQuickStarting(false); }
   }
   function closePanel() {
-    const focusId = activePanel === 'quick-start' ? 'quick-start-button' : 'trip-details-button';
     setActivePanel(null);
     setSetupHint('');
     session.dismissError();
-    requestAnimationFrame(() => document.getElementById(focusId)?.focus());
+    requestAnimationFrame(() => document.getElementById('trip-details-button')?.focus());
   }
   function navigate(destination: Page) {
     // Existing feature callers still use 'calendar'; there is now one itinerary.
@@ -86,7 +88,7 @@ export function App() {
   const FeaturePage = safePage === 'today' ? null : pages[safePage];
   async function saveDetails(details: TripDetailsInput) {
     let saved: boolean;
-    if (snapshot && activePanel !== 'create' && activePanel !== 'quick-start') {
+    if (snapshot && activePanel !== 'create') {
       saved = await session.command({ type: 'trip.update', trip: {
         title: details.title, startDate: details.startDate, endDate: details.endDate, cities: details.cities,
       } });
@@ -132,13 +134,12 @@ export function App() {
     <p>This link opens your owner identity on another browser. Use Share to invite people instead.</p>
     <div className="actions"><label className="visually-hidden" htmlFor="owner-link">Private owner recovery link</label><input id="owner-link" readOnly value={session.recoveryLink} onFocus={(event) => event.currentTarget.select()} /><button className="button secondary" onClick={() => void copyRecovery()}>{copied ? 'Copied' : 'Copy owner link'}</button></div>
   </section>;
-  const detailsPanel = formPanel && <ModalPane title={activePanel === 'link' ? 'Open trip link' : activePanel === 'quick-start' ? 'Quick start' : activePanel === 'create' ? 'New trip' : snapshot ? 'Trip settings' : 'Trip details'}
+  const detailsPanel = formPanel && <ModalPane title={activePanel === 'link' ? 'Open trip link' : activePanel === 'create' ? 'New trip' : snapshot ? 'Trip settings' : 'Trip details'}
     busy={session.busy} onClose={() => { if (canLeave()) closePanel(); }}>
     {setupHint && activePanel === 'details' && <p className="setup-hint" role="status">{setupHint}</p>}
-    {(activePanel === 'details' || activePanel === 'create' || activePanel === 'quick-start') && <TripDetailsForm
-      key={activePanel === 'quick-start' ? 'quick-start' : activePanel === 'create' ? 'new-trip' : snapshot?.data.trip.id ?? 'new-trip'}
-      trip={activePanel === 'create' || activePanel === 'quick-start' ? undefined : snapshot?.data.trip}
-      initial={activePanel === 'quick-start' ? quickStart : undefined} busy={session.busy}
+    {(activePanel === 'details' || activePanel === 'create') && <TripDetailsForm
+      key={activePanel === 'create' ? 'new-trip' : snapshot?.data.trip.id ?? 'new-trip'}
+      trip={activePanel === 'create' ? undefined : snapshot?.data.trip} busy={session.busy}
       error={session.error} onSave={saveDetails} onCancel={closePanel} />}
     {activePanel === 'details' && snapshot?.session.role === 'owner' && (ownerLink || isOnlineBackend) &&
       <details className="owner-recovery">
@@ -170,8 +171,8 @@ export function App() {
     {snapshot ? <fieldset className="trip-content" disabled={session.accessLost}>
       <legend className="visually-hidden">Trip workspace</legend>
       {FeaturePage ? <FeaturePage /> : <CalendarPage />}
-    </fieldset> : session.remembered.length > 0 ?
-      <section className="stack"><h1>Your trips</h1>{trips}</section> : <Dashboard onDetails={() => openPanel('details')} onQuickStart={openQuickStart} />}
+    </fieldset> : session.remembered.length > 0 && !quickStarting ?
+      <section className="stack"><h1>Your trips</h1>{trips}</section> : <Dashboard busy={session.busy} onDetails={() => openPanel('details')} onQuickStart={() => void openQuickStart()} />}
     {detailsPanel}
     {memberPanel}
     {tripsPanel}

@@ -7,16 +7,15 @@ export type TripDetailsInput = Omit<CreateTripInput, 'cities'> & { cities: City[
 
 interface Props {
   trip?: Trip;
-  initial?: TripDetailsInput;
   busy: boolean;
   error: string;
   onSave: (details: TripDetailsInput) => Promise<void>;
   onCancel: () => void;
 }
 
-export function TripDetailsForm({ trip, initial, busy, error, onSave, onCancel }: Props) {
+export function TripDetailsForm({ trip, busy, error, onSave, onCancel }: Props) {
   const [validationError, setValidationError] = useState('');
-  const defaults = trip ?? initial;
+  const defaults = trip;
   const [dates, setDates] = useState<DateRange>(() => ({ startDate: defaults?.startDate ?? '', endDate: defaults?.endDate ?? '' }));
   const [cities, setCities] = useState<City[]>(() => defaults?.cities.map((city) => ({ ...city })) ??
     ['Brussels', 'Ghent', 'Bruges'].map((name) => ({ id: crypto.randomUUID(), name })));
@@ -52,14 +51,13 @@ export function TripDetailsForm({ trip, initial, busy, error, onSave, onCancel }
     void onSave(details);
   }
   return <section className="details-panel">
-    <p className="muted">{trip ? 'Change the details without leaving your itinerary.' : initial ?
-      'These are sample details. Change anything, then save to create your trip. No activities or bookings are added.' :
+    <p className="muted">{trip ? 'Change the details without leaving your itinerary.' :
       'Saving creates your shared trip. You can change these details later.'}</p>
     <form className="stack" onSubmit={save}>
       <fieldset className="details-fields form-grid" disabled={busy}>
         <legend className="visually-hidden">Trip details</legend>
         <div className="field"><label htmlFor="trip-title">Trip name</label><input id="trip-title" name="title" defaultValue={defaults?.title ?? ''} placeholder="Our Belgium trip" autoFocus required maxLength={120} /></div>
-        {!trip && <div className="field"><label htmlFor="owner-name">Your name</label><input id="owner-name" name="name" defaultValue={initial?.ownerName ?? ''} autoComplete="given-name" placeholder="Your name" required maxLength={80} /></div>}
+        {!trip && <div className="field"><label htmlFor="owner-name">Your name</label><input id="owner-name" name="name" autoComplete="given-name" placeholder="Your name" required maxLength={80} /></div>}
         <DateRangePicker value={dates} onChange={(range) => { setDates(range); setValidationError(''); }} />
         <div className="field details-cities">
           <h3>Cities, in trip order</h3>

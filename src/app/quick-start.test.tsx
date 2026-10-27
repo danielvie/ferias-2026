@@ -1,7 +1,5 @@
-import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { TripDetailsForm } from './TripDetailsForm';
-import { quickStartTrip } from './quick-start';
+import { quickStartEvents, quickStartTrip } from './quick-start';
 
 describe('quick start', () => {
   it('starts today in Brussels rather than the UTC date', () => {
@@ -18,20 +16,19 @@ describe('quick start', () => {
       title: 'Sample Belgium trip', ownerName: 'Demo traveler',
       startDate: '2026-12-28', endDate: '2027-01-03',
     });
-    expect(sample.cities.map(city => city.name)).toEqual(['Brussels', 'Ghent', 'Bruges']);
-    expect(new Set(sample.cities.map(city => city.id)).size).toBe(3);
-    expect(quickStartTrip('2026-12-28').cities[0].id).not.toBe(sample.cities[0].id);
+    expect(sample.cities).toEqual(['Brussels', 'Ghent', 'Bruges']);
   });
 
-  it('renders editable sample values and the shared calendar, without saving', () => {
-    const html = renderToStaticMarkup(<TripDetailsForm initial={quickStartTrip('2026-12-28')}
-      busy={false} error="" onSave={async () => { throw new Error('Rendering must not save'); }} onCancel={() => {}} />);
-    expect(html).toContain('These are sample details.');
-    expect(html).toContain('value="Sample Belgium trip"');
-    expect(html).toContain('value="Demo traveler"');
-    expect(html).toContain('28 Dec 2026 to 3 Jan 2027');
-    expect(html).toContain('role="grid"');
-    expect(html).not.toContain('type="date"');
-    expect(html).toContain('Save trip details');
+  it('creates tentative sample activities for the saved city IDs and trip dates', () => {
+    const events = quickStartEvents({
+      id: 'trip', title: 'Sample Belgium trip', startDate: '2026-12-28', endDate: '2027-01-03',
+      timezone: 'Europe/Brussels', cities: ['Brussels', 'Ghent', 'Bruges'].map((name, i) => ({ id: `city-${i}`, name })),
+    });
+    expect(events.map(event => [event.cityId, event.date, event.status])).toEqual([
+      ['city-0', '2026-12-28', 'tentative'],
+      ['city-1', '2026-12-30', 'tentative'],
+      ['city-2', '2027-01-01', 'tentative'],
+    ]);
+    expect(new Set(events.map(event => event.id)).size).toBe(3);
   });
 });

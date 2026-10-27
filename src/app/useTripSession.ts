@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import type { CreateTripInput, JoinTripInfo, TripCommand, TripSnapshot } from '../../shared/model';
 import { api, ApiError, rememberedTrips, tripLink } from './api';
 import { tripIdentity } from './remembered-trips';
+import { quickStartEvents, quickStartTrip } from './quick-start';
 
 export function useTripSession() {
   const [snapshot, setSnapshot] = useState<TripSnapshot | null>(null);
@@ -182,6 +183,26 @@ export function useTripSession() {
         setRecoveryLink(tripLink(result.ownerToken));
       });
     },
+    quickStart: () => run(async () => {
+      const result = await api.create(quickStartTrip());
+      let next = result.snapshot;
+      let incomplete = false;
+      try {
+        for (const event of quickStartEvents(next.data.trip)) {
+          next = await api.command(next.revision, { type: 'event.save', event });
+        }
+      } catch {
+        incomplete = true;
+        // A failed response can still have saved the activity on the server.
+        try { next = await api.load(); } catch { /* Keep the last confirmed snapshot. */ }
+      }
+      return { ...result, snapshot: next, incomplete };
+    }, result => {
+      opened(result.snapshot);
+      setPendingAccess('');
+      setRecoveryLink(tripLink(result.ownerToken));
+      if (result.incomplete) setError('Your sample trip was created, but some sample activities could not be added. You can add them in the itinerary.');
+    }),
     join: async (token: string) => {
       setPendingAccess(token);
       return run(async () => {

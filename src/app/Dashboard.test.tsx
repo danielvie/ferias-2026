@@ -4,7 +4,7 @@ import { Dashboard } from './Dashboard';
 
 describe('empty itinerary', () => {
   it('shows the main page without inventing a trip or requiring a form', () => {
-    const html = renderToStaticMarkup(<Dashboard onDetails={() => {}} onQuickStart={() => {}} />);
+    const html = renderToStaticMarkup(<Dashboard busy={false} onDetails={() => {}} onQuickStart={() => {}} />);
     expect(html).toContain('<h1>Itinerary</h1>');
     expect(html).toContain('Add trip details');
     expect(html).toContain('Quick start');
