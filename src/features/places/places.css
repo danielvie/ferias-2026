@@ -141,11 +141,13 @@
 .route-notice { flex-wrap: wrap; }
 
 .transition-connector { position: relative; margin-left: 21px; padding-left: 23px; border-left: 2px solid var(--line); }
-.city-checklist-arriving { padding-top: 2.5rem; }
-.route-visit-item:first-child .city-checklist-arriving { padding-top: 0; }
 .transition-checklists { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0; width: fit-content; min-width: 0; max-width: 100%; border-radius: var(--radius); background: var(--paper); }
 .transition-checklists.is-expanded { width: 100%; background: transparent; }
 .transition-icon, .transition-add { display: inline-flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; padding: .5rem; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--muted); }
+.transition-icon { width: auto; max-width: 100%; gap: .5rem; text-align: left; overflow-wrap: anywhere; }
+.transition-icon span { min-width: 0; }
+.transition-icon svg { flex-shrink: 0; }
+.transition-add.is-empty { width: auto; gap: .375rem; }
 .transition-icon svg, .transition-add svg { width: 14px; height: 14px; }
 .transition-icon:hover:not(:disabled), .transition-add:hover:not(:disabled) { background: var(--soft-green); color: var(--accent); }
 .transition-card { flex: 1 0 100%; min-width: 0; padding: .75rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--soft-green); }
@@ -164,6 +166,7 @@
 .transition-picker-anchor { display: flex; align-items: flex-start; gap: .5rem; min-width: 0; max-width: 100%; }
 .transition-picker-anchor.is-open { flex: 1 1 18rem; max-width: calc(24rem + 3.25rem); }
 .transition-picker-anchor .transition-add { flex: 0 0 44px; }
+.transition-picker-anchor .transition-add.is-empty { flex-basis: auto; }
 .transition-picker { flex: 1 1 auto; display: flex; flex-direction: column; align-items: stretch; min-width: 0; max-width: 24rem; max-height: 18rem; overflow-y: auto; background: var(--paper); }
 .transition-picker-label { margin: 0; padding: .625rem .75rem .25rem; color: var(--muted); font-size: .8rem; }
 .transition-picker > button { display: flex; flex-direction: column; align-items: flex-start; gap: .125rem; min-height: 44px; padding: .625rem .75rem; border: 0; background: transparent; color: var(--ink); text-align: left; overflow-wrap: anywhere; }

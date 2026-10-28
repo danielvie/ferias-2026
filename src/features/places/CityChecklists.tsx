@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Checklist, City, CityChecklistPosition } from '../../../shared/model';
+import type { Checklist, City } from '../../../shared/model';
 import { checklistPosition, checklistPositionLabel, tripChecklists } from '../../../shared/checklists';
 import { useTrip } from '../../app/TripContext';
 import { Icon } from '../../components/Icon';
@@ -12,12 +12,12 @@ function progress(list: Checklist) {
   return remaining === 0 ? 'All checks complete' : `${remaining} ${remaining === 1 ? 'check' : 'checks'} left`;
 }
 
-export function CityChecklists({ city, phase, disabled }: { city: City; phase: CityChecklistPosition['phase']; disabled: boolean }) {
+export function CityChecklists({ city, disabled }: { city: City; disabled: boolean }) {
   const { snapshot, canEdit, busy, command } = useTrip();
   const lists = tripChecklists(snapshot.data);
   const attached = lists.filter(list => {
     const position = checklistPosition(list);
-    return position?.cityId === city.id && position.phase === phase;
+    return position?.cityId === city.id;
   });
   const [openId, setOpenId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -27,7 +27,7 @@ export function CityChecklists({ city, phase, disabled }: { city: City; phase: C
   const [focusTitleId, setFocusTitleId] = useState<string | null>(null);
   const creating = useRef(false);
   const addButton = useRef<HTMLButtonElement>(null);
-  const label = checklistPositionLabel(snapshot.data.trip.cities, { cityId: city.id, phase });
+  const label = checklistPositionLabel(snapshot.data.trip.cities, { cityId: city.id });
   const rememberDirty = useCallback((_id: string, value: boolean) => setDirty(value), []);
   const ignore = useCallback(() => {}, []);
 
@@ -64,7 +64,7 @@ export function CityChecklists({ city, phase, disabled }: { city: City; phase: C
     setFailed(false);
     try {
       const saved = await command({
-        type: 'checklist.addCity', ...draft, cityId: city.id, phase,
+        type: 'checklist.addCity', ...draft, cityId: city.id,
       });
       setFailed(!saved);
       if (saved) {
@@ -79,7 +79,7 @@ export function CityChecklists({ city, phase, disabled }: { city: City; phase: C
   }
 
   if (!canEdit && attached.length === 0) return null;
-  return <div className={`transition-connector city-checklist-${phase}`} aria-label={`Checklists ${label}`}>
+  return <div className="transition-connector city-checklist" aria-label={`Checklists for ${label}`}>
     <div className={`transition-checklists${openId || adding ? ' is-expanded' : ''}`}>
       {attached.map(list => openId === list.id
         ? <div className="transition-card" key={list.id}>
@@ -91,7 +91,7 @@ export function CityChecklists({ city, phase, disabled }: { city: City; phase: C
         : <button key={list.id} id={`transition-icon-${list.id}`} type="button" className="transition-icon"
           disabled={disabled || busy || dirty} aria-label={`Open ${list.title}, ${label}`}
           aria-expanded={false} title={list.title} onClick={() => { setAdding(false); setOpenId(list.id); }}>
-          <Icon name="checklists" />
+          <Icon name="checklists" /><span>{list.title}</span>
         </button>)}
       {canEdit && <div className={`transition-picker-anchor${adding ? ' is-open' : ''}`} onKeyDown={event => {
         if (event.key === 'Escape' && adding && !busy) {
@@ -100,11 +100,12 @@ export function CityChecklists({ city, phase, disabled }: { city: City; phase: C
           addButton.current?.focus();
         }
       }}>
-        <button ref={addButton} type="button" className="transition-add" disabled={disabled || busy || dirty}
+        <button ref={addButton} type="button" className={`transition-add${attached.length === 0 ? ' is-empty' : ''}`} disabled={disabled || busy || dirty}
           onClick={() => { setOpenId(null); setAdding(!adding); }} aria-expanded={adding}
-          aria-label={`Add checklist ${label}`} title={`Add checklist: ${label}`}>
+          aria-label={`Add checklist for ${label}`} title={`Add checklist: ${label}`}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+          {attached.length === 0 && <span>Checklist</span>}
         </button>
         {adding && <div className="transition-picker" role="group" aria-label={`Choose a checklist for ${label}`}>
           <p className="transition-picker-label">{label}</p>

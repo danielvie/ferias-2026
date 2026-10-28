@@ -91,7 +91,7 @@ describe('named checklists', () => {
     expect(store.snapshot(access).data.checklists!.find(item => item.id === 'reminder')).toBeDefined();
   });
 
-  it('attaches arriving and leaving checklists to one visit and interprets old transitions as leaving', () => {
+  it('preserves legacy city sides and transitions while treating them as city checklists', () => {
     const { command, store, access } = setup();
     const [first, second] = store.snapshot(access).data.trip.cities;
     const original = store.snapshot(access).data.checklists![0].items[0];
@@ -104,13 +104,17 @@ describe('named checklists', () => {
     let state = command({ type: 'checklist.addCity', id: 'departure', title: 'Bags', cityId: second.id, phase: 'leaving', sourceId: null });
     const legacy = state.data.checklists!.find(list => list.id === 'legacy')!;
     const arrival = state.data.checklists!.find(list => list.id === 'arrival')!;
-    expect(checklistPosition(legacy)).toEqual({ cityId: first.id, phase: 'leaving' });
+    expect(checklistPosition(legacy)).toEqual({ cityId: first.id });
     expect(legacy.items[0]).toEqual({ ...legacyItem, status: 'done', assignee: 'Ana' });
     expect(arrival.city).toEqual({ cityId: second.id, phase: 'arriving' });
     expect(arrival.items[0]).toMatchObject({ title: legacyItem.title, status: 'pending', assignee: 'Ana' });
     expect(arrival.items[0].id).not.toBe(legacyItem.id);
+    expect(checklistPosition(arrival)).toEqual({ cityId: second.id });
+    expect(checklistPosition(state.data.checklists!.find(list => list.id === 'departure')!)).toEqual({ cityId: second.id });
+    state = command({ type: 'checklist.addCity', id: 'city', title: 'City', cityId: second.id, sourceId: null });
+    expect(state.data.checklists!.find(list => list.id === 'city')!.city).toEqual({ cityId: second.id });
     state = command({ type: 'visit.move', id: second.id, beforeId: first.id });
-    expect(checklistPosition(state.data.checklists!.find(list => list.id === 'legacy')!)).toEqual({ cityId: first.id, phase: 'leaving' });
+    expect(checklistPosition(state.data.checklists!.find(list => list.id === 'legacy')!)).toEqual({ cityId: first.id });
     expect(state.data.checklists!.find(list => list.id === 'arrival')).toEqual(arrival);
     expect(() => command({ type: 'checklist.addCity', id: 'bad', title: 'Bad', cityId: 'missing', phase: 'arriving', sourceId: null })).toThrow('does not exist');
     expect(() => commandInput({ type: 'checklist.addCity', id: 'bad', title: 'Bad', cityId: first.id, phase: 'during', sourceId: null })).toThrow();
@@ -123,7 +127,7 @@ describe('named checklists', () => {
       fromCityId: first.id, toCityId: second.id, sourceId: null });
     const after = command({ type: 'trip.update', trip: { ...before.data.trip, cities: [first] } });
     const list = after.data.checklists!.find(item => item.id === 'legacy')!;
-    expect(checklistPosition(list)).toEqual({ cityId: first.id, phase: 'leaving' });
+    expect(checklistPosition(list)).toEqual({ cityId: first.id });
     expect(list.id).toBe('legacy');
   });
 

@@ -202,7 +202,8 @@ export function applyCommand(data: TripData, member: Member, command: TripComman
       find(data.trip.cities, command.cityId);
       const source = command.sourceId === null ? null : find(checklists, command.sourceId);
       save(checklists, {
-        id: command.id, title: command.title, city: { cityId: command.cityId, phase: command.phase },
+        id: command.id, title: command.title,
+        city: { cityId: command.cityId, ...(command.phase ? { phase: command.phase } : {}) },
         items: source?.items.map(item => ({ ...item, id: randomUUID(), status: 'pending' as const })) ?? [],
       });
       message = `${member.name} added a city checklist.`;

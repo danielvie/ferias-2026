@@ -175,7 +175,7 @@ export function commandInput(value: unknown): TripCommand {
     };
     case 'checklist.addCity': return {
       type, id: id(v.id), title: text(v.title, 'Checklist title'), cityId: id(v.cityId),
-      phase: oneOf(v.phase, ['arriving', 'leaving'], 'checklist position'),
+      ...(v.phase === undefined ? {} : { phase: oneOf(v.phase, ['arriving', 'leaving'] as const, 'checklist position') }),
       sourceId: v.sourceId === null ? null : id(v.sourceId),
     };
     case 'checklist.item.add': return { type, checklistId: id(v.checklistId), title: text(v.title, 'Item title') };

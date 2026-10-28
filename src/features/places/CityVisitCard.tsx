@@ -6,9 +6,9 @@ import { useTrip } from '../../app/TripContext';
 import { Icon } from '../../components/Icon';
 import type { RouteActions } from './RouteBoard';
 
-export function CityVisitCard({ city, index, activityCount, selected, disabled, actions, onSelect, children, before, after }: {
+export function CityVisitCard({ city, index, activityCount, selected, disabled, actions, onSelect, children, after }: {
   city: City; index: number; activityCount: number; selected: boolean; disabled: boolean;
-  actions: RouteActions; onSelect: (id: string) => void; children?: ReactNode; before?: ReactNode; after?: ReactNode;
+  actions: RouteActions; onSelect: (id: string) => void; children?: ReactNode; after?: ReactNode;
 }) {
   const { canEdit, snapshot } = useTrip();
   const cities = snapshot.data.trip.cities;
@@ -19,7 +19,6 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
 
   return <li ref={setNodeRef} className={`route-visit-item${isDragging ? ' is-dragging' : ''}`}
     style={{ transform: CSS.Transform.toString(transform), transition }} data-visit-id={city.id}>
-    {before}
     <div className={`route-visit${selected ? ' is-selected' : ''}`}>
       {canEdit ? <button ref={setActivatorNodeRef} className="route-drag-handle" type="button" disabled={disabled}
         {...attributes} {...listeners} id={`visit-handle-${city.id}`} aria-label={`Drag checkpoint ${checkpointLabel}`}

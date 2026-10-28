@@ -137,6 +137,8 @@ describe('online API with actual PostgreSQL migrations', () => {
     await command({ type: 'checklist.item.update', checklistId: 'legacy-city', id: item.id, status: 'done', assignee: 'Ana' });
     await command({ type: 'checklist.addCity', id: 'arrival-city', title: 'Arrival',
       cityId: to.id, phase: 'arriving', sourceId: 'legacy-city' });
+    await command({ type: 'checklist.addCity', id: 'city-list', title: 'City checklist',
+      cityId: to.id, sourceId: null });
     await command({ type: 'visit.move', id: to.id, beforeId: from.id });
     const lists = (await load()).data.checklists!;
     expect(lists.find(list => list.id === 'legacy-city')).toMatchObject({
@@ -146,6 +148,7 @@ describe('online API with actual PostgreSQL migrations', () => {
       city: { cityId: to.id, phase: 'arriving' }, items: [{ title: 'Ticket', status: 'pending', assignee: 'Ana' }],
     });
     expect(lists.find(list => list.id === 'arrival-city')!.items[0].id).not.toBe(item.id);
+    expect(lists.find(list => list.id === 'city-list')!.city).toEqual({ cityId: to.id });
   });
 
   test('persists checklist item order and attribution without changing completion or ownership', async () => {

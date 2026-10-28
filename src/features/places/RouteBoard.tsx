@@ -57,8 +57,7 @@ export function RouteBoard({ places, selectedId, disabled, actions, onSelect, ch
       if (!id) return;
       const handle = document.getElementById(`visit-handle-${id}`);
       const item = handle?.closest('.route-visit-item');
-      // The sortable item includes the arriving checklist; offset only the
-      // visual overlay so it starts at the handle without moving the drop target.
+      // Offset only the visual overlay without moving the drop target.
       // https://docs.dndkit.com/api-documentation/draggable/drag-overlay
       setDraggedVisit({ id, handleOffset: handle && item
         ? handle.getBoundingClientRect().top - item.getBoundingClientRect().top : 0 });
@@ -69,8 +68,7 @@ export function RouteBoard({ places, selectedId, disabled, actions, onSelect, ch
         {trip.cities.map((city, index) => <CityVisitCard key={city.id} city={city} index={index}
           activityCount={places.filter(place => place.cityId === city.id).length} selected={selectedId === city.id}
           disabled={disabled} actions={actions} onSelect={onSelect}
-          before={snapshot.session.role !== 'family' && <CityChecklists city={city} phase="arriving" disabled={disabled} />}
-          after={snapshot.session.role !== 'family' && <CityChecklists city={city} phase="leaving" disabled={disabled} />}>
+          after={snapshot.session.role !== 'family' && <CityChecklists city={city} disabled={disabled} />}>
           {selectedId === city.id && children}
         </CityVisitCard>)}
       </SortableContext>

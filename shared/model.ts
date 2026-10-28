@@ -52,13 +52,13 @@ export interface Note {
 }
 export type CheckStatus = 'pending' | 'done' | 'skipped';
 export interface ChecklistItem { id: string; title: string; assignee: string; status: CheckStatus }
-export interface CityChecklistPosition { cityId: string; phase: 'arriving' | 'leaving' }
+export interface CityChecklistPosition { cityId: string; phase?: 'arriving' | 'leaving' }
 export interface Checklist {
   id: string;
   title: string;
   items: ChecklistItem[];
   city?: CityChecklistPosition;
-  // Legacy between-city checklists belong to the starting city's leaving side.
+  // Legacy between-city checklists belong to the starting city.
   transition?: { fromCityId: string; toCityId: string };
 }
 export interface Transfer {
@@ -119,7 +119,7 @@ export type TripCommand =
   | { type: 'note.comment'; id: string; body: string }
   | { type: 'checklist.add'; id: string; title: string }
   | { type: 'checklist.addTransition'; id: string; title: string; fromCityId: string; toCityId: string; sourceId: string | null }
-  | { type: 'checklist.addCity'; id: string; title: string; cityId: string; phase: 'arriving' | 'leaving'; sourceId: string | null }
+  | { type: 'checklist.addCity'; id: string; title: string; cityId: string; phase?: 'arriving' | 'leaving'; sourceId: string | null }
   | { type: 'checklist.rename'; id: string; title: string }
   | { type: 'checklist.delete'; id: string }
   | { type: 'checklist.item.add'; checklistId: string; title: string }
