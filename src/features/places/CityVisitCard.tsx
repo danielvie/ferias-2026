@@ -6,6 +6,7 @@ import { activityOutsideCityDates } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { displayDate } from '../../app/dates';
 import { Icon } from '../../components/Icon';
+import { CityDates } from './CityDates';
 import type { RouteActions } from './RouteBoard';
 
 export function CityVisitCard({ city, index, activityCount, selected, disabled, actions, onSelect, children, after }: {
@@ -22,7 +23,10 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
       date.slice(0, 4) !== snapshot.data.trip.startDate.slice(0, 4) ? { year: 'numeric' } : {}),
   });
   const dateSummary = city.arrivalDate && city.departureDate
-    ? `${formatDate(city.arrivalDate)} – ${formatDate(city.departureDate)}`
+    ? city.arrivalDate === city.departureDate ? formatDate(city.arrivalDate)
+      : city.arrivalDate.slice(0, 7) === city.departureDate.slice(0, 7)
+        ? `${Number(city.arrivalDate.slice(8))}–${formatDate(city.departureDate)}`
+        : `${formatDate(city.arrivalDate)} – ${formatDate(city.departureDate)}`
     : city.arrivalDate ? `From ${formatDate(city.arrivalDate)}`
       : city.departureDate ? `Until ${formatDate(city.departureDate)}` : 'Dates not set';
   const datesOutsideTrip = [city.arrivalDate, city.departureDate].some(date =>
@@ -45,21 +49,17 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
       <h2 className="checkpoint-heading"><button type="button" className="checkpoint-open" id={`checkpoint-${city.id}`} disabled={disabled}
         aria-label={`Checkpoint ${checkpointLabel}, ${activityCount} ${activityCount === 1 ? 'activity' : 'activities'}`} aria-expanded={selected}
         aria-controls={selected ? 'checkpoint-details' : undefined}
-        aria-describedby={showDates ? `checkpoint-dates-${city.id}${datesOutsideTrip || conflicts ? ` checkpoint-warning-${city.id}` : ''}` : undefined}
+        aria-describedby={showDates && (datesOutsideTrip || conflicts > 0) ? `checkpoint-warning-${city.id}` : undefined}
         onClick={() => onSelect(city.id)}>
         <span className="checkpoint-copy">
           <span className="checkpoint-name">{city.name}</span>
           <span className="checkpoint-count">{activityCount} {activityCount === 1 ? 'activity' : 'activities'}</span>
-          {showDates && <span className="checkpoint-dates" id={`checkpoint-dates-${city.id}`}>{dateSummary}</span>}
-          {showDates && (datesOutsideTrip || conflicts > 0) && <span className="city-date-warning" id={`checkpoint-warning-${city.id}`}>
-            {datesOutsideTrip && <span>⚠ Outside trip dates</span>}
-            {conflicts > 0 && <span>⚠ {conflicts} {conflicts === 1 ? 'activity' : 'activities'} outside city dates</span>}
-          </span>}
         </span>
         <svg className="checkpoint-chevron" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
           <path d={selected ? 'm4 6 4 4 4-4' : 'm6 4 4 4-4 4'} fill="none" stroke="currentColor" strokeWidth={selected ? 2.5 : 1.5} />
         </svg>
       </button></h2>
+      {showDates && <CityDates city={city} disabled={disabled} summary={dateSummary} />}
       {selected && canEdit && <details className="route-menu">
         <summary aria-label={`Actions for checkpoint ${checkpointLabel}`} aria-disabled={disabled}
           onClick={event => { if (disabled) event.preventDefault(); }}>···</summary>
@@ -81,6 +81,10 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
         </div>
       </details>}
     </div>
+    {showDates && (datesOutsideTrip || conflicts > 0) && <p className="city-date-warning" id={`checkpoint-warning-${city.id}`}>
+      {datesOutsideTrip && <span>⚠ Outside trip dates</span>}
+      {conflicts > 0 && <span>⚠ {conflicts} {conflicts === 1 ? 'activity' : 'activities'} outside city dates</span>}
+    </p>}
     {children}
     {after}
   </li>;

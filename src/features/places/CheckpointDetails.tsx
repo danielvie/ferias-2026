@@ -3,7 +3,6 @@ import type { City, Place } from '../../../shared/model';
 import { useTrip } from '../../app/TripContext';
 import { formatTripDate, sortEvents } from '../calendar/itinerary';
 import { ActivityCard } from './ActivityCard';
-import { CityDates } from './CityDates';
 import { PlaceSuggestions } from './PlaceSuggestions';
 import { QuickAddActivity } from './QuickAddActivity';
 import type { RouteActions } from './RouteBoard';
@@ -25,7 +24,6 @@ export function CheckpointDetails({ city, places, disabled, actions }: {
   // https://www.w3.org/WAI/ARIA/apg/patterns/accordion/
   return <section id="checkpoint-details" className="checkpoint-details" data-checkpoint-id={city.id}
     aria-labelledby={`checkpoint-${city.id}`}>
-    <CityDates city={city} disabled={disabled} />
     {events.length > 0 && <div className="checkpoint-facts">
       <span>{formatTripDate(events[0].date)}</span>
     </div>}

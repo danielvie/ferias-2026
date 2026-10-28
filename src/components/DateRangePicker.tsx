@@ -11,19 +11,27 @@ const months = Array.from({ length: 12 }, (_, index) => ({
 const fullDate = (date: string) => displayDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 const shortDate = (date: string) => displayDate(date, { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function DateRangePicker({ value, onChange }: {
+export function DateRangePicker({ value, onChange, label = 'Trip dates', initialDate, minDate, maxDate,
+  onDateSelect, showSummary = true }: {
   value: DateRange;
   onChange: (range: DateRange) => void;
+  label?: string;
+  initialDate?: string;
+  minDate?: string;
+  maxDate?: string;
+  onDateSelect?: (date: string) => void;
+  showSummary?: boolean;
 }) {
   const id = useId();
   const today = brusselsToday();
-  const [month, setMonth] = useState(() => (value.startDate || today).slice(0, 7));
-  const [focusedDate, setFocusedDate] = useState(value.startDate || today);
+  const firstDate = value.startDate || value.endDate || initialDate || today;
+  const [month, setMonth] = useState(() => firstDate.slice(0, 7));
+  const [focusedDate, setFocusedDate] = useState(firstDate);
   const [previewDate, setPreviewDate] = useState('');
   const grid = useRef<HTMLTableElement>(null);
   const weeks = calendarWeeks(month);
   const tabDate = focusedDate.startsWith(month) ? focusedDate : `${month}-01`;
-  const preview = value.startDate && !value.endDate && previewDate
+  const preview = !onDateSelect && value.startDate && !value.endDate && previewDate
     ? selectRangeDate(value, previewDate) : value;
   const rangeEnd = preview.endDate || preview.startDate;
   const summary = !value.startDate ? 'No dates selected'
@@ -37,7 +45,9 @@ export function DateRangePicker({ value, onChange }: {
   }
 
   function chooseDate(date: string) {
-    onChange(selectRangeDate(value, date));
+    if ((minDate && date < minDate) || (maxDate && date > maxDate)) return;
+    if (onDateSelect) onDateSelect(date);
+    else onChange(selectRangeDate(value, date));
     setFocusedDate(date);
     setPreviewDate('');
   }
@@ -65,14 +75,15 @@ export function DateRangePicker({ value, onChange }: {
   }
 
   return <div className="date-range-picker" role="group" aria-labelledby={`${id}-label`}>
-    <h3 id={`${id}-label`}>Trip dates</h3>
-    <div className="date-range-summary">
+    <h3 id={`${id}-label`}>{label}</h3>
+    {showSummary && <div className="date-range-summary">
       <p role="status" aria-atomic="true">{summary}</p>
       <button className="button ghost" type="button" disabled={!value.startDate}
         onClick={() => { onChange({ startDate: '', endDate: '' }); setPreviewDate(''); }}>Clear dates</button>
-    </div>
+    </div>}
     <p className="date-range-hint" id={`${id}-hint`}>
-      {value.startDate && !value.endDate ? 'Now select the end date. Select the same day for a one-day trip.'
+      {onDateSelect ? 'Choose an arrival or departure date.'
+        : value.startDate && !value.endDate ? 'Now select the end date. Select the same day for a one-day trip.'
         : 'Select a start date, then an end date.'}
     </p>
     <div className="date-range-calendar">
@@ -96,12 +107,14 @@ export function DateRangePicker({ value, onChange }: {
           onClick={() => changeMonth(shiftMonth(`${month}-01`, 1).slice(0, 7))}><span aria-hidden="true">›</span></button>
       </div>
       <span className="visually-hidden" aria-live="polite">{displayDate(`${month}-01`, { month: 'long', year: 'numeric' })}</span>
-      <table ref={grid} role="grid" aria-label="Trip dates" aria-multiselectable="true" aria-describedby={`${id}-hint ${id}-keyboard`}
+      <table ref={grid} role="grid" aria-label={label} aria-multiselectable="true" aria-describedby={`${id}-hint ${id}-keyboard`}
         className="date-range-grid" onMouseLeave={() => setPreviewDate('')}>
         <thead><tr>{weekdays.map((day) => <th key={day} scope="col" abbr={day}>{day.slice(0, 2)}</th>)}</tr></thead>
         <tbody>{weeks.map((week, index) => <tr key={index}>{week.map((date, column) => {
           if (!date) return <td key={column} />;
-          const selected = Boolean(value.startDate && date >= value.startDate && date <= (value.endDate || value.startDate));
+          const selected = value.startDate && value.endDate
+            ? date >= value.startDate && date <= value.endDate
+            : date === value.startDate || date === value.endDate;
           const inRange = Boolean(preview.startDate && date >= preview.startDate && date <= rangeEnd);
           const start = date === preview.startDate;
           const end = date === rangeEnd;
@@ -109,6 +122,7 @@ export function DateRangePicker({ value, onChange }: {
             data-range-start={start || undefined} data-range-end={end || undefined}>
             <button type="button" className="date-range-day" data-date={date} tabIndex={date === tabDate ? 0 : -1}
               aria-label={fullDate(date)} aria-current={date === today ? 'date' : undefined}
+              aria-disabled={(minDate && date < minDate) || (maxDate && date > maxDate) ? true : undefined}
               aria-description={date === value.startDate && date === value.endDate ? 'Start and end date'
                 : date === value.startDate ? 'Start date' : date === value.endDate ? 'End date' : undefined}
               data-endpoint={date === value.startDate || date === value.endDate || undefined}
