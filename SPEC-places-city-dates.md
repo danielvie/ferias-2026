@@ -75,8 +75,9 @@ These are assumptions, not decisions already made by the user.
   Saved dates appear beside the same button. The picker overlays the route,
   keeps the date draft until Done, and supports independent endpoints.
 - Use a keyboard-accessible date picker with explicit arrival and departure
-  labels, visible focus and an accessible way to clear dates. Ensure touch
-  targets are at least 44 px.
+  labels, visible focus and an accessible way to clear dates. Keep controls at
+  least 44 px high. Calendar days are at least 44 px wide where space permits
+  and at least 40 px wide at a 320 px viewport with screen-edge margins.
 - Preserve the existing checkpoint selection, reorder and checklist controls.
   A warning must identify the affected activity and explain the mismatch.
 - Share the proposed and selected UI states in an editable root-level

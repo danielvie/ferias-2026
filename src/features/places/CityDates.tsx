@@ -41,10 +41,11 @@ export function CityDates({ city, disabled, summary }: { city: City; disabled: b
       if (!trigger.current || !panel.current) return;
       const anchor = trigger.current.getBoundingClientRect();
       const box = panel.current.getBoundingClientRect();
-      const left = Math.max(0, Math.min(anchor.left, window.innerWidth - box.width));
+      const margin = 8;
+      const left = Math.max(margin, Math.min(anchor.left, window.innerWidth - box.width - margin));
       const below = anchor.bottom + 4;
-      const top = below + box.height <= window.innerHeight ? below
-        : Math.max(0, Math.min(anchor.top - box.height - 4, window.innerHeight - box.height));
+      const top = below + box.height + margin <= window.innerHeight ? below
+        : Math.max(margin, Math.min(anchor.top - box.height - 4, window.innerHeight - box.height - margin));
       setPosition({ top, left });
     }
     place();
@@ -102,10 +103,12 @@ export function CityDates({ city, disabled, summary }: { city: City; disabled: b
       <form onSubmit={event => void save(event)}>
         <div className="city-dates-endpoints">
           <button ref={arrivalButton} type="button" aria-label={`Arrival: ${text(arrival)}`}
-            aria-pressed={editing === 'arrival'} onClick={() => setEditing('arrival')}>{text(arrival)}</button>
+            data-unset={!arrival || undefined} aria-pressed={editing === 'arrival'}
+            onClick={() => setEditing('arrival')}>{arrival ? text(arrival) : 'Arrival'}</button>
           <button type="button" disabled={!arrival} aria-label="Clear arrival date" onClick={() => setArrival('')}>×</button>
           <button type="button" aria-label={`Departure: ${text(departure)}`}
-            aria-pressed={editing === 'departure'} onClick={() => setEditing('departure')}>{text(departure)}</button>
+            data-unset={!departure || undefined} aria-pressed={editing === 'departure'}
+            onClick={() => setEditing('departure')}>{departure ? text(departure) : 'Departure'}</button>
           <button type="button" disabled={!departure} aria-label="Clear departure date" onClick={() => setDeparture('')}>×</button>
           <button type="button" className="city-dates-close" aria-label="Close date picker" disabled={busy}
             onClick={() => close(true)}><Icon name="close" /></button>
