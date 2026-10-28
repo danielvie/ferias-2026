@@ -1,7 +1,7 @@
 export type Role = 'owner' | 'editor' | 'viewer' | 'family';
 export interface Member { id: string; name: string; role: Role }
 // A city record is one route visit, not a unique geographic city. Names may repeat.
-export interface City { id: string; name: string }
+export interface City { id: string; name: string; arrivalDate?: string; departureDate?: string }
 export interface Trip {
   id: string;
   title: string;
@@ -109,6 +109,7 @@ export type TripCommand =
   | { type: 'trip.update'; trip: Pick<Trip, 'title' | 'startDate' | 'endDate' | 'cities'> }
   | { type: 'visit.add'; visit: City; beforeId: string | null }
   | { type: 'visit.move'; id: string; beforeId: string | null }
+  | { type: 'visit.dates'; id: string; arrivalDate: string; departureDate: string }
   | { type: 'place.save'; place: Place }
   | { type: 'place.move'; id: string; cityId: string; beforeId: string | null }
   | { type: 'place.delete'; id: string }

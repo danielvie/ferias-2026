@@ -97,6 +97,18 @@ export function applyCommand(data: TripData, member: Member, command: TripComman
       message = `${member.name} reordered the route. Scheduled dates are unchanged.`;
       break;
     }
+    case 'visit.dates': {
+      const visit = find(data.trip.cities, command.id);
+      if (command.arrivalDate) inRange(data, command.arrivalDate);
+      if (command.departureDate) inRange(data, command.departureDate);
+      if (command.arrivalDate && command.departureDate) {
+        check(command.arrivalDate <= command.departureDate, 'Departure must not be before arrival.');
+      }
+      visit.arrivalDate = command.arrivalDate;
+      visit.departureDate = command.departureDate;
+      message = `${member.name} updated city dates.`;
+      break;
+    }
     case 'place.move': {
       const place = find(data.places, command.id);
       find(data.trip.cities, command.cityId);
@@ -111,7 +123,10 @@ export function applyCommand(data: TripData, member: Member, command: TripComman
       break;
     }
     case 'trip.update':
-      data.trip = { ...data.trip, ...command.trip };
+      data.trip = { ...data.trip, ...command.trip, cities: command.trip.cities.map(city => {
+        const old = data.trip.cities.find(item => item.id === city.id);
+        return old ? { ...old, name: city.name } : city;
+      }) };
       message = `${member.name} updated the trip.`;
       break;
     case 'place.save':

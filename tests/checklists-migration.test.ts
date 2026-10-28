@@ -51,7 +51,8 @@ describe('checklist adoption from existing storage', () => {
     try {
       await db.exec('create role anon; create role authenticated; create role service_role;');
       const migrations = readdirSync('supabase/migrations').filter(name => name.endsWith('.sql')).sort();
-      for (const name of migrations.slice(0, -1)) await db.exec(readFileSync(`supabase/migrations/${name}`, 'utf8'));
+      const checklistMigration = migrations.findIndex(name => name.endsWith('_named_checklists.sql'));
+      for (const name of migrations.slice(0, checklistMigration)) await db.exec(readFileSync(`supabase/migrations/${name}`, 'utf8'));
       await db.exec('update trip_private.settings set creation_enabled = true;');
       const details = { title: 'Existing trip', startDate: '2026-08-01', endDate: '2026-08-07', cities: [{ id: 'brussels', name: 'Brussels' }] };
       const args = [details, 'Owner', 'a'.repeat(64), 'b'.repeat(64), packing];
@@ -59,7 +60,7 @@ describe('checklist adoption from existing storage', () => {
         'select public.trip_create_online($1, $2, $3, $4, $5) as state', args)).rows[0].state;
       const read = async () => (await db.query<{ state: typeof before }>(
         'select public.trip_state($1) as state', [args[3]])).rows[0].state;
-      await db.exec(readFileSync(`supabase/migrations/${migrations.at(-1)}`, 'utf8'));
+      await db.exec(readFileSync(`supabase/migrations/${migrations[checklistMigration]}`, 'utf8'));
       const after = await read();
       expect(after.revision).toBe(before.revision);
       expect(after.members).toEqual(before.members);

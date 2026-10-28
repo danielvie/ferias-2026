@@ -151,6 +151,23 @@ describe('online API with actual PostgreSQL migrations', () => {
     expect(lists.find(list => list.id === 'city-list')!.city).toEqual({ cityId: to.id });
   });
 
+  test('persists city dates and preserves them through legacy trip detail updates', async () => {
+    const [first] = state.data.trip.cities;
+    await command({ type: 'visit.dates', id: first.id, arrivalDate: '2026-12-03', departureDate: '2026-12-05' });
+    expect((await load()).data.trip.cities[0]).toMatchObject({ arrivalDate: '2026-12-03', departureDate: '2026-12-05' });
+    const trip = state.data.trip;
+    await command({ type: 'trip.update', trip: { ...trip, cities: trip.cities.map(({ id, name }) => ({ id, name })) } });
+    expect((await load()).data.trip.cities[0]).toMatchObject({ arrivalDate: '2026-12-03', departureDate: '2026-12-05' });
+    const sessionHash = (await db.query<{ token_hash: string }>('select token_hash from trip_private.sessions')).rows[0].token_hash;
+    await db.query('select public.trip_update_details($1, $2, $3)', [sessionHash, state.revision,
+      { ...trip, cities: trip.cities.map(({ id, name }) => ({ id, name })) }]);
+    expect((await load()).data.trip.cities[0]).toMatchObject({ arrivalDate: '2026-12-03', departureDate: '2026-12-05' });
+    const family = await invite('family');
+    expect((await load(family.sessionToken)).data.trip.cities[0]).not.toHaveProperty('arrivalDate');
+    await command({ type: 'visit.dates', id: first.id, arrivalDate: '', departureDate: '' });
+    expect((await load()).data.trip.cities[0]).not.toHaveProperty('arrivalDate');
+  });
+
   test('persists checklist item order and attribution without changing completion or ownership', async () => {
     const original = state.data.packing;
     const [passport, charger, jacket] = original;

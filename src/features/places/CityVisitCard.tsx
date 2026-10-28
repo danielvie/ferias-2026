@@ -2,7 +2,9 @@ import type { ReactNode } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { City } from '../../../shared/model';
+import { activityOutsideCityDates } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
+import { displayDate } from '../../app/dates';
 import { Icon } from '../../components/Icon';
 import type { RouteActions } from './RouteBoard';
 
@@ -13,6 +15,20 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
   const { canEdit, snapshot } = useTrip();
   const cities = snapshot.data.trip.cities;
   const checkpointLabel = `${index + 1}: ${city.name}`;
+  const showDates = snapshot.session.role !== 'family';
+  const formatDate = (date: string) => displayDate(date, {
+    day: 'numeric', month: 'short',
+    ...(snapshot.data.trip.startDate.slice(0, 4) !== snapshot.data.trip.endDate.slice(0, 4) ||
+      date.slice(0, 4) !== snapshot.data.trip.startDate.slice(0, 4) ? { year: 'numeric' } : {}),
+  });
+  const dateSummary = city.arrivalDate && city.departureDate
+    ? `${formatDate(city.arrivalDate)} – ${formatDate(city.departureDate)}`
+    : city.arrivalDate ? `From ${formatDate(city.arrivalDate)}`
+      : city.departureDate ? `Until ${formatDate(city.departureDate)}` : 'Dates not set';
+  const datesOutsideTrip = [city.arrivalDate, city.departureDate].some(date =>
+    date && (date < snapshot.data.trip.startDate || date > snapshot.data.trip.endDate));
+  const conflicts = snapshot.data.places.filter(place => place.cityId === city.id &&
+    activityOutsideCityDates(city, place, snapshot.data.events)).length;
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: `visit:${city.id}`, data: { kind: 'visit', id: city.id }, disabled: disabled || !canEdit,
   });
@@ -28,10 +44,17 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
       </button> : <span className="checkpoint-marker" aria-hidden="true"><span className="checkpoint-number">{index + 1}</span></span>}
       <h2 className="checkpoint-heading"><button type="button" className="checkpoint-open" id={`checkpoint-${city.id}`} disabled={disabled}
         aria-label={`Checkpoint ${checkpointLabel}, ${activityCount} ${activityCount === 1 ? 'activity' : 'activities'}`} aria-expanded={selected}
-        aria-controls={selected ? 'checkpoint-details' : undefined} onClick={() => onSelect(city.id)}>
+        aria-controls={selected ? 'checkpoint-details' : undefined}
+        aria-describedby={showDates ? `checkpoint-dates-${city.id}${datesOutsideTrip || conflicts ? ` checkpoint-warning-${city.id}` : ''}` : undefined}
+        onClick={() => onSelect(city.id)}>
         <span className="checkpoint-copy">
           <span className="checkpoint-name">{city.name}</span>
           <span className="checkpoint-count">{activityCount} {activityCount === 1 ? 'activity' : 'activities'}</span>
+          {showDates && <span className="checkpoint-dates" id={`checkpoint-dates-${city.id}`}>{dateSummary}</span>}
+          {showDates && (datesOutsideTrip || conflicts > 0) && <span className="city-date-warning" id={`checkpoint-warning-${city.id}`}>
+            {datesOutsideTrip && <span>⚠ Outside trip dates</span>}
+            {conflicts > 0 && <span>⚠ {conflicts} {conflicts === 1 ? 'activity' : 'activities'} outside city dates</span>}
+          </span>}
         </span>
         <svg className="checkpoint-chevron" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
           <path d={selected ? 'm4 6 4 4 4-4' : 'm6 4 4 4-4 4'} fill="none" stroke="currentColor" strokeWidth={selected ? 2.5 : 1.5} />

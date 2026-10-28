@@ -121,6 +121,12 @@ export function commandInput(value: unknown): TripCommand {
       return { type, visit: { id: id(visit.id), name: text(visit.name, 'City', 100) }, beforeId: beforeId() };
     }
     case 'visit.move': return { type, id: id(v.id), beforeId: beforeId() };
+    case 'visit.dates': {
+      const arrivalDate = v.arrivalDate === '' ? '' : date(v.arrivalDate);
+      const departureDate = v.departureDate === '' ? '' : date(v.departureDate);
+      if (arrivalDate && departureDate) dateRange(arrivalDate, departureDate);
+      return { type, id: id(v.id), arrivalDate, departureDate };
+    }
     case 'place.move': return { type, id: id(v.id), cityId: id(v.cityId), beforeId: beforeId() };
     case 'trip.update': {
       const t = object(v.trip);

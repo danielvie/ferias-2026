@@ -1,4 +1,10 @@
-import type { City, TripEvent } from './model.ts';
+import type { City, Place, TripEvent } from './model.ts';
+
+export function activityOutsideCityDates(city: City, place: Place, events: TripEvent[]): boolean {
+  if (!city.arrivalDate || !city.departureDate) return false;
+  return events.some(event => event.placeId === place.id &&
+    (event.date < city.arrivalDate! || event.date > city.departureDate!));
+}
 
 export function visitLabel(cities: City[], id: string): string {
   const index = cities.findIndex(city => city.id === id);

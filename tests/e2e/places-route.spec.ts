@@ -81,6 +81,61 @@ async function drag(page: Page, handle: Locator, target: Locator) {
   await page.mouse.up();
 }
 
+test('sets city dates and warns about scheduled activities without moving them', async ({ page }, testInfo) => {
+  const ids = await setup(page);
+  const first = visit(page, ids[0]);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await expect(first.getByText('Dates not set')).toBeVisible();
+  await openCheckpoint(page, ids[0]);
+  await first.getByRole('button', { name: 'Edit city dates' }).click();
+  await expect(first.getByLabel('Arrival', { exact: true })).toBeFocused();
+  await first.getByLabel('Arrival', { exact: true }).fill('2030-06-03');
+  await first.getByLabel('Departure', { exact: true }).fill('2030-06-04');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
+  await page.screenshot({ path: testInfo.outputPath('city-dates-editor-mobile.png'), fullPage: true });
+  await first.getByRole('button', { name: 'Save dates' }).click();
+  await expect(first.getByText('1 activity outside city dates')).toBeVisible();
+  await expect(first.locator('[data-activity-id="walk"]')).toContainText('Scheduled outside city dates');
+  await expect(first.locator('[data-activity-id="trail"]')).not.toContainText('Scheduled outside city dates');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
+  const accessibility = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+  expect(accessibility.violations.map(violation => violation.id)).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath('city-dates-warning-mobile.png'), fullPage: true });
+  await closeCheckpoint(page);
+  await expect(first.getByText('1 activity outside city dates')).toBeVisible();
+  await page.reload(); await places(page);
+  await expect(first.getByText('1 activity outside city dates')).toBeVisible();
+  const current = await state(page);
+  expect(current.data.events.find(event => event.id === 'booking')?.date).toBe('2030-06-02');
+  await command(page, { type: 'trip.update', trip: { ...current.data.trip, endDate: '2030-06-03' } });
+  await page.reload(); await places(page);
+  await expect(first.getByText('Outside trip dates')).toBeVisible();
+  await openCheckpoint(page, ids[0]);
+  await first.getByRole('button', { name: 'Edit city dates' }).click();
+  await first.getByRole('button', { name: 'Clear dates' }).click();
+  await first.getByRole('button', { name: 'Save dates' }).click();
+  await expect(first.getByText('Dates not set')).toBeVisible();
+  await expect(first.getByText('1 activity outside city dates')).toHaveCount(0);
+});
+
+test('keeps city date drafts after a failed save', async ({ page }) => {
+  const ids = await setup(page);
+  const first = visit(page, ids[0]);
+  await openCheckpoint(page, ids[0]);
+  await first.getByRole('button', { name: 'Edit city dates' }).click();
+  await first.getByLabel('Arrival', { exact: true }).fill('2030-06-03');
+  await first.getByLabel('Departure', { exact: true }).fill('2030-06-04');
+  await page.route('**/api/commands', route => route.abort());
+  await first.getByRole('button', { name: 'Save dates' }).click();
+  await expect(first.getByRole('alert')).toContainText('Could not save city dates');
+  await expect(first.getByLabel('Arrival', { exact: true })).toHaveValue('2030-06-03');
+  await expect(first.getByLabel('Departure', { exact: true })).toHaveValue('2030-06-04');
+  await page.unroute('**/api/commands');
+  await first.getByRole('button', { name: 'Save dates' }).click();
+  await expect(first.getByRole('button', { name: 'Edit city dates' })).toBeFocused();
+  await expect(first.getByText('1 activity outside city dates')).toBeVisible();
+});
+
 test('adds a fresh checklist to each city and keeps their checks independent', async ({ page }, testInfo) => {
   const ids = await setup(page);
   await command(page, { type: 'checklist.add', id: 'documents', title: 'Check documents' });
