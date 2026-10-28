@@ -99,6 +99,10 @@ test('sets city dates and warns about scheduled activities without moving them',
   await picker.locator('[data-date="2030-06-04"]').click();
   await expect(picker.getByRole('button', { name: 'Arrival: 3 Jun' })).toBeVisible();
   await expect(picker.getByRole('button', { name: 'Departure: 4 Jun' })).toBeVisible();
+  await expect(picker.getByRole('button', { name: 'Arrival: 3 Jun' })).toHaveText('3 Jun');
+  await expect(picker.getByRole('button', { name: 'Departure: 4 Jun' })).toHaveText('4 Jun');
+  await expect(picker.getByText('Choose an arrival or departure date.')).toHaveClass('visually-hidden');
+  await expect(picker.getByRole('button', { name: 'Cancel' })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBeFalsy();
   const daySize = await picker.locator('[data-date="2030-06-03"]').boundingBox();
   expect(daySize!.width).toBeGreaterThanOrEqual(44);
@@ -106,7 +110,7 @@ test('sets city dates and warns about scheduled activities without moving them',
   const pickerA11y = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
   expect(pickerA11y.violations.map(violation => violation.id)).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('city-dates-editor-mobile.png'), fullPage: true });
-  await picker.getByRole('button', { name: 'Save dates' }).click();
+  await picker.getByRole('button', { name: 'Done' }).click();
   await expect(first.getByRole('button', { name: /Edit dates for Brussels/ })).toBeFocused();
   expect((await first.getByRole('button', { name: /Edit dates for Brussels/ }).boundingBox())!.x).toBe(triggerBefore!.x);
   expect((await first.locator('.checkpoint-chevron').boundingBox())!.x).toBe(chevronBefore!.x);
@@ -128,8 +132,9 @@ test('sets city dates and warns about scheduled activities without moving them',
   await page.reload(); await places(page);
   await expect(first.getByText('Outside trip dates')).toBeVisible();
   await first.getByRole('button', { name: /Edit dates for Brussels/ }).click();
-  await picker.getByRole('button', { name: 'Clear dates' }).click();
-  await picker.getByRole('button', { name: 'Save dates' }).click();
+  await picker.getByRole('button', { name: 'Clear arrival date' }).click();
+  await picker.getByRole('button', { name: 'Clear departure date' }).click();
+  await picker.getByRole('button', { name: 'Done' }).click();
   await expect(first.getByRole('button', { name: /Set dates for Brussels/ })).toBeVisible();
   await expect(first.getByText('1 activity outside city dates')).toHaveCount(0);
 });
@@ -142,12 +147,12 @@ test('keeps city date drafts after a failed save', async ({ page }) => {
   await picker.locator('[data-date="2030-06-03"]').click();
   await picker.locator('[data-date="2030-06-04"]').click();
   await page.route('**/api/commands', route => route.abort());
-  await picker.getByRole('button', { name: 'Save dates' }).click();
+  await picker.getByRole('button', { name: 'Done' }).click();
   await expect(picker.getByRole('alert')).toContainText('Could not save city dates');
   await expect(picker.getByRole('button', { name: 'Arrival: 3 Jun' })).toBeVisible();
   await expect(picker.getByRole('button', { name: 'Departure: 4 Jun' })).toBeVisible();
   await page.unroute('**/api/commands');
-  await picker.getByRole('button', { name: 'Save dates' }).click();
+  await picker.getByRole('button', { name: 'Done' }).click();
   await expect(first.getByRole('button', { name: /Edit dates for Brussels/ })).toBeFocused();
   await expect(first.getByText('1 activity outside city dates')).toBeVisible();
 });
@@ -162,7 +167,7 @@ test('supports partial dates, keyboard dismissal, and trip date limits', async (
   await expect(picker.locator('[data-date="2030-06-11"]')).toHaveAttribute('aria-disabled', 'true');
   await picker.getByRole('button', { name: 'Departure: Not set' }).click();
   await picker.locator('[data-date="2030-06-04"]').click();
-  await picker.getByRole('button', { name: 'Save dates' }).click();
+  await picker.getByRole('button', { name: 'Done' }).click();
   await expect(first.getByRole('button', { name: /Edit dates for Brussels/ })).toContainText('Until 4 Jun');
   await page.reload(); await places(page);
   const edit = first.getByRole('button', { name: /Edit dates for Brussels/ });

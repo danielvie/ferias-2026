@@ -12,7 +12,7 @@ const fullDate = (date: string) => displayDate(date, { weekday: 'long', day: 'nu
 const shortDate = (date: string) => displayDate(date, { day: 'numeric', month: 'short', year: 'numeric' });
 
 export function DateRangePicker({ value, onChange, label = 'Trip dates', initialDate, minDate, maxDate,
-  onDateSelect, showSummary = true }: {
+  onDateSelect, showSummary = true, hideInstructions = false }: {
   value: DateRange;
   onChange: (range: DateRange) => void;
   label?: string;
@@ -21,6 +21,7 @@ export function DateRangePicker({ value, onChange, label = 'Trip dates', initial
   maxDate?: string;
   onDateSelect?: (date: string) => void;
   showSummary?: boolean;
+  hideInstructions?: boolean;
 }) {
   const id = useId();
   const today = brusselsToday();
@@ -75,13 +76,13 @@ export function DateRangePicker({ value, onChange, label = 'Trip dates', initial
   }
 
   return <div className="date-range-picker" role="group" aria-labelledby={`${id}-label`}>
-    <h3 id={`${id}-label`}>{label}</h3>
+    <h3 id={`${id}-label`} className={hideInstructions ? 'visually-hidden' : undefined}>{label}</h3>
     {showSummary && <div className="date-range-summary">
       <p role="status" aria-atomic="true">{summary}</p>
       <button className="button ghost" type="button" disabled={!value.startDate}
         onClick={() => { onChange({ startDate: '', endDate: '' }); setPreviewDate(''); }}>Clear dates</button>
     </div>}
-    <p className="date-range-hint" id={`${id}-hint`}>
+    <p className={hideInstructions ? 'visually-hidden' : 'date-range-hint'} id={`${id}-hint`}>
       {onDateSelect ? 'Choose an arrival or departure date.'
         : value.startDate && !value.endDate ? 'Now select the end date. Select the same day for a one-day trip.'
         : 'Select a start date, then an end date.'}

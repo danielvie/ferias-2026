@@ -73,7 +73,7 @@ These are assumptions, not decisions already made by the user.
 - A separate calendar button in each city row opens the anchored range picker
   without expanding the checkpoint or moving its checklist and activities.
   Saved dates appear beside the same button. The picker overlays the route,
-  keeps the date draft until Save, and supports independent endpoints.
+  keeps the date draft until Done, and supports independent endpoints.
 - Use a keyboard-accessible date picker with explicit arrival and departure
   labels, visible focus and an accessible way to clear dates. Ensure touch
   targets are at least 44 px.

@@ -100,29 +100,26 @@ export function CityDates({ city, disabled, summary }: { city: City; disabled: b
     {open && createPortal(<div ref={panel} className="city-dates-popover" role="dialog"
       aria-label={`Dates for ${label}`} style={{ top: position.top, left: position.left }}>
       <form onSubmit={event => void save(event)}>
-        <div className="city-dates-popover-heading"><strong>{label} dates</strong>
-          <button type="button" className="city-dates-close" aria-label="Close date picker" disabled={busy}
-            onClick={() => close(true)}><Icon name="close" /></button></div>
         <div className="city-dates-endpoints">
-          <button ref={arrivalButton} type="button" aria-pressed={editing === 'arrival'} onClick={() => setEditing('arrival')}>
-            Arrival: {text(arrival)}</button>
+          <button ref={arrivalButton} type="button" aria-label={`Arrival: ${text(arrival)}`}
+            aria-pressed={editing === 'arrival'} onClick={() => setEditing('arrival')}>{text(arrival)}</button>
           <button type="button" disabled={!arrival} aria-label="Clear arrival date" onClick={() => setArrival('')}>×</button>
-          <button type="button" aria-pressed={editing === 'departure'} onClick={() => setEditing('departure')}>
-            Departure: {text(departure)}</button>
+          <button type="button" aria-label={`Departure: ${text(departure)}`}
+            aria-pressed={editing === 'departure'} onClick={() => setEditing('departure')}>{text(departure)}</button>
           <button type="button" disabled={!departure} aria-label="Clear departure date" onClick={() => setDeparture('')}>×</button>
+          <button type="button" className="city-dates-close" aria-label="Close date picker" disabled={busy}
+            onClick={() => close(true)}><Icon name="close" /></button>
         </div>
         <DateRangePicker value={{ startDate: arrival, endDate: departure }} onChange={() => {}}
           label="City dates calendar" initialDate={trip.startDate} minDate={trip.startDate} maxDate={trip.endDate}
-          showSummary={false} onDateSelect={date => {
+          showSummary={false} hideInstructions onDateSelect={date => {
             if (editing === 'arrival') { setArrival(date); setEditing('departure'); }
             else setDeparture(date);
             setError('');
           }} />
         {error && <p className="inline-error" role="alert">{error}</p>}
         <div className="city-dates-actions">
-          <button type="button" className="button ghost" disabled={busy} onClick={() => { setArrival(''); setDeparture(''); setError(''); }}>Clear dates</button>
-          <button type="button" className="button ghost" disabled={busy} onClick={() => close(true)}>Cancel</button>
-          <button type="submit" className="button" disabled={busy || disabled}>Save dates</button>
+          <button type="submit" className="button" disabled={busy || disabled}>Done</button>
         </div>
       </form>
     </div>, document.body)}

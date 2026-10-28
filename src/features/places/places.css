@@ -96,14 +96,11 @@
 .city-dates-trigger:hover:not(:disabled) { background: var(--paper); }
 .city-dates-readonly { color: var(--muted); }
 .city-dates-popover { position: fixed; z-index: 100; width: min(22rem, 100vw); max-height: 95vh; overflow-y: auto; padding: .125rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: 0 4px 18px rgb(24 32 48 / 16%); }
-.city-dates-popover-heading { display: flex; align-items: center; justify-content: space-between; padding-left: .5rem; }
 .city-dates-close { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: var(--muted); }
-.city-dates-endpoints { display: grid; grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) 44px; align-items: center; padding: 0 .125rem; }
+.city-dates-endpoints { display: grid; grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) 44px 44px; align-items: center; padding: 0 .125rem; }
 .city-dates-endpoints button { min-height: 44px; padding: .25rem; border: 0; background: transparent; color: var(--ink); font-size: .8rem; text-align: left; overflow-wrap: anywhere; }
 .city-dates-endpoints button[aria-pressed="true"] { background: var(--paper); color: var(--accent); }
 .city-dates-endpoints button[aria-label^="Clear"] { text-align: center; color: var(--muted); }
-.city-dates-popover .date-range-picker h3 { padding: 0 .5rem; }
-.city-dates-popover .date-range-hint { margin: 0; padding: 0 .5rem; }
 .city-dates-popover .date-range-calendar { max-width: none; padding: 0; border: 0; }
 .city-dates-popover .date-range-day[aria-disabled="true"] { opacity: .4; }
 .city-dates-popover .inline-error { margin: .25rem .5rem; }
