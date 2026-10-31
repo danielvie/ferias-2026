@@ -1,9 +1,10 @@
 import type { RememberedTrip } from './remembered-trips';
 
-export function TripsList({ entries, currentId, busy, onOpen, onForget, onOpenLink, onCreate }: {
+export function TripsList({ entries, currentId, busy, onOpen, onForget, onOpenLink, onCreate, onMasterKey }: {
   entries: RememberedTrip[]; currentId: string | null; busy: boolean;
   onOpen: (id: string) => void; onForget: (id: string) => void;
   onOpenLink: () => void; onCreate: () => void;
+  onMasterKey?: () => void;
 }) {
   return <div className="stack trips-list">
     <p className="muted">Remembered on this browser. Use only on devices you trust.</p>
@@ -28,6 +29,7 @@ export function TripsList({ entries, currentId, busy, onOpen, onForget, onOpenLi
     </ul> : <p className="muted">No trips remembered yet. Open a trip link or create a trip to get started.</p>}
     <div className="actions">
       <button className="button secondary" type="button" disabled={busy} onClick={onOpenLink}>Open trip link</button>
+      {onMasterKey && <button className="button secondary" type="button" disabled={busy} onClick={onMasterKey}>Use master key</button>}
       <button className="button" type="button" disabled={busy} onClick={onCreate}>Create trip</button>
     </div>
     <p className="fine-print">Forgetting removes saved access from this browser. It does not delete the trip.</p>

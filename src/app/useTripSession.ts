@@ -216,6 +216,9 @@ export function useTripSession() {
     resume: (id: string) => run(() => api.resume(id), next => {
       opened(next); setPendingAccess(''); setRecoveryLink('');
     }),
+    masterOpen: (key: string, tripId: string) => run(() => api.masterOpen(key, tripId), next => {
+      opened(next); setPendingAccess(''); setPendingJoin(null); setRecoveryLink('');
+    }),
     command: (command: TripCommand) => {
       if (!current.current || accessLost) return Promise.resolve(false);
       return run(() => api.command(current.current!.revision, command), setSnapshot);

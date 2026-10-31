@@ -230,3 +230,77 @@ test('native rename/content races reject stale attribution and stamp the committ
     assert.equal(history.items[0].actorId, history.items[1].actorId);
   });
 });
+
+test('master key replacement rejects a pending owner operation without revoking normal access', {
+  timeout: 20_000, skip: database === 'postgres',
+}, async () => {
+  const keyHash = randomBytes(32).toString('hex');
+  const masterSession = randomBytes(32).toString('hex');
+  try {
+    await query(`select trip_private.set_master_key(${literal(keyHash)});`);
+    await withConnections(async (data, holder, waiting) => {
+      await query(`select public.trip_master_open(${literal(keyHash)},${literal(data.tripId)},${literal(masterSession)});`);
+      holder.write(`begin; select public.trip_read(${literal(data.ownerSession)}); select 'trip-test-ready';`);
+      await holder.ready();
+      waiting.write(`select public.trip_update_details(${literal(masterSession)},0,${json({ ...details, title: 'Must not persist' })});`);
+      await waitUntilBlocked(waiting.name);
+      holder.write(`select trip_private.set_master_key(null); commit;`);
+      waiting.end('');
+      const result = await waiting.done;
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /PT401/);
+      const saved = JSON.parse(await query(`select public.trip_read(${literal(data.ownerSession)});`));
+      assert.equal(saved.trip.title, details.title);
+    });
+  } finally { await query('select trip_private.set_master_key(null);'); }
+});
+
+test('master key opening rechecks replacement after waiting on the key lock', {
+  timeout: 20_000, skip: database === 'postgres',
+}, async () => {
+  const keyHash = randomBytes(32).toString('hex');
+  const masterSession = randomBytes(32).toString('hex');
+  try {
+    await query(`select trip_private.set_master_key(${literal(keyHash)});`);
+    await withConnections(async (data, holder, waiting) => {
+      holder.write(`begin; select trip_private.set_master_key(null); select 'trip-test-ready';`);
+      await holder.ready();
+      waiting.write(`select public.trip_master_open(${literal(keyHash)},${literal(data.tripId)},${literal(masterSession)});`);
+      await waitUntilBlocked(waiting.name);
+      holder.write('commit;');
+      waiting.end('');
+      const result = await waiting.done;
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /PT401/);
+      assert.equal(await query(`select count(*) from trip_private.sessions where token_hash=${literal(masterSession)};`), '0');
+    });
+  } finally { await query('select trip_private.set_master_key(null);'); }
+});
+
+test('master key replacement can wait for normal owner link rotation without deadlocking', {
+  timeout: 20_000, skip: database === 'postgres',
+}, async () => {
+  const keyHash = randomBytes(32).toString('hex');
+  const nextSession = randomBytes(32).toString('hex');
+  try {
+    await query(`select trip_private.set_master_key(${literal(keyHash)});`);
+    await withConnections(async (data, holder, waiting) => {
+      await query(`select public.trip_master_open(${literal(keyHash)},${literal(data.tripId)},${literal(randomBytes(32).toString('hex'))});`);
+      holder.write(`begin; select public.trip_read(${literal(data.ownerSession)}); select 'trip-test-ready';`);
+      await holder.ready();
+      waiting.write('select trip_private.set_master_key(null);');
+      await waitUntilBlocked(waiting.name);
+      holder.write(`select public.trip_rotate(${literal(data.ownerSession)},${literal(data.memberId)},
+        ${literal(randomBytes(32).toString('hex'))},${literal(nextSession)}); commit;`);
+      holder.end('');
+      const rotation = await holder.done;
+      assert.equal(rotation.status, 0, rotation.stderr);
+      waiting.end('');
+      const revoked = await waiting.done;
+      assert.equal(revoked.status, 0, revoked.stderr);
+      assert.equal(await query('select count(*) from trip_private.master_key;'), '0');
+      const saved = JSON.parse(await query(`select public.trip_read(${literal(nextSession)});`));
+      assert.equal(saved.session.id, data.memberId);
+    });
+  } finally { await query('select trip_private.set_master_key(null);'); }
+});

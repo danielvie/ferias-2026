@@ -19,8 +19,9 @@ import { JoinTripPane } from './JoinTripPane';
 import { OwnerRecovery } from '../features/sharing/OwnerRecovery';
 import { isOnlineBackend } from './api';
 import { useTripPage } from './useTripPage';
+import { MasterKeyPane } from './MasterKeyPane';
 
-type Panel = 'details' | 'link' | 'member' | 'trips' | 'create';
+type Panel = 'details' | 'link' | 'member' | 'trips' | 'create' | 'master';
 
 export function App() {
   const session = useTripSession();
@@ -31,7 +32,7 @@ export function App() {
   const [copied, setCopied] = useState(false);
   const main = useRef<HTMLElement>(null);
   const guards = useRef(new Set<string>());
-  const formPanel = activePanel && activePanel !== 'member' && activePanel !== 'trips';
+  const formPanel = activePanel && activePanel !== 'member' && activePanel !== 'trips' && activePanel !== 'master';
   const registerNavigationGuard = useCallback((id: string, active: boolean) => {
     if (active) guards.current.add(id);
     else guards.current.delete(id);
@@ -147,6 +148,8 @@ export function App() {
         <div className="stack">{ownerLink}{isOnlineBackend && <OwnerRecovery />}</div>
       </details>}
     {activePanel === 'link' && <OpenTripForm busy={session.busy} error={session.error} onJoin={join} onCancel={closePanel} />}
+    {activePanel === 'link' && isOnlineBackend && <button className="button secondary" type="button"
+      disabled={session.busy} onClick={() => openPanel('master')}>Use master key instead</button>}
   </ModalPane>;
   const memberPanel = activePanel === 'member' && snapshot && <ModalPane title="Your profile"
     busy={session.busy} onClose={() => { if (canLeave()) closePanel(); }}>
@@ -155,7 +158,8 @@ export function App() {
   </ModalPane>;
   const trips = <TripsList entries={session.remembered} currentId={currentTripId} busy={session.busy}
     onOpen={id => void openTrip(id)} onForget={id => void forgetTrip(id)}
-    onOpenLink={() => openPanel('link')} onCreate={() => openPanel('create')} />;
+    onOpenLink={() => openPanel('link')} onCreate={() => openPanel('create')}
+    onMasterKey={isOnlineBackend ? () => openPanel('master') : undefined} />;
   const tripsPanel = activePanel === 'trips' && <ModalPane title="Your trips" busy={session.busy} onClose={closePanel}>
     {error}
     {session.storageWarning && <p role="status" className="places-warning">{session.storageWarning}</p>}
@@ -176,6 +180,8 @@ export function App() {
     {detailsPanel}
     {memberPanel}
     {tripsPanel}
+    {activePanel === 'master' && <MasterKeyPane busy={session.busy} error={session.error}
+      onOpen={session.masterOpen} onClose={closePanel} />}
     {session.pendingJoin && <JoinTripPane key={session.pendingJoin.token} trip={session.pendingJoin.trip}
       busy={session.busy} error={session.error} onJoin={joinTrip}
       onRetry={() => void session.openJoinLink(session.pendingJoin!.token)} onCancel={session.cancelJoin} />}

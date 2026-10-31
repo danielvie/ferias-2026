@@ -37,6 +37,26 @@ async function fixture() {
 }
 
 describe('remembered access transport', () => {
+  it('lists and opens master-key trips without storing the key or invalidating existing access on rejection', async () => {
+    const { join, api, rememberedTrips } = await fixture();
+    await join('one');
+    fetchMock.mockResolvedValueOnce(reply({ error: 'Invalid master key' }, 401));
+    await expect(api.masterTrips(token('m'))).rejects.toMatchObject({ sessionExpired: false });
+    expect(rememberedTrips.capture().credential).toBe(token('a'));
+    fetchMock.mockResolvedValueOnce(reply([{ id: 'two', title: 'Second trip' }]));
+    await api.masterTrips(token('m'));
+    expect(fetchMock.mock.lastCall?.[0]).toBe('http://trip-api.example/functions/v1/trip-api/master/trips');
+    expect(fetchMock.mock.lastCall?.[1]?.body).toBe(JSON.stringify({ key: token('m') }));
+    expect(rememberedTrips.capture().id).toBe('one:owner');
+    fetchMock.mockResolvedValueOnce(reply({ snapshot: snapshot('two'), sessionToken: token('b') }));
+    await api.masterOpen(token('m'), 'two');
+    expect(rememberedTrips.capture().id).toBe('two:owner');
+    expect(rememberedTrips.capture().credential).toBe(token('b'));
+    const saved = [localStorage, sessionStorage].flatMap(store =>
+      Array.from({ length: store.length }, (_, index) => store.getItem(store.key(index)!))).join();
+    expect(saved).not.toContain(token('m'));
+  });
+
   it('previews shared joins without changing the active trip and saves only derived access', async () => {
     const { join, api, rememberedTrips } = await fixture();
     await join('one');

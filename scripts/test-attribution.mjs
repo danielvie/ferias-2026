@@ -51,11 +51,15 @@ const proxy = createServer(async (request, response) => {
     for await (const chunk of request) chunks.push(chunk);
     const result = await fetch(`http://127.0.0.1:54391${request.url.replace(/^\/rest\/v1/, '')}`, {
       method: request.method, headers: { 'Content-Type': 'application/json' },
-      ...(chunks.length ? { body: Buffer.concat(chunks) } : {}),
+      // JSON text avoids Node fetch replaying a detached pooled Buffer on 401.
+      ...(chunks.length ? { body: Buffer.concat(chunks).toString('utf8') } : {}),
     });
     response.writeHead(result.status, { 'Content-Type': 'application/json' });
     response.end(await result.text());
-  } catch { response.writeHead(503); response.end('{}'); }
+  } catch (error) {
+    console.error(`Fixture proxy failed: ${redact(error instanceof Error ? error.message : 'unknown error')}`);
+    response.writeHead(503); response.end('{}');
+  }
 });
 
 try {
@@ -84,7 +88,9 @@ try {
   createdRest = true;
   await ready('http://127.0.0.1:54391/');
   await new Promise((resolve, reject) => { proxy.once('error', reject); proxy.listen(54390, '127.0.0.1', resolve); });
-  const deno = spawn(process.execPath, ['node_modules/deno/bin.cjs', 'run', '--allow-env', '--allow-net=127.0.0.1',
+  // The npm wrapper uses spawnSync; stopping it can leave the native server
+  // holding proxy connections open. Own the installed binary directly.
+  const deno = spawn(resolve('node_modules/deno', process.platform === 'win32' ? 'deno.exe' : 'deno'), ['run', '--allow-env', '--allow-net=127.0.0.1',
     'supabase/functions/trip-api/index.ts'], {
     env: { ...env, TRIP_BIND_HOST: '127.0.0.1', SUPABASE_URL: 'http://127.0.0.1:54390', SUPABASE_SECRET_KEYS: '{}',
       SUPABASE_SECRET_KEY: 'local-fixture', SUPABASE_SERVICE_ROLE_KEY: 'local-fixture' },

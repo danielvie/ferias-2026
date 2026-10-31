@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { createHash, randomBytes } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
 import type { TripSnapshot } from '../../shared/model';
@@ -84,6 +85,109 @@ async function snapshot(page: Page): Promise<TripSnapshot> {
     return response.json();
   }, apiBase);
 }
+
+test('master key opens existing owners, remembers only trip sessions, and revokes access on replacement', async ({ page, browser }) => {
+  test.skip(database === 'postgres', 'Master-key configuration tests require the disposable database fixture.');
+  const key = randomBytes(32).toString('base64url');
+  const replacement = randomBytes(32).toString('base64url');
+  const configure = (value: string) => sql(`select trip_private.set_master_key('${createHash('sha256').update(value).digest('hex')}');`);
+  const context = await browser.newContext();
+  const fresh = await context.newPage();
+  try {
+    await create(page, 'Master first trip');
+    const first = await snapshot(page);
+    await create(page, 'Master second trip', true);
+    const second = await snapshot(page);
+    configure(key);
+    await fresh.goto('./');
+    await fresh.getByRole('button', { name: 'Trips', exact: true }).click();
+    await fresh.getByRole('button', { name: 'Use master key', exact: true }).click();
+    const pane = fresh.getByRole('dialog', { name: 'Open with master key', exact: true });
+    await expect(pane.getByLabel('Master key', { exact: true })).toBeFocused();
+    await pane.getByLabel('Master key', { exact: true }).fill('wrong');
+    await pane.getByRole('button', { name: 'Show trips', exact: true }).click();
+    await expect(pane.getByRole('alert')).toHaveText('Master key is invalid or access is disabled.');
+    await expect(pane.getByLabel('Master key', { exact: true })).toHaveValue('');
+    await pane.getByLabel('Master key', { exact: true }).fill(key);
+    if (process.env.DELTA_SCRATCH_DIR) await fresh.screenshot({ path: `${process.env.DELTA_SCRATCH_DIR}/master-key-locked.png` });
+    await fresh.route('**/trip-api/master/trips', route => route.fulfill({
+      status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary outage' }),
+    }));
+    await pane.getByRole('button', { name: 'Show trips', exact: true }).click();
+    await expect(pane.getByRole('alert')).toHaveText('Temporary outage');
+    await expect(pane.getByLabel('Master key', { exact: true })).toHaveValue(key);
+    await fresh.unroute('**/trip-api/master/trips');
+    await pane.getByRole('button', { name: 'Show trips', exact: true }).click();
+    await expect(pane.getByRole('heading', { name: 'Trips in this database' })).toBeFocused();
+    await expect(pane.getByRole('list', { name: 'Database trips' }).getByRole('listitem')).toHaveCount(2);
+    for (const width of [320, 768, 1024, 1440]) {
+      await fresh.setViewportSize({ width, height: 900 });
+      expect(await pane.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+      expect((await new AxeBuilder({ page: fresh }).include('dialog').analyze()).violations).toEqual([]);
+      if (process.env.DELTA_SCRATCH_DIR && [320, 1440].includes(width)) {
+        await fresh.screenshot({ path: `${process.env.DELTA_SCRATCH_DIR}/master-key-list-${width}.png` });
+      }
+    }
+    // Closing discards the key and the entire database listing.
+    await fresh.keyboard.press('Escape');
+    await expect(pane).not.toBeVisible();
+    await fresh.getByRole('button', { name: 'Trips', exact: true }).click();
+    await fresh.getByRole('button', { name: 'Use master key', exact: true }).click();
+    await expect(pane.getByLabel('Master key', { exact: true })).toHaveValue('');
+    await pane.getByLabel('Master key', { exact: true }).fill(key);
+    await pane.getByLabel('Master key', { exact: true }).press('Enter');
+    await pane.getByRole('button', { name: /^Open trip Master first trip as/ }).click();
+    await expect(pane).not.toBeVisible();
+    expect((await snapshot(fresh)).session).toEqual(first.session);
+    await note(fresh, 'Written through master access');
+    await fresh.reload();
+    await expect(fresh.getByRole('button', { name: 'Your profile: Daniel, owner' })).toBeVisible();
+    expect((await snapshot(fresh)).data.trip.id).toBe(first.data.trip.id);
+    expect(fresh.url()).not.toContain(key);
+    const stored = await fresh.evaluate(() => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]));
+    expect(stored).not.toContain(key);
+    expect(stored).not.toContain('Master second trip');
+    configure(replacement);
+    await fresh.getByRole('button', { name: 'Refresh', exact: true }).click();
+    await expect(fresh.getByRole('alert')).toContainText(/revoked|no longer valid/);
+    expect((await snapshot(page)).session).toEqual(second.session);
+    await fresh.getByRole('button', { name: 'Trips', exact: true }).click();
+    await fresh.getByRole('button', { name: 'Use master key', exact: true }).click();
+    await pane.getByLabel('Master key', { exact: true }).fill(key);
+    await pane.getByRole('button', { name: 'Show trips', exact: true }).click();
+    await expect(pane.getByRole('alert')).toContainText('invalid or access is disabled');
+    await pane.getByLabel('Master key', { exact: true }).fill(replacement);
+    await pane.getByRole('button', { name: 'Show trips', exact: true }).click();
+    await pane.getByRole('button', { name: /^Open trip Master second trip as/ }).click();
+    await expect(pane).not.toBeVisible();
+    expect((await snapshot(fresh)).session).toEqual(second.session);
+  } finally {
+    sql('select trip_private.set_master_key(null);');
+    await context.close();
+  }
+});
+
+test('master key handles an empty database and unavailable access without exposing other entry points', async ({ page }) => {
+  test.skip(database === 'postgres', 'Master-key configuration tests require the disposable database fixture.');
+  const key = randomBytes(32).toString('base64url');
+  try {
+    await page.goto('./');
+    await page.getByRole('button', { name: 'Open trip link', exact: true }).click();
+    await page.getByRole('button', { name: 'Use master key instead', exact: true }).click();
+    const pane = page.getByRole('dialog', { name: 'Open with master key', exact: true });
+    await pane.getByLabel('Master key', { exact: true }).fill(key);
+    await pane.getByRole('button', { name: 'Show trips', exact: true }).click();
+    await expect(pane.getByRole('alert')).toContainText('invalid or access is disabled');
+    sql(`select trip_private.set_master_key('${createHash('sha256').update(key).digest('hex')}');`);
+    await pane.getByLabel('Master key', { exact: true }).fill(key);
+    await pane.getByRole('button', { name: 'Show trips', exact: true }).click();
+    await expect(pane.getByRole('status')).toHaveText('No trips in this database yet.');
+    await pane.getByRole('button', { name: 'Use another key', exact: true }).click();
+    await expect(pane.getByLabel('Master key', { exact: true })).toHaveValue('');
+    await pane.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(pane).not.toBeVisible();
+  } finally { sql('select trip_private.set_master_key(null);'); }
+});
 
 test('named checklists persist through the native Edge API and use the mobile direct-jump dial', async ({ page, browser }) => {
   await page.setViewportSize({ width: 390, height: 844 });

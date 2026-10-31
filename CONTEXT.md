@@ -21,6 +21,12 @@ _Avoid_: Treating a city name as the identity of a visit.
 
 **Owner link**: The private member link that grants trip management and control of other links. It is also the owner's way back without signing in.
 
+**Master key**: An operator-provisioned secret that lists one database's trips and
+opens a chosen trip as its existing owner, without its owner link. It is not a
+separate member or admin role. The same key can be configured in local and hosted
+Supabase; the data remain independent. Replacing it revokes its derived sessions,
+not independently issued trip links.
+
 **Activity**: A saved thing to do, such as an attraction, walk or restaurant visit. It belongs to one city visit, can remain unscheduled, and keeps its identity when moved.
 
 **Place**: The saved point of interest and planning details of an activity.

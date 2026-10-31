@@ -59,6 +59,21 @@ tasks:
     cmds:
       - npx --no-install supabase migration up --local
 
+  master-key:generate:
+    desc: Generate a private master key in ignored data/master-key.txt without printing it or changing databases
+    cmds:
+      - node scripts/master-key.mjs generate
+
+  master-key:set:
+    desc: Configure the master key from a private file; requires --local or --project-ref REF
+    cmds:
+      - node scripts/master-key.mjs set {{.CLI_ARGS}}
+
+  master-key:disable:
+    desc: Disable master access and revoke its sessions; requires --local or --project-ref REF
+    cmds:
+      - node scripts/master-key.mjs disable {{.CLI_ARGS}}
+
   db:test:
     desc: Run database access and link-session tests against local Supabase
     env:

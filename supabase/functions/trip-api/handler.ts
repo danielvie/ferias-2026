@@ -60,6 +60,20 @@ export function createHandler(rpc: Rpc, allowedOrigins: string[]) {
       const body = request.method === 'POST' ? object(await jsonBody(request)) : {};
       const session = request.headers.get('x-trip-session') || '';
       const sessionHash = /^[A-Za-z0-9_-]{43}$/.test(session) ? await hash(session) : '';
+      if ((path === '/master/trips' || path === '/master/open') && request.method === 'POST') {
+        await rpc('trip_rate_limit', { p_bucket: 'open' });
+        if (typeof body.key !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(body.key)) {
+          throw new HttpError(401, 'Master key is invalid or access is disabled.');
+        }
+        const keyHash = await hash(body.key);
+        if (path === '/master/trips') return reply(await rpc('trip_master_list', { p_key_hash: keyHash }));
+        check(typeof body.tripId === 'string' && /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(body.tripId), 'Invalid trip ID.');
+        const sessionToken = token();
+        const state = await rpc('trip_master_open', {
+          p_key_hash: keyHash, p_trip_id: body.tripId, p_session_hash: await hash(sessionToken),
+        }) as State;
+        return reply({ snapshot: project(state), sessionToken });
+      }
       if (path === '/trips' && request.method === 'POST') {
         await rpc('trip_rate_limit', { p_bucket: 'create' });
         const input = createTripInput(body);

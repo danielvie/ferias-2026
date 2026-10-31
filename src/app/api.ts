@@ -1,4 +1,4 @@
-import type { CreateTripInput, HistoryPage, InviteInfo, InviteInput, JoinTripInfo, TripCommand, TripSnapshot } from '../../shared/model';
+import type { CreateTripInput, HistoryPage, InviteInfo, InviteInput, JoinTripInfo, MasterTrip, TripCommand, TripSnapshot } from '../../shared/model';
 import { createRememberedTrips, tripIdentity, type AccessContext } from './remembered-trips';
 
 export class ApiError extends Error {
@@ -101,6 +101,9 @@ export const api = {
   },
   join: (token: string) => exchangeSession('/session', { token }),
   joinTrip: (token: string, name: string) => exchangeSession('/join', { token, name }),
+  masterTrips: (key: string) => request<MasterTrip[]>('/master/trips',
+    { method: 'POST', body: JSON.stringify({ key }) }, rememberedTrips.capture(), 'exchange'),
+  masterOpen: (key: string, tripId: string) => exchangeSession('/master/open', { key, tripId }),
   share: () => request<{ token: string }>('/share'),
   prepareJoin: async (token: string) => {
     const trip = await request<JoinTripInfo>('/join/preview',

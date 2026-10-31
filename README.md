@@ -91,6 +91,13 @@ compatibility and rollout.
 
 ## Trip access
 
+For operator access without individual recovery links, **Trips → Use master key**
+lists trips in the connected Supabase database and opens the selected trip as its
+existing owner. The same key can be configured locally and online. This requires
+migration 009 and the matching API/frontend; it is disabled until explicitly
+configured. Existing links are unchanged. See [master-key setup](docs/master-key.md)
+and [master-key-access.excalidraw](master-key-access.excalidraw).
+
 Open **Share** and click **Copy link**. Send the same invitation link to everyone.
 Each traveler enters their own name and clicks **Join trip**, then can edit plans,
 write notes and use checklists. There are no accounts or permission choices.
