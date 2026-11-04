@@ -9,6 +9,7 @@ Os trechos abaixo sobre a agenda contínua e a navegação antiga são históric
 
 Desenho editável: [roteiro-lado-a-lado.excalidraw](roteiro-lado-a-lado.excalidraw).
 Regras, escopo e pendências: [ADR-016](docs/decisions/016-unify-route-and-itinerary.md).
+Contexto para retomar: [handoff-2-roteiro-local-management.md](handoff/handoff-2-roteiro-local-management.md).
 
 Verificações desta integração:
 
