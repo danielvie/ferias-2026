@@ -195,6 +195,13 @@ export function createRememberedTrips({ scope, sessionKey, online, local, tab }:
       if (activeId === id) dropActive();
       refresh();
     },
+    forgetTrip(tripId: string) {
+      initialize();
+      refresh();
+      const ids = new Set(cached.entries.filter(entry => entry.id.startsWith(tripId + ':')).map(entry => entry.id));
+      if (activeId?.startsWith(tripId + ':')) ids.add(activeId);
+      for (const id of ids) this.forget(id);
+    },
     clearCurrent() {
       initialize();
       if (activeId) this.forget(activeId);

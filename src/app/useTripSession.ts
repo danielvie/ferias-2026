@@ -219,6 +219,23 @@ export function useTripSession() {
     masterOpen: (key: string, tripId: string) => run(() => api.masterOpen(key, tripId), next => {
       opened(next); setPendingAccess(''); setPendingJoin(null); setRecoveryLink('');
     }),
+    masterDelete: (key: string, tripId: string) => run(() => api.masterDelete(key, tripId), () => {
+      if (current.current?.data.trip.id === tripId) {
+        current.current = null;
+        setSnapshot(null);
+        setRecoveryLink('');
+        setPendingAccess('');
+        setPendingJoin(null);
+        setAccessLost(false);
+      }
+      // Never remove remembered access before the server confirms deletion.
+      rememberedTrips.forgetTrip(tripId);
+      const url = new URL(location.href);
+      if (url.searchParams.get('roteiroViagem') === tripId) {
+        for (const name of ['roteiroViagem', 'dia', 'parada']) url.searchParams.delete(name);
+        history.replaceState(null, '', url);
+      }
+    }),
     command: (command: TripCommand) => {
       if (!current.current || accessLost) return Promise.resolve(false);
       return run(() => api.command(current.current!.revision, command), setSnapshot);

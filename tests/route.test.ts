@@ -30,7 +30,7 @@ describe('route visits and activity identities', () => {
     const { state } = setup();
     const cities = state().data.trip.cities;
     expect(new Set(cities.map(city => city.id)).size).toBe(3);
-    expect(visitLabel(cities, cities[2].id)).toBe('Brussels · stop 3');
+    expect(visitLabel(cities, cities[2].id)).toBe('Brussels · parada 3');
   });
 
   it('inserts an empty repeat visit and reorders without changing linked data or dates', () => {

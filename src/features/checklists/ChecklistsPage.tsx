@@ -111,12 +111,12 @@ export function ChecklistsPage() {
   return (
     <div className="checklists-page" ref={page}>
       <header className="page-heading checklist-page-heading">
-        <h1>Checklists</h1>
-        {canEdit && <button className="button secondary" type="button" aria-label="New checklist" disabled={busy || Boolean(creatingId) || lists.length >= 100}
+        <h1>Listas</h1>
+        {canEdit && <button className="button secondary" type="button" aria-label="Nova lista" disabled={busy || Boolean(creatingId) || lists.length >= 100}
           onClick={() => {
             setCreatingId(crypto.randomUUID());
             requestAnimationFrame(() => document.querySelector<HTMLInputElement>('.new-checklist-form input')?.focus());
-          }}>+ <span className="checklist-new-full">New checklist</span><span className="checklist-new-short" aria-hidden="true">New</span></button>}
+          }}>+ <span className="checklist-new-full">Nova lista</span><span className="checklist-new-short" aria-hidden="true">Nova</span></button>}
       </header>
       {!canEdit && <p className="muted">Read-only access. Only the owner and editors can change checklists.</p>}
       <div className="checklist-workspace">

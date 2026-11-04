@@ -9,7 +9,9 @@ import { DayRail } from './DayRail';
 import { emptyEvent, sortEvents, tripDates } from './itinerary';
 import './calendar.css';
 
-export function CalendarPage() {
+export function CalendarPage({ selectedDate, initialCityId, onFormChange }: {
+  selectedDate?: string; initialCityId?: string; onFormChange?: (open: boolean) => void;
+} = {}) {
   const { snapshot, canEdit, busy, command, navigate } = useTrip();
   const { trip, events, transfers } = snapshot.data;
   const dates = useMemo(() => tripDates(trip), [trip.startDate, trip.endDate]);
@@ -24,6 +26,11 @@ export function CalendarPage() {
   const conflicts = routeDateConflicts(trip.cities, events);
 
   useEffect(() => {
+    onFormChange?.(Boolean(form));
+    return () => onFormChange?.(false);
+  }, [Boolean(form), onFormChange]);
+
+  useEffect(() => {
     if (!form) trigger.current?.focus({ preventScroll: true });
   }, [form]);
 
@@ -35,7 +42,7 @@ export function CalendarPage() {
     setForm(null);
   }
   async function deleteEvent(event: TripEvent) {
-    if (busy || deleting.current || !canEdit || !window.confirm(`Delete "${event.title}" from the calendar?`)) return;
+    if (busy || deleting.current || !canEdit || !window.confirm(selectedDate ? `Excluir "${event.title}" da agenda?` : `Delete "${event.title}" from the calendar?`)) return;
     deleting.current = true;
     try {
       if (await command({ type: 'event.delete', id: event.id })) {
@@ -62,7 +69,7 @@ export function CalendarPage() {
   }
 
   return <div className="calendar-page">
-    <header className="itinerary-heading">
+    {!selectedDate && <header className="itinerary-heading">
       <p className="muted">{family ? 'Shared itinerary' : 'Your itinerary'}</p>
       <h1>{trip.title}</h1>
       <p className="muted">{displayDate(trip.startDate)} to {displayDate(trip.endDate, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
@@ -71,32 +78,33 @@ export function CalendarPage() {
       {conflicts.length > 0 && <p className="calendar-overlap">
         Scheduled dates do not follow your route order. Review these plans; dates and bookings have not been moved.
       </p>}
-    </header>
+    </header>}
+    {selectedDate && conflicts.length > 0 && <p className="calendar-overlap">A ordem da rota difere das datas agendadas. Revise os planos; nenhum horário foi alterado.</p>}
     <div className="itinerary-days">
-      {days.map(({ date, events: dayEvents }) => {
+      {days.filter(day => !selectedDate || day.date === selectedDate).map(({ date, events: dayEvents }) => {
         const cityNames = [...new Set(dayEvents.map((event) => visitLabel(trip.cities, event.cityId)))];
         const moves = family ? [] : transfers.filter((move) => move.date === date);
         return <section className="itinerary-day" data-trip-day={date} key={date} aria-labelledby={`day-${date}`}>
           <header className="day-heading">
-            <div><h2 id={`day-${date}`} tabIndex={-1}>{displayDate(date, { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
-              <p className="muted">{cityNames.join(' / ')}{cityNames.length > 0 && ' · '}{dayEvents.length} {dayEvents.length === 1 ? 'activity' : 'activities'}</p></div>
-            {canEdit && <button className="button ghost" disabled={busy || !!form} aria-label={`Add activity on ${date}`}
-              onClick={(click) => openForm(emptyEvent(dayEvents[0]?.cityId ?? trip.cities[0].id, date), false, click.currentTarget)}>+ Add activity</button>}
+            <div><h2 id={`day-${date}`} tabIndex={-1}>{selectedDate ? new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`)) : displayDate(date, { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
+              <p className="muted">{cityNames.join(' / ')}{cityNames.length > 0 && ' · '}{dayEvents.length} {selectedDate ? (dayEvents.length === 1 ? 'atividade' : 'atividades') : (dayEvents.length === 1 ? 'activity' : 'activities')}</p></div>
+            {canEdit && <button className="button ghost" disabled={busy || !!form} aria-label={selectedDate ? `Adicionar atividade em ${date}` : `Add activity on ${date}`}
+              onClick={(click) => openForm(emptyEvent(initialCityId ?? dayEvents[0]?.cityId ?? trip.cities[0].id, date), false, click.currentTarget)}>{selectedDate ? '+ Adicionar' : '+ Add activity'}</button>}
           </header>
-          {canEdit && form && (dates.includes(form.event.date) ? form.event.date : dates[0]) === date &&
+          {canEdit && form && (selectedDate || (dates.includes(form.event.date) ? form.event.date : dates[0]) === date) &&
             <EventForm key={form.event.id} initial={form.event} editing={form.editing} onClose={closeForm} />}
           {dayEvents.length ? <ol className="calendar-events">
-            {dayEvents.map((event) => <ItineraryEvent key={event.id} event={event} editing={Boolean(form)}
+            {dayEvents.map((event) => <ItineraryEvent key={event.id} event={event} editing={Boolean(form)} compact={Boolean(selectedDate)}
               onEdit={(button) => openForm(event, true, button)} onDelete={() => void deleteEvent(event)} />)}
-          </ol> : <p className="day-empty">{family ? 'No activities shared for this day.' : 'Nothing planned yet. Leave it open, or add an activity.'}</p>}
+          </ol> : <p className="day-empty">{selectedDate ? (family ? 'Nenhuma atividade compartilhada neste dia.' : 'Nada agendado neste dia. Deixe livre ou adicione uma atividade.') : family ? 'No activities shared for this day.' : 'Nothing planned yet. Leave it open, or add an activity.'}</p>}
           {moves.map((move) => <button className="departure-link" key={move.id} onClick={() => navigate('checklists')}>
             {move.time} · {visitLabel(trip.cities, move.fromCityId)} → {visitLabel(trip.cities, move.toCityId)}
-            <span>Open departure checklist</span>
+            <span>{selectedDate ? 'Abrir checklist do deslocamento' : 'Open departure checklist'}</span>
           </button>)}
         </section>;
       })}
     </div>
-    <DayRail days={days} cities={trip.cities} onJump={jumpToDay} />
-    <p className="fine-print">Times in Europe/Brussels. Check transport times and opening hours before booking.</p>
+    {!selectedDate && <DayRail days={days} cities={trip.cities} onJump={jumpToDay} />}
+    <p className="fine-print">{selectedDate ? 'Horários locais da viagem · Europe/Brussels. Confirme transportes e funcionamento antes de reservar.' : 'Times in Europe/Brussels. Check transport times and opening hours before booking.'}</p>
   </div>;
 }

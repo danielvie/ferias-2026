@@ -745,6 +745,91 @@ Local verification used `npm test` (179 tests), `npm run build`, Deno's Edge
 typecheck, and 100 browser tests against a temporary SQLite database and built
 client. The native Supabase browser suite was not run for this rollout.
 
+## Integração local do Roteiro lado a lado
+
+A direção escolhida na segunda rodada reúne agenda e Places em Roteiro.
+A implementação reutiliza comandos e formulários, sem alterar o esquema.
+O desenho está em `roteiro-lado-a-lado.excalidraw`; ADR-016 registra os limites.
+
+Verificado localmente:
+
+- `npm run build`, incluindo TypeScript.
+- `npm test`: 200 testes em 35 arquivos.
+- `VITE_BACKEND=sqlite PLAYWRIGHT_PORT=5197 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' npm run test:e2e -- tests/e2e/roteiro.spec.ts`: oito fluxos passaram.
+- Seleção de cidades sem gravações, visitas repetidas, cidade fora do mapa, dias vazios, múltiplas cidades no mesmo dia e eventos sem alteração.
+- Rascunho de inclusão rápida preservado entre abas, agendamento no dia selecionado, persistência após recarga, notas contextuais e retorno à mesma data após visitar Notas.
+- Conflito real de revisão mantém o formulário; tentativa posterior salva o rascunho.
+- Reordenação com desfazer preserva eventos; mover uma ideia mantém seu ID e nota vinculada.
+- Acessos viewer/family usam respostas filtradas da API SQLite. Família não vê notas ou listas e recebe somente os eventos selecionados.
+- Escape e retorno de foco em notas; mapa inicialmente recolhido no celular e foco devolvido após escolher uma cidade.
+- Layout e verificações axe WCAG A/AA em 320, 390, 768, 1024 e 1440 px. Sem violações detectadas nos estados de agenda verificados. As capturas desktop/celular foram inspecionadas.
+- Após o ajuste final de rolagem horizontal, build e uma verificação adicional na prévia a 320 px confirmaram que o dia selecionado permanece visível e o documento não transborda.
+
+A prévia em 5180 usa SQLite criado em um diretório temporário separado.
+O servidor anterior em 5173 não foi alterado. Nenhuma viagem real, banco
+Supabase, migração hospedada, push ou publicação foi executada.
+
+A suíte E2E anterior não foi rodada nesta integração e ainda precisa adaptar
+seletores/textos e expectativas da antiga agenda contínua. A localização
+integral das telas antigas e das mensagens do servidor continua pendente.
+Não houve nova validação em produção ou em aparelhos físicos.
+
+## Acesso local simplificado por senha
+
+A pedido do usuário, Minhas viagens agora oferece Gerenciar todas as viagens,
+com campo Senha, Ver viagens e Abrir viagem. A senha de desenvolvimento é
+configurada automaticamente por `scripts/dev-online.mjs`, exclusivamente no
+Docker local. O frontend não contém seu valor.
+
+Aplicada somente a migração local pendente 009, já existente no projeto, para
+habilitar a listagem e abertura como proprietário. Cadastrado o hash da senha
+combinada. A prévia na porta 5180 passou a usar o Supabase local, com a API desta
+revisão na porta 54331. O servidor anterior em 5173 e os dados temporários do
+SQLite foram mantidos. Nada foi configurado ou publicado no Supabase online.
+
+Verificado:
+
+- Build e TypeScript concluídos.
+- 204 testes em 36 arquivos passaram, incluindo senha curta configurada, senha
+  incorreta, abertura com a identidade existente e cadastro somente no Docker.
+- Fluxo real no navegador em 5180: abrir Minhas viagens, solicitar gerenciamento,
+  rejeitar senha errada, listar duas viagens com a senha correta, abrir uma e
+  manter o acesso após recarregar. Sem salvar alterações na viagem.
+- Lista inspecionada em desktop e celular, sem transbordamento do documento.
+- Banco local antes e depois: duas viagens e soma das revisões igual a 2.
+- A listagem permanece limitada ao banco conectado; não mistura SQLite, Supabase
+  local e Supabase online.
+
+## Exclusão de viagem pelo gerenciamento
+
+Adicionado Excluir viagem ao lado de Abrir viagem. A confirmação nativa mostra
+nome e ID curto e informa a exclusão permanente dos dados vinculados e dos
+acessos lembrados neste navegador.
+
+A migração 010 adiciona uma função autorizada pela mesma senha do gerenciamento.
+A exclusão do registro da viagem usa as relações existentes com cascata.
+A API aceita repetição da mesma exclusão, para recuperação de resposta perdida.
+Somente depois do sucesso do servidor são removidas todas as identidades locais
+daquela viagem, suas páginas lembradas e, quando aplicável, a sessão ativa.
+Uma viagem ativa excluída fecha o gerenciamento e volta à página inicial.
+
+Verificado:
+
+- Build e TypeScript concluídos; 207 testes passaram em 36 arquivos.
+- Teste de banco isolado confirma senha incorreta, ausência de senha, ID inválido,
+  remoção de dados vinculados, invalidação de sessões e convites, repetição segura
+  e preservação de outra viagem.
+- Testes de memória local cobrem múltiplas identidades da mesma viagem, páginas
+  lembradas, prevenção de respostas antigas e preservação de outras viagens.
+- `task test:trip-delete` passou no navegador com Supabase local: cancelar,
+  simular falha de rede sem remover acessos locais, tentar novamente, excluir
+  viagem não ativa e excluir a viagem ativa, incluindo recarga.
+- O teste criou e excluiu apenas suas duas viagens descartáveis. As duas viagens
+  originais permaneceram no banco, com soma das revisões igual a 2.
+- Botões inspecionados no celular, sem transbordamento.
+- Aplicada a migração 010 somente no Supabase local e reiniciada a API da prévia
+  na porta 54331. Nenhuma publicação ou alteração no banco online.
+
 ## Not verified or delivered
 
 No two-physical-device acceptance check, hosted backup restore test, custom-domain/reverse-proxy configuration, email delivery, load test or full assistive-technology audit was performed. Automated accessibility checks are not a WCAG certification. Offline synchronization and the proposal's later additions are not implemented. Browser tests use synthetic trip data, not real bookings.

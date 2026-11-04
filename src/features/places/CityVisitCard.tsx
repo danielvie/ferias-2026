@@ -27,8 +27,8 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
       : city.arrivalDate.slice(0, 7) === city.departureDate.slice(0, 7)
         ? `${Number(city.arrivalDate.slice(8))}–${formatDate(city.departureDate)}`
         : `${formatDate(city.arrivalDate)} – ${formatDate(city.departureDate)}`
-    : city.arrivalDate ? `From ${formatDate(city.arrivalDate)}`
-      : city.departureDate ? `Until ${formatDate(city.departureDate)}` : 'Dates not set';
+    : city.arrivalDate ? `Desde ${formatDate(city.arrivalDate)}`
+      : city.departureDate ? `Até ${formatDate(city.departureDate)}` : 'Datas a definir';
   const datesOutsideTrip = [city.arrivalDate, city.departureDate].some(date =>
     date && (date < snapshot.data.trip.startDate || date > snapshot.data.trip.endDate));
   const conflicts = snapshot.data.places.filter(place => place.cityId === city.id &&
@@ -41,19 +41,19 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
     style={{ transform: CSS.Transform.toString(transform), transition }} data-visit-id={city.id}>
     <div className={`route-visit${selected ? ' is-selected' : ''}`}>
       {canEdit ? <button ref={setActivatorNodeRef} className="route-drag-handle" type="button" disabled={disabled}
-        {...attributes} {...listeners} id={`visit-handle-${city.id}`} aria-label={`Drag checkpoint ${checkpointLabel}`}
-        title="Drag to reorder. Keyboard: Space, arrows, Space to drop.">
+        {...attributes} {...listeners} id={`visit-handle-${city.id}`} aria-label={`Arrastar parada ${checkpointLabel}`}
+        title="Arraste para reordenar. Teclado: espaço, setas e espaço para soltar.">
         <Icon name="grip" />
         <span className="checkpoint-number" aria-hidden="true">{index + 1}</span>
       </button> : <span className="checkpoint-marker" aria-hidden="true"><span className="checkpoint-number">{index + 1}</span></span>}
       <h2 className="checkpoint-heading"><button type="button" className="checkpoint-open" id={`checkpoint-${city.id}`} disabled={disabled}
-        aria-label={`Checkpoint ${checkpointLabel}, ${activityCount} ${activityCount === 1 ? 'activity' : 'activities'}`} aria-expanded={selected}
+        aria-label={`Parada ${checkpointLabel}, ${activityCount} ${activityCount === 1 ? 'atividade' : 'atividades'}`} aria-expanded={selected}
         aria-controls={selected ? 'checkpoint-details' : undefined}
         aria-describedby={showDates && (datesOutsideTrip || conflicts > 0) ? `checkpoint-warning-${city.id}` : undefined}
         onClick={() => onSelect(city.id)}>
         <span className="checkpoint-copy">
           <span className="checkpoint-name">{city.name}</span>
-          <span className="checkpoint-count">{activityCount} {activityCount === 1 ? 'activity' : 'activities'}</span>
+          <span className="checkpoint-count">{activityCount} {activityCount === 1 ? 'atividade' : 'atividades'}</span>
         </span>
         <svg className="checkpoint-chevron" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
           <path d={selected ? 'm4 6 4 4 4-4' : 'm6 4 4 4-4 4'} fill="none" stroke="currentColor" strokeWidth={selected ? 2.5 : 1.5} />
@@ -61,29 +61,29 @@ export function CityVisitCard({ city, index, activityCount, selected, disabled, 
       </button></h2>
       {showDates && <CityDates city={city} disabled={disabled} summary={dateSummary} />}
       {selected && canEdit && <details className="route-menu">
-        <summary aria-label={`Actions for checkpoint ${checkpointLabel}`} aria-disabled={disabled}
+        <summary aria-label={`Ações da parada ${checkpointLabel}`} aria-disabled={disabled}
           onClick={event => { if (disabled) event.preventDefault(); }}>···</summary>
         <div className="route-menu-content">
           <button type="button" className="button ghost" disabled={disabled || index === 0}
             onClick={event => {
               event.currentTarget.closest('details')?.removeAttribute('open');
               actions.moveVisit(city.id, cities[index - 1].id);
-            }}>Move earlier</button>
+            }}>Mover para antes</button>
           <button type="button" className="button ghost" disabled={disabled || index === cities.length - 1}
             onClick={event => {
               event.currentTarget.closest('details')?.removeAttribute('open');
               actions.moveVisit(city.id, cities[index + 2]?.id ?? null);
-            }}>Move later</button>
+            }}>Mover para depois</button>
           <button type="button" className="button ghost" disabled={disabled || cities.length >= 30}
-            onClick={event => actions.insert(city.id, event.currentTarget)}>Insert checkpoint before</button>
+            onClick={event => actions.insert(city.id, event.currentTarget)}>Inserir parada antes</button>
           <button type="button" className="button ghost" disabled={disabled || cities.length >= 30}
-            onClick={event => actions.insert(cities[index + 1]?.id ?? null, event.currentTarget)}>Insert checkpoint after</button>
+            onClick={event => actions.insert(cities[index + 1]?.id ?? null, event.currentTarget)}>Inserir parada depois</button>
         </div>
       </details>}
     </div>
     {showDates && (datesOutsideTrip || conflicts > 0) && <p className="city-date-warning" id={`checkpoint-warning-${city.id}`}>
-      {datesOutsideTrip && <span>⚠ Outside trip dates</span>}
-      {conflicts > 0 && <span>⚠ {conflicts} {conflicts === 1 ? 'activity' : 'activities'} outside city dates</span>}
+      {datesOutsideTrip && <span>Fora das datas da viagem</span>}
+      {conflicts > 0 && <span>{conflicts} {conflicts === 1 ? 'atividade fora' : 'atividades fora'} das datas da parada</span>}
     </p>}
     {children}
     {after}

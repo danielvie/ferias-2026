@@ -29,19 +29,19 @@ export function VisitForm({ beforeId, onClose, onSaved }: {
   }
 
   return <section className="panel stack" aria-labelledby={`${id}-heading`}>
-    <div><h2 id={`${id}-heading`}>Add checkpoint</h2>
-      <p className="muted">{beforeId ? `Insert before ${visitLabel(cities, beforeId)}.` : 'Add to the end of your route.'} A new checkpoint starts with no activities.</p></div>
+    <div><h2 id={`${id}-heading`}>Adicionar parada</h2>
+      <p className="muted">{beforeId ? `Inserir antes de ${visitLabel(cities, beforeId)}.` : 'Adicionar ao final da rota.'} Uma nova parada começa sem atividades.</p></div>
     <form onSubmit={submit}>
       <fieldset className="places-form-fields stack" disabled={busy || saving || !canEdit}>
-        <legend className="visually-hidden">Checkpoint details</legend>
-        <div className="field"><label htmlFor={`${id}-city`}>City name</label>
-          <input id={`${id}-city`} autoFocus required maxLength={100} value={name} placeholder="e.g. Brussels"
+        <legend className="visually-hidden">Detalhes da parada</legend>
+        <div className="field"><label htmlFor={`${id}-city`}>Nome da cidade</label>
+          <input id={`${id}-city`} autoFocus required maxLength={100} value={name} placeholder="Ex.: Bruxelas"
             onChange={event => setName(event.target.value)} />
-          <small>{repeated ? 'This city is already on your route. This creates a separate checkpoint, not a duplicate of its activities.' :
-            'Returning to a city? You can use the same name again.'}</small></div>
+          <small>{repeated ? 'Esta cidade já está na rota. Será criada uma nova passagem, sem duplicar atividades.' :
+            'Vai voltar a uma cidade? Pode usar o mesmo nome.'}</small></div>
         <div className="actions">
-          <button className="button" type="submit">{saving ? 'Adding…' : 'Add checkpoint'}</button>
-          <button className="button secondary" type="button" onClick={onClose}>Cancel</button>
+          <button className="button" type="submit">{saving ? 'Adicionando…' : 'Adicionar parada'}</button>
+          <button className="button secondary" type="button" onClick={onClose}>Cancelar</button>
         </div>
       </fieldset>
     </form>

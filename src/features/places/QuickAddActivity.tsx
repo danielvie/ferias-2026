@@ -37,9 +37,9 @@ export function QuickAddActivity({ city, disabled, onFullForm }: {
       const title = draft.title.trim();
       if (await command({ type: 'place.save', place: { ...draft, title } })) {
         clearDraft();
-        setMessage(`${title} saved as an idea to ${city.name}. Nothing is scheduled.`);
+        setMessage(`${title} salva como ideia em ${city.name}. Nada foi agendado.`);
       } else {
-        setError('Your activity draft is kept. Review the trip message and try again.');
+        setError('Seu rascunho foi mantido. Confira a mensagem da viagem e tente novamente.');
       }
     } finally {
       submitting.current = false;
@@ -48,24 +48,24 @@ export function QuickAddActivity({ city, disabled, onFullForm }: {
     }
   }
 
-  return <form className="checkpoint-quick-add" onSubmit={submit} aria-label={`Add activity to ${city.name}`}>
+  return <form className="checkpoint-quick-add" onSubmit={submit} aria-label={`Adicionar ideia em ${city.name}`}>
     <fieldset className="places-form-fields" disabled={blocked}>
-      <legend className="visually-hidden">Quick add activity</legend>
-      <label htmlFor={`${id}-title`}>New activity</label>
+      <legend className="visually-hidden">Adicionar ideia rapidamente</legend>
+      <label htmlFor={`${id}-title`}>Nova ideia</label>
       <div className="quick-add-controls">
         <input ref={input} id={`${id}-title`} name="title" required maxLength={200}
-          placeholder={`What would you like to do in ${city.name}?`} value={draft.title}
+          placeholder={`O que gostaria de fazer em ${city.name}?`} value={draft.title}
           aria-describedby={`${id}-hint`} onChange={event => {
             setDraft(current => ({ ...current, title: event.target.value }));
             setError(''); setMessage('');
           }} />
         <button className="button secondary" type="submit" disabled={!draft.title.trim()}>
-          {saving ? 'Saving…' : 'Add'}
+          {saving ? 'Salvando…' : 'Adicionar'}
         </button>
         <button className="button ghost" type="button" id={`checkpoint-add-${city.id}`}
-          onClick={event => onFullForm(draft, event.currentTarget, clearDraft)}>Full form</button>
+          onClick={event => onFullForm(draft, event.currentTarget, clearDraft)}>Mais detalhes</button>
       </div>
-      <p className="quick-add-hint" id={`${id}-hint`}>Saves an idea to {city.name}. Nothing is scheduled.</p>
+      <p className="quick-add-hint" id={`${id}-hint`}>Salva uma ideia em {city.name}, sem agendar.</p>
     </fieldset>
     {error && <p className="inline-error" role="alert">{error}</p>}
     <p className="quick-add-status" role="status">{message}</p>

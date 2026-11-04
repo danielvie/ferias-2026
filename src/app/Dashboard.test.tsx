@@ -5,9 +5,9 @@ import { Dashboard } from './Dashboard';
 describe('empty itinerary', () => {
   it('shows the main page without inventing a trip or requiring a form', () => {
     const html = renderToStaticMarkup(<Dashboard busy={false} onDetails={() => {}} onQuickStart={() => {}} />);
-    expect(html).toContain('<h1>Itinerary</h1>');
-    expect(html).toContain('Add trip details');
-    expect(html).toContain('Quick start');
+    expect(html).toContain('<h1>Roteiro</h1>');
+    expect(html).toContain('Criar viagem');
+    expect(html).toContain('Explorar exemplo');
     expect(html).not.toContain('<form');
     expect(html).not.toContain('2030-06');
     expect(html).not.toContain('Brussels');

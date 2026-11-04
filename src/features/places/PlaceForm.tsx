@@ -30,7 +30,7 @@ export function PlaceForm({ initial, editing, onClose, onSaved }: {
     if (busy || submitting.current || !canEdit) return;
     if (!draft.title.trim() || !isWebUrl(draft.url) ||
       !Number.isInteger(draft.durationMinutes) || draft.durationMinutes < 1) {
-      setError('Enter a title, a duration of at least one minute, and an http:// or https:// website if provided.');
+      setError('Informe um título, duração de pelo menos um minuto e um site http:// ou https://, se houver.');
       return;
     }
     submitting.current = true;
@@ -50,74 +50,74 @@ export function PlaceForm({ initial, editing, onClose, onSaved }: {
 
   return (
     <section className="panel" aria-labelledby={`${id}-heading`}>
-      <h2 id={`${id}-heading`}>{editing ? 'Edit activity' : 'Add activity'}</h2>
+      <h2 id={`${id}-heading`}>{editing ? 'Editar ideia' : 'Adicionar ideia'}</h2>
       <form onSubmit={submit}>
         <fieldset className="places-form-fields stack" disabled={busy || saving || !canEdit}>
-          <legend className="visually-hidden">Place details</legend>
+          <legend className="visually-hidden">Detalhes da ideia</legend>
           <div className="form-grid">
             <div className="field">
-              <label htmlFor={`${id}-title`}>Title</label>
+              <label htmlFor={`${id}-title`}>Título</label>
               <input id={`${id}-title`} name="title" autoFocus required maxLength={200} value={draft.title}
                 onChange={event => patch({ title: event.target.value })} />
             </div>
             <div className="field">
-              <label htmlFor={`${id}-city`}>Checkpoint</label>
+              <label htmlFor={`${id}-city`}>Parada</label>
               <select id={`${id}-city`} name="cityId" required value={draft.cityId}
                 onChange={event => patch({ cityId: event.target.value })}>
                 {snapshot.data.trip.cities.map(city => <option key={city.id} value={city.id}>{visitLabel(snapshot.data.trip.cities, city.id)}</option>)}
               </select>
-              <small>Changing checkpoints keeps scheduled dates and times. Check the activity's address before moving it to another city.</small>
+              <small>Mudar de parada preserva datas e horários agendados. Confira o endereço antes de mover para outra cidade.</small>
             </div>
           </div>
           <div className="form-grid">
             <div className="field">
-              <label htmlFor={`${id}-category`}>Category</label>
+              <label htmlFor={`${id}-category`}>Categoria</label>
               <select id={`${id}-category`} name="category" value={draft.category}
                 onChange={event => patch({ category: event.target.value as Place['category'] })}>
-                <option value="walk">Walk</option><option value="museum">Museum</option>
-                <option value="food">Food</option><option value="sight">Sight</option><option value="other">Other</option>
+                <option value="walk">Caminhada</option><option value="museum">Museu</option>
+                <option value="food">Comida</option><option value="sight">Atração</option><option value="other">Outra</option>
               </select>
             </div>
             <div className="field">
-              <label htmlFor={`${id}-status`}>Status</label>
+              <label htmlFor={`${id}-status`}>Situação</label>
               <select id={`${id}-status`} name="status" value={draft.status}
                 onChange={event => patch({ status: event.target.value as Place['status'] })}>
-                <option value="idea">Idea</option><option value="planned">Planned</option><option value="visited">Visited</option>
+                <option value="idea">Ideia</option><option value="planned">Planejada</option><option value="visited">Visitada</option>
               </select>
             </div>
           </div>
           <div className="field">
-            <label htmlFor={`${id}-description`}>Description and booking notes, optional</label>
+            <label htmlFor={`${id}-description`}>Descrição e observações de reserva, opcional</label>
             <textarea id={`${id}-description`} name="description" rows={3} value={draft.description}
               onChange={event => patch({ description: event.target.value })} />
           </div>
           <div className="field">
-            <label htmlFor={`${id}-address`}>Address, optional</label>
+            <label htmlFor={`${id}-address`}>Endereço, opcional</label>
             <input id={`${id}-address`} name="address" value={draft.address}
               onChange={event => patch({ address: event.target.value })} />
           </div>
           <div className="field">
-            <label htmlFor={`${id}-url`}>Website, optional</label>
+            <label htmlFor={`${id}-url`}>Site, opcional</label>
             <input id={`${id}-url`} name="url" type="url" placeholder="https://" value={draft.url}
               onChange={event => patch({ url: event.target.value })} />
-            <small className="muted">Use an http:// or https:// link.</small>
+            <small className="muted">Use um link http:// ou https://.</small>
           </div>
           <div className="form-grid">
             <div className="field">
-              <label htmlFor={`${id}-duration`}>Visit duration in minutes</label>
+              <label htmlFor={`${id}-duration`}>Duração em minutos</label>
               <input id={`${id}-duration`} name="durationMinutes" type="number" min={1} max={1440} step={1}
                 required value={draft.durationMinutes || ''} onChange={event => patch({ durationMinutes: Number(event.target.value) })} />
             </div>
             <div className="field">
-              <label htmlFor={`${id}-cost`}>Expected cost, optional</label>
-              <input id={`${id}-cost`} name="cost" placeholder="e.g. €15 per person" value={draft.cost}
+              <label htmlFor={`${id}-cost`}>Custo estimado, opcional</label>
+              <input id={`${id}-cost`} name="cost" placeholder="Ex.: €15 por pessoa" value={draft.cost}
                 onChange={event => patch({ cost: event.target.value })} />
             </div>
           </div>
           {error && <p className="inline-error" role="alert">{error}</p>}
           <div className="actions">
-            <button className="button" type="submit">{saving ? 'Saving…' : 'Save activity'}</button>
-            <button className="button secondary" type="button" onClick={onClose}>Cancel</button>
+            <button className="button" type="submit">{saving ? 'Salvando…' : 'Salvar ideia'}</button>
+            <button className="button secondary" type="button" onClick={onClose}>Cancelar</button>
           </div>
         </fieldset>
       </form>

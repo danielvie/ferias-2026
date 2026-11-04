@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prototype checks</title>
+<style>body{font:15px/1.6 system-ui;margin:32px;color:#263c31}pre{white-space:pre-wrap}iframe{display:block;border:1px solid #ddd;height:900px;margin-top:24px;max-width:none}button{padding:12px 20px;font:inherit}body{overflow-x:hidden}</style>
+<h1>Prototype interaction checks</h1>
+<p>Tests all six layouts, all 14 days, notes, activity details, URL state and horizontal overflow at four widths.</p>
+<button id="run">Run again</button>
+<pre id="results" role="status">Starting…</pre>
+<iframe id="preview" title="Prototype under test"></iframe>
+<script>
+const frame = document.querySelector('iframe');
+const results = document.querySelector('#results');
+window.checkResult = null;
+const assert = (condition, message) => { if (!condition) throw new Error(message); };
+function openFrame(url) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(`Timed out loading ${url}`)), 15000);
+    frame.onload = () => { clearTimeout(timeout); resolve(); };
+    frame.src = url;
+  });
+}
+async function run() {
+  document.querySelector('#run').disabled = true;
+  results.textContent = '';
+  window.checkResult = null;
+  let count = 0;
+  try {
+    for (let variant = 1; variant <= 6; variant++) {
+      frame.style.width = '1440px';
+      await openFrame(`${variant}.html`);
+      const w = frame.contentWindow;
+      const doc = w.document;
+      assert(doc.body.classList.contains(`v${variant}`), `Variant ${variant} did not render`);
+      assert(doc.querySelectorAll('h1').length === 1, 'Expected exactly one h1');
+      assert(w.scrollY === 0, 'Initial render scrolled the document');
+      for (let index = 0; index < 14; index++) {
+        w.changeDay(index);
+        assert(doc.querySelectorAll('.activity').length >= 2, `Day ${index + 2} has no activities`);
+        assert(new URL(w.location.href).searchParams.get('day') === String(index + 2), 'URL day is stale');
+        doc.querySelector('[data-activity]').click();
+        assert(doc.querySelector('dialog').open && doc.querySelector('.detail-text').textContent.length > 10, 'Activity did not open');
+        doc.querySelector('[data-close]').click();
+        doc.querySelector('[data-notes="place"]').click();
+        assert(doc.querySelector('dialog').open && doc.querySelector('.detail-text').textContent.length > 10, 'Place note did not open');
+        doc.querySelector('[data-close]').click();
+        for (const width of [320, 768, 1024, 1440]) {
+          frame.style.width = `${width}px`;
+          assert(doc.documentElement.scrollWidth <= width + 1, `Overflow: variant ${variant}, day ${index + 2}, width ${width}, content ${doc.documentElement.scrollWidth}`);
+          count++;
+        }
+      }
+      w.changeDay(3);
+      doc.querySelector('[data-notes="trip"]').click();
+      assert(doc.querySelectorAll('.trip-notes section').length === 4, 'Trip notes missing');
+      doc.querySelector('[data-close]').click();
+      if (variant === 2) {
+        doc.querySelector('.map-hit[data-day="8"]').click();
+        assert(doc.querySelector('.atlas-detail h2').textContent === 'Eindhoven', 'Map did not switch day');
+      }
+      if (variant === 5) {
+        doc.querySelector('[data-calendar]').click();
+        assert(doc.querySelectorAll('.dialog-days button').length === 14, 'Calendar picker missing days');
+        doc.querySelector('.dialog-days [data-day="8"]').click();
+        assert(!doc.querySelector('dialog').open && doc.querySelector('h1').textContent === 'Eindhoven', 'Calendar selection failed');
+      }
+      if (variant === 6) {
+        doc.querySelector('[data-week="7"]').click();
+        assert(doc.querySelector('.calendar-number').textContent === '09', 'Week switch failed');
+      }
+      const next = variant === 6 ? 1 : variant + 1;
+      doc.querySelector(`#switcher [data-variant="${next}"]`).click();
+      assert(doc.body.classList.contains(`v${next}`), 'Variant switch failed');
+      assert(new URL(w.location.href).searchParams.get('variant') === String(next), 'Variant URL is stale');
+      await openFrame(w.location.href);
+      assert(frame.contentDocument.body.classList.contains(`v${next}`), 'Reload did not preserve variant');
+      results.textContent += `PASS ${variant}. 14 days, four widths, activities, notes, switching and reload\n`;
+    }
+    await openFrame('index.html?variant=999&day=oops');
+    assert(frame.contentDocument.body.classList.contains('v1'), 'Invalid variant should fall back');
+    assert(frame.contentDocument.querySelector('h1').textContent.includes('Bruges'), 'Invalid day should fall back');
+    window.checkResult = { passed: true, layoutChecks: count };
+    results.textContent += `\nAll checks passed. ${count} layout combinations.\n`;
+  } catch (error) {
+    window.checkResult = { passed: false, error: error.message };
+    results.textContent += `FAIL ${error.message}\n`;
+  } finally {
+    document.querySelector('#run').disabled = false;
+  }
+}
+document.querySelector('#run').addEventListener('click', run);
+run();
+</script>
+</html>

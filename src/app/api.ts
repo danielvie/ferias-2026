@@ -104,6 +104,9 @@ export const api = {
   masterTrips: (key: string) => request<MasterTrip[]>('/master/trips',
     { method: 'POST', body: JSON.stringify({ key }) }, rememberedTrips.capture(), 'exchange'),
   masterOpen: (key: string, tripId: string) => exchangeSession('/master/open', { key, tripId }),
+  // Like sign-out, deletion must finish cleanup even if the active tab identity changes.
+  masterDelete: (key: string, tripId: string) => request<{ ok: true }>('/master/delete',
+    { method: 'POST', body: JSON.stringify({ key, tripId }) }, rememberedTrips.capture(), 'signout'),
   share: () => request<{ token: string }>('/share'),
   prepareJoin: async (token: string) => {
     const trip = await request<JoinTripInfo>('/join/preview',

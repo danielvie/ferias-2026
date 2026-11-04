@@ -39,53 +39,53 @@ export function MoveActivityForm({ place, onClose, onMoved }: {
       if (await command({ type: 'place.move', id: place.id, cityId, beforeId })) {
         onMoved({ undo, revision: snapshot.revision + 1, destinationId: cityId });
       } else {
-        setError('The move was not confirmed. Your choices are kept. Review the latest route and try again.');
+        setError('A movimentação não foi confirmada. Suas escolhas foram mantidas. Revise a rota e tente novamente.');
       }
     } finally { submitting.current = false; setSaving(false); }
   }
 
   return <form className="stack activity-move-form" onSubmit={submit}>
     <div><h3>{place.title}</h3>
-      <p className="muted">From {visitLabel(trip.cities, current?.cityId ?? place.cityId)}</p></div>
+      <p className="muted">De {visitLabel(trip.cities, current?.cityId ?? place.cityId)}</p></div>
     <fieldset className="places-form-fields stack" disabled={busy || saving || !canEdit}>
-      <legend className="visually-hidden">Activity destination</legend>
+      <legend className="visually-hidden">Destino da atividade</legend>
       <div className="field">
-        <label htmlFor={`${id}-visit`}>Destination checkpoint</label>
+        <label htmlFor={`${id}-visit`}>Parada de destino</label>
         <select id={`${id}-visit`} value={cityId} required autoFocus onChange={event => {
           setCityId(event.target.value); setBeforeId(null);
         }}>
-          {!destination && <option value={cityId} disabled>Checkpoint no longer available</option>}
+          {!destination && <option value={cityId} disabled>Parada indisponível</option>}
           {trip.cities.map((city, index) => <option key={city.id} value={city.id}>
-            {index + 1}. {city.name}{city.id === current?.cityId ? ' / current checkpoint' : ''}
+            {index + 1}. {city.name}{city.id === current?.cityId ? ' / parada atual' : ''}
           </option>)}
         </select>
-        <small>{destinationActivities.length} {destinationActivities.length === 1 ? 'other activity' : 'other activities'} in this checkpoint.</small>
+        <small>{destinationActivities.length} {destinationActivities.length === 1 ? 'outra atividade' : 'outras atividades'} nesta parada.</small>
       </div>
       <div className="field">
-        <label htmlFor={`${id}-position`}>Position</label>
+        <label htmlFor={`${id}-position`}>Posição</label>
         <select id={`${id}-position`} value={beforeId ?? ''} aria-invalid={missingPosition || undefined}
           onChange={event => setBeforeId(event.target.value || null)}>
-          <option value="">At the end</option>
-          {missingPosition && <option value={beforeId!} disabled>Activity no longer available</option>}
+          <option value="">No final</option>
+          {missingPosition && <option value={beforeId!} disabled>Atividade indisponível</option>}
           {destinationActivities.map((activity, index) => <option key={activity.id} value={activity.id}>
-            Before {index + 1}. {activity.title}
+            Antes de {index + 1}. {activity.title}
           </option>)}
         </select>
-        {missingPosition && <small>Choose a new position in this checkpoint.</small>}
+        {missingPosition && <small>Escolha outra posição nesta parada.</small>}
       </div>
       {differentCity && <div className="places-warning">
-        This is a different city. Check the activity's address and bookings before moving it.
-        {place.address && <p>Address stays: {place.address}</p>}
+        Esta é outra cidade. Confira o endereço e as reservas antes de mover.
+        {place.address && <p>Endereço mantido: {place.address}</p>}
       </div>}
-      <p className="muted">{scheduled ? `${scheduled} calendar ${scheduled === 1 ? 'plan follows' : 'plans follow'} this activity to the destination checkpoint. ` : ''}
-        Scheduled dates and times stay unchanged. Details, notes and links stay attached.</p>
-      {unchanged && <p className="fine-print">Choose another checkpoint or a different position to move this activity.</p>}
+      <p className="muted">{scheduled ? `${scheduled} ${scheduled === 1 ? 'agendamento acompanha' : 'agendamentos acompanham'} a atividade até a parada de destino. ` : ''}
+        Datas e horários não mudam. Detalhes, notas e links continuam vinculados.</p>
+      {unchanged && <p className="fine-print">Escolha outra parada ou posição para mover a atividade.</p>}
       {error && <p className="inline-error" role="alert">{error}</p>}
       <div className="actions">
         <button className="button" type="submit" disabled={!current || !destination || missingPosition || unchanged}>
-          {saving ? 'Moving…' : 'Move activity'}
+          {saving ? 'Movendo…' : 'Mover atividade'}
         </button>
-        <button className="button secondary" type="button" onClick={onClose}>Cancel</button>
+        <button className="button secondary" type="button" onClick={onClose}>Cancelar</button>
       </div>
     </fieldset>
   </form>;

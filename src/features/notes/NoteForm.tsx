@@ -20,11 +20,11 @@ export function NoteForm({ note, onClose }: { note?: Note; onClose: () => void }
     event.preventDefault();
     if (busy) return;
     if (!draft.title.trim() || !draft.body.trim() || !draft.linkId) {
-      setError('Enter a title, note text and a linked destination.');
+      setError('Informe título, texto e destino da nota.');
       return;
     }
     if (draft.linkType === 'day' && (draft.linkId < trip.startDate || draft.linkId > trip.endDate)) {
-      setError('Choose a day within the trip dates.');
+      setError('Escolha um dia dentro do período da viagem.');
       return;
     }
     setError('');
@@ -40,52 +40,52 @@ export function NoteForm({ note, onClose }: { note?: Note; onClose: () => void }
 
   return (
     <form className="panel stack" onSubmit={save}>
-      <h2>{note ? 'Edit note' : 'New note'}</h2>
+      <h2>{note ? 'Editar nota' : 'Nova nota'}</h2>
       <fieldset className="notes-fields stack" disabled={busy}>
-        <label className="field">Title
+        <label className="field">Título
           <input required value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
         </label>
-        <label className="field">Note text
+        <label className="field">Texto da nota
           <textarea required rows={6} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
         </label>
         <div className="form-grid">
-          <label className="field">Visibility
+          <label className="field">Visibilidade
             <select value={draft.visibility} onChange={(e) => setDraft({ ...draft, visibility: e.target.value as Note['visibility'] })}>
-              <option value="private" disabled={note !== undefined && note.authorId !== snapshot.session.id}>Private, only me</option>
-              <option value="trip">Trip members</option>
+              <option value="private" disabled={note !== undefined && note.authorId !== snapshot.session.id}>Privada, só eu</option>
+              <option value="trip">Grupo da viagem</option>
             </select>
           </label>
-          <label className="field">Link to
+          <label className="field">Vincular a
             <select value={draft.linkType} onChange={(e) => changeLink(e.target.value as Note['linkType'])}>
-              <option value="trip">Whole trip</option>
-              <option value="city">City</option>
-              <option value="place">Place</option>
-              <option value="day">Day</option>
+              <option value="trip">Viagem inteira</option>
+              <option value="city">Parada</option>
+              <option value="place">Atividade</option>
+              <option value="day">Dia</option>
             </select>
           </label>
-          {draft.linkType === 'city' && <label className="field">City
+          {draft.linkType === 'city' && <label className="field">Parada
             <select required value={draft.linkId} onChange={(e) => setDraft({ ...draft, linkId: e.target.value })}>
-              <option value="">Choose a city</option>
+              <option value="">Escolha uma parada</option>
               {trip.cities.map((city) => <option key={city.id} value={city.id}>{visitLabel(trip.cities, city.id)}</option>)}
             </select>
           </label>}
-          {draft.linkType === 'place' && <label className="field">Place
+          {draft.linkType === 'place' && <label className="field">Atividade
             <select required value={draft.linkId} onChange={(e) => setDraft({ ...draft, linkId: e.target.value })}>
-              <option value="">Choose a place</option>
+              <option value="">Escolha uma atividade</option>
               {places.map((place) => <option key={place.id} value={place.id}>{place.title}</option>)}
             </select>
           </label>}
-          {draft.linkType === 'day' && <label className="field">Day
+          {draft.linkType === 'day' && <label className="field">Dia
             <input required type="date" min={trip.startDate} max={trip.endDate} value={draft.linkId}
               onChange={(e) => setDraft({ ...draft, linkId: e.target.value })} />
           </label>}
         </div>
-        {missingLink && <p className="inline-error" role="status">The original destination is no longer in this trip. Your private note was kept unchanged. Choose a new destination or link it to the whole trip before saving.</p>}
-        <p className="muted">Private notes belong to your member identity, remembered by this browser. Other members cannot read them through their own access. The trip owner and server administrator remain trusted with personal notes. Trip notes are shared with trip members, not family links.</p>
+        {missingLink && <p className="inline-error" role="status">O destino original não está mais nesta viagem. Sua nota privada foi preservada. Escolha outro destino ou vincule à viagem inteira antes de salvar.</p>}
+        <p className="muted">Notas privadas pertencem à sua identidade, lembrada neste navegador. Outros participantes não podem lê-las pelo próprio acesso. O organizador e o administrador do servidor continuam sendo pessoas de confiança. Notas do grupo não aparecem nos links de família.</p>
         {error && <p className="inline-error" role="alert">{error}</p>}
         <div className="actions">
-          <button type="submit" className="button" disabled={busy}>Save note</button>
-          <button type="button" className="button secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="button" disabled={busy}>Salvar nota</button>
+          <button type="button" className="button secondary" onClick={onClose}>Cancelar</button>
         </div>
       </fieldset>
     </form>

@@ -30,7 +30,7 @@ export function ModalPane({ title, children, onClose, busy = false, variant = 'p
     onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }}>
     <header className="modal-heading">
       <h2 id={titleId}>{title}</h2>
-      <button className="button ghost" type="button" disabled={busy} onClick={onClose} aria-label={`Close ${title}`}>Close</button>
+      <button className="button ghost" type="button" disabled={busy} onClick={onClose} aria-label={`Fechar ${title}`}>Fechar</button>
     </header>
     <div className="modal-content">{children}</div>
   </dialog>;

@@ -47,7 +47,7 @@ test('reflects route visit order while keeping chronological days, the day rail 
     { ...event, id: 'later', cityId: 'return', date: '2030-06-03', title: 'Later booking' },
     { ...event, id: 'earlier', cityId: 'first', date: '2030-06-01', title: 'Earlier booking' },
   ]);
-  expect(html).toContain('Brussels · stop 1 / Brussels · stop 2');
+  expect(html).toContain('Brussels · parada 1 / Brussels · parada 2');
   expect(html).toContain('Scheduled dates do not follow your route order');
   expect(html.indexOf('<h3>Earlier booking</h3>')).toBeLessThan(html.indexOf('<h3>Later booking</h3>'));
   expect(html.match(/data-trip-day=/g)).toHaveLength(6);

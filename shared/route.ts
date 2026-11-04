@@ -8,10 +8,10 @@ export function activityOutsideCityDates(city: City, place: Place, events: TripE
 
 export function visitLabel(cities: City[], id: string): string {
   const index = cities.findIndex(city => city.id === id);
-  if (index < 0) return 'Removed visit';
+  if (index < 0) return 'Visita removida';
   const city = cities[index];
   const repeats = cities.filter(item => item.name.trim().toLowerCase() === city.name.trim().toLowerCase()).length > 1;
-  return repeats ? `${city.name} · stop ${index + 1}` : city.name;
+  return repeats ? `${city.name} · parada ${index + 1}` : city.name;
 }
 
 export function routeDateConflicts(cities: City[], events: TripEvent[]): string[] {

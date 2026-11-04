@@ -74,47 +74,47 @@ export function CityDates({ city, disabled, summary }: { city: City; disabled: b
   async function save(event: FormEvent) {
     event.preventDefault();
     if (arrival && departure && departure < arrival) {
-      setError('Departure must not be before arrival.');
+      setError('A saída não pode ser anterior à chegada.');
       return;
     }
     if ([arrival, departure].some(date => date && (date < trip.startDate || date > trip.endDate))) {
-      setError('City dates must be within the trip. Change or clear the dates outside it.');
+      setError('As datas da parada precisam estar dentro da viagem. Ajuste ou limpe as datas fora do período.');
       return;
     }
     setError('');
     const saved = await command({ type: 'visit.dates', id: city.id, arrivalDate: arrival, departureDate: departure });
     if (saved) close(true);
-    else setError('Could not save city dates. Check the trip dates and try again.');
+    else setError('Não foi possível salvar. Confira as datas da viagem e tente novamente.');
   }
   const text = (date: string) => date ? displayDate(date, {
     day: 'numeric', month: 'short',
     ...(trip.startDate.slice(0, 4) !== trip.endDate.slice(0, 4) ||
       date.slice(0, 4) !== trip.startDate.slice(0, 4) ? { year: 'numeric' } : {}),
-  }) : 'Not set';
+  }) : 'Não definida';
   return <div className="city-dates-anchor" id={`checkpoint-dates-${city.id}`}>
     {canEdit ? <button ref={trigger} type="button" className="city-dates-trigger" disabled={disabled || busy}
-      aria-label={`${hasDates ? 'Edit' : 'Set'} dates for ${label}${hasDates ? `, ${summary}` : ''}`}
+      aria-label={`${hasDates ? 'Editar' : 'Definir'} datas de ${label}${hasDates ? `, ${summary}` : ''}`}
       aria-haspopup="dialog" aria-expanded={open}
       onClick={() => open ? close(true) : begin()}>
       <Icon name="calendar" />{hasDates && <span>{summary}</span>}
     </button> : hasDates && <span className="city-dates-readonly"><Icon name="calendar" />{summary}</span>}
     {open && createPortal(<div ref={panel} className="city-dates-popover" role="dialog"
-      aria-label={`Dates for ${label}`} style={{ top: position.top, left: position.left }}>
+      aria-label={`Datas de ${label}`} style={{ top: position.top, left: position.left }}>
       <form onSubmit={event => void save(event)}>
         <div className="city-dates-endpoints">
-          <button ref={arrivalButton} type="button" aria-label={`Arrival: ${text(arrival)}`}
+          <button ref={arrivalButton} type="button" aria-label={`Chegada: ${text(arrival)}`}
             data-unset={!arrival || undefined} aria-pressed={editing === 'arrival'}
-            onClick={() => setEditing('arrival')}>{arrival ? text(arrival) : 'Arrival'}</button>
-          <button type="button" disabled={!arrival} aria-label="Clear arrival date" onClick={() => setArrival('')}>×</button>
-          <button type="button" aria-label={`Departure: ${text(departure)}`}
+            onClick={() => setEditing('arrival')}>{arrival ? text(arrival) : 'Chegada'}</button>
+          <button type="button" disabled={!arrival} aria-label="Limpar data de chegada" onClick={() => setArrival('')}>×</button>
+          <button type="button" aria-label={`Saída: ${text(departure)}`}
             data-unset={!departure || undefined} aria-pressed={editing === 'departure'}
-            onClick={() => setEditing('departure')}>{departure ? text(departure) : 'Departure'}</button>
-          <button type="button" disabled={!departure} aria-label="Clear departure date" onClick={() => setDeparture('')}>×</button>
-          <button type="button" className="city-dates-close" aria-label="Close date picker" disabled={busy}
+            onClick={() => setEditing('departure')}>{departure ? text(departure) : 'Saída'}</button>
+          <button type="button" disabled={!departure} aria-label="Limpar data de saída" onClick={() => setDeparture('')}>×</button>
+          <button type="button" className="city-dates-close" aria-label="Fechar calendário" disabled={busy}
             onClick={() => close(true)}><Icon name="close" /></button>
         </div>
         <DateRangePicker value={{ startDate: arrival, endDate: departure }} onChange={() => {}}
-          label="City dates calendar" initialDate={trip.startDate} minDate={trip.startDate} maxDate={trip.endDate}
+          label="Datas da parada" initialDate={trip.startDate} minDate={trip.startDate} maxDate={trip.endDate}
           showSummary={false} hideInstructions onDateSelect={date => {
             if (editing === 'arrival') { setArrival(date); setEditing('departure'); }
             else setDeparture(date);
@@ -122,7 +122,7 @@ export function CityDates({ city, disabled, summary }: { city: City; disabled: b
           }} />
         {error && <p className="inline-error" role="alert">{error}</p>}
         <div className="city-dates-actions">
-          <button type="submit" className="button" disabled={busy || disabled}>Done</button>
+          <button type="submit" className="button" disabled={busy || disabled}>Salvar</button>
         </div>
       </form>
     </div>, document.body)}

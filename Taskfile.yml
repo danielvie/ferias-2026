@@ -154,6 +154,23 @@ tasks:
     cmds:
       - npm run test:e2e -- {{.CLI_ARGS}}
 
+  prototypes:run:
+    desc: Servir as duas rodadas de protótipos HTML em http://localhost:4173
+    cmds:
+      - uv run --no-project python -m http.server 4173 --bind 127.0.0.1 --directory prototypes
+
+  prototypes:check:
+    desc: Verificar o JavaScript dos protótipos (checks de navegador em check.html e rodada-2/verificar.html)
+    cmds:
+      - node --check prototypes/shared.js
+      - node --check prototypes/rodada-2/dados.js
+      - node --check prototypes/rodada-2/app.js
+
+  test:trip-delete:
+    desc: Testar exclusão com viagens descartáveis na prévia Supabase local em 5180
+    cmds:
+      - node scripts/check-trip-delete.mjs
+
   check:
     desc: Run the production build, typecheck and automated tests
     cmds:

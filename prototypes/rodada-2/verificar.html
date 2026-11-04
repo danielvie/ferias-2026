@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verificações da rodada 2</title>
+<style>body{font:15px/1.6 system-ui;margin:28px;color:#263c31;overflow-x:hidden}pre{white-space:pre-wrap}iframe{display:block;height:1000px;border:1px solid #ddd;max-width:none}button{padding:12px 20px;font:inherit}</style>
+<h1>Verificações da rodada 2</h1>
+<p>Seis composições, 14 dias, quatro larguras. Inclui mapa, notas, atividades, páginas de cidade e agenda.</p>
+<button id="run">Executar novamente</button>
+<pre id="results" role="status">Iniciando…</pre>
+<iframe title="Protótipo em verificação"></iframe>
+<script>
+const frame=document.querySelector('iframe');
+const results=document.getElementById('results');
+const assert=(condition,message)=>{if(!condition)throw Error(message);};
+window.checkResult=null;
+function load(action){return new Promise((resolve,reject)=>{
+  const timeout=setTimeout(()=>reject(Error('Tempo esgotado ao carregar a página.')),20000);
+  frame.onload=()=>{clearTimeout(timeout);resolve();};action();
+});}
+function open(url){return load(()=>{frame.src=url;});}
+function follow(selector){return load(()=>frame.contentDocument.querySelector(selector).click());}
+async function run(){
+  document.getElementById('run').disabled=true;results.textContent='';window.checkResult=null;let checks=0;
+  try{
+    for(let variant=1;variant<=6;variant++){
+      frame.style.width='1440px';await open(`${variant}.html`);
+      if(variant===3){
+        await follow('.map-stop[href*="cidade=liege"]');
+        assert(frame.contentWindow.location.pathname.endsWith('/cidade.html'),'Mapa não abriu a página de cidade');
+        assert(frame.contentDocument.querySelector('h1').textContent.includes('Liège'),'Cidade errada');
+        await follow('.breadcrumb a');
+        assert(frame.contentDocument.querySelector('.city-directory'),'Volta ao mapa não funcionou');
+        await follow('.map-stop[href*="cidade=bruges"]');
+      }else{
+        if(variant===5)frame.contentDocument.querySelector('#focus-map').open=true;
+        if(variant===4)frame.contentDocument.querySelector('.journal-map').open=true;
+        const ids=Array.from(frame.contentDocument.querySelectorAll('[data-city]'),b=>b.dataset.city);
+        assert(ids.length===10,'Mapa precisa ter dez cidades');
+        for(const id of ids){
+          frame.contentDocument.querySelector(`[data-city="${id}"]`).click();
+          assert(new URL(frame.contentWindow.location.href).searchParams.get('cidade')===id,`Cidade não atualizada: ${id}`);
+          assert(frame.contentDocument.querySelector(`[data-city="${id}"]`).getAttribute('aria-pressed')==='true','Seleção do mapa não está marcada');
+        }
+        frame.contentDocument.querySelector('[data-city="liege"]').click();
+        frame.contentDocument.querySelector('.city-dates [data-day="6"]').click();
+        const state=new URL(frame.contentWindow.location.href).searchParams;
+        assert(state.get('dia')==='8'&&state.get('cidade')==='liege','Seleção de outro dia da mesma cidade falhou');
+        if(variant===6){
+          await follow('.primary-link');
+          assert(frame.contentWindow.location.pathname.endsWith('/agenda.html'),'Agenda não abriu como página');
+          await follow('.main-nav a[href^="rota.html"]');
+          assert(new URL(frame.contentWindow.location.href).searchParams.get('dia')==='8','Volta à rota perdeu o dia');
+          await follow('.primary-link');
+        }
+      }
+      const w=frame.contentWindow;
+      assert(frame.contentDocument.querySelectorAll('h1').length===1,'Esperado um título h1');
+      for(let i=0;i<14;i++){
+        w.selectDay(i);
+        const doc=frame.contentDocument;
+        assert(new URL(w.location.href).searchParams.get('dia')===String(i+2),'Dia não salvo na URL');
+        const activities=doc.querySelectorAll(`[data-activity-day="${i}"]`);
+        assert(activities.length>=2,`Faltam atividades do dia ${i+2}`);
+        activities[0].click();
+        assert(doc.querySelector('dialog').open&&doc.querySelector('.detail-text').textContent.length>10,'Detalhes da atividade não abriram');
+        doc.querySelector('[data-close]').click();
+        doc.querySelector(`[data-notes="place"][data-note-day="${i}"]`).click();
+        assert(doc.querySelector('dialog').open&&doc.querySelector('.detail-text').textContent.length>10,'Notas do dia não abriram');
+        doc.querySelector('[data-close]').click();
+        for(const width of [320,768,1024,1440]){
+          frame.style.width=`${width}px`;
+          assert(doc.documentElement.scrollWidth<=width+1,`Conteúdo ultrapassou a tela: variante ${variant}, dia ${i+2}, largura ${width}, conteúdo ${doc.documentElement.scrollWidth}`);
+          checks++;
+        }
+      }
+      frame.contentDocument.querySelector('[data-notes="trip"]').click();
+      assert(frame.contentDocument.querySelectorAll('.trip-notes section').length===4,'Notas gerais incompletas');
+      frame.contentDocument.querySelector('[data-close]').click();
+      const current=w.location.href;
+      await open(current);
+      assert(frame.contentDocument.body.classList.contains(`variant-${variant}`),'Recarregar perdeu a variante');
+      assert(new URL(frame.contentWindow.location.href).searchParams.get('dia')==='15','Recarregar perdeu o dia');
+      const next=variant===6?1:variant+1;
+      await follow(`.compare-numbers a[aria-label^="${next}."]`);
+      assert(frame.contentDocument.body.classList.contains(`variant-${next}`),'Comparador não mudou a variante');
+      assert(new URL(frame.contentWindow.location.href).searchParams.get('dia')==='15','Comparador perdeu a data');
+      results.textContent+=`PASSOU ${variant}. Mapa, dias, notas, atividades, navegação e quatro larguras.\n`;
+    }
+    await open('index.html?variante=999&dia=erro&cidade=inexistente');
+    assert(frame.contentDocument.body.classList.contains('variant-1'),'Variante inválida sem valor padrão');
+    assert(frame.contentDocument.querySelector('.day-summary h2').textContent==='Bruges','Dia inválido sem valor padrão');
+    window.checkResult={passed:true,layoutChecks:checks};
+    results.textContent+=`\nTudo certo. ${checks} combinações de layout verificadas.\n`;
+  }catch(error){window.checkResult={passed:false,error:error.message};results.textContent+=`FALHOU: ${error.message}\n`;}
+  finally{document.getElementById('run').disabled=false;}
+}
+document.getElementById('run').addEventListener('click',run);run();
+</script>
+</html>

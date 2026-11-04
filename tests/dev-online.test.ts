@@ -53,6 +53,14 @@ test('runs pinned CLI entrypoints with Node, keeping hosted configuration out of
   }
 });
 
+test('registers the simple password only in the local Docker database', async () => {
+  await import(runner);
+  const call = vi.mocked(execFileSync).mock.calls.find(([command]) => command === 'docker')!;
+  expect(call[1]).toContain('supabase_db_ferias-2026');
+  const input = (call[2] as { input: string }).input;
+  expect(input).toMatch(/trip_private\.set_master_key\('[a-f0-9]{64}'\)/);
+});
+
 test('reports a launch failure and stops the other development processes', async () => {
   const error = vi.spyOn(console, 'error').mockImplementation(() => {});
   await import(runner);

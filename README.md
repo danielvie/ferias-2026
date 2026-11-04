@@ -1,5 +1,34 @@
 # Belgium, together
 
+## Integração local: Roteiro lado a lado
+
+A direção atual reúne Itinerary e Places em **Roteiro**, com mapa e contexto da
+visita à esquerda e agenda/ideias à direita. **Organizar rota** mantém as
+ferramentas anteriores. Notas e Listas continuam como páginas próprias.
+Os trechos abaixo sobre a agenda contínua e a navegação antiga são históricos.
+
+Desenho editável: [roteiro-lado-a-lado.excalidraw](roteiro-lado-a-lado.excalidraw).
+Regras, escopo e pendências: [ADR-016](docs/decisions/016-unify-route-and-itinerary.md).
+
+Verificações desta integração:
+
+```sh
+npm run build
+npm test
+VITE_BACKEND=sqlite PLAYWRIGHT_PORT=5197 npm run test:e2e -- tests/e2e/roteiro.spec.ts
+```
+
+O teste de navegador usa um banco SQLite separado, criado pelo runner. Configure
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` se quiser usar o Chrome já instalado.
+Não executar contra um banco de viagem real.
+
+A primeira integração não está publicada. A tradução das telas legadas e a
+adaptação dos demais testes E2E ainda precisam ser concluídas antes da publicação.
+O banco online e o conteúdo das viagens não foram alterados. O acesso local foi
+simplificado: **Viagem → Minhas viagens → Gerenciar todas as viagens** pede a
+senha combinada e lista as viagens do Supabase local. `task run` já configura
+essa senha, sem geração ou cadastro manual. Veja [acesso local](docs/master-key.md).
+
 A shared Belgium trip planner with a calendar, saved places, private and shared notes, a packing list, and a fresh departure checklist for each move. The editable visual proposal is in `belgium-trip-proposal.excalidraw`.
 
 ## Run locally

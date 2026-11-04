@@ -11,7 +11,13 @@ const viteCli = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import
 execFileSync('task', ['db:start'], { stdio: 'inherit' });
 execFileSync('docker', [
   'exec', '-i', 'supabase_db_ferias-2026', 'psql', '-X', '-q', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1',
-], { input: 'update trip_private.settings set creation_enabled = true;', stdio: ['pipe', 'inherit', 'inherit'] });
+], {
+  // Local-only verifier for the agreed development password; no plaintext secret in source.
+  // Never provision this verifier in the hosted database.
+  input: `update trip_private.settings set creation_enabled = true;
+    select trip_private.set_master_key('5da83fd08ca1475fa06c39a40da88068a28a107783fee6f25662a4922bd8f3a7');`,
+  stdio: ['pipe', 'inherit', 'inherit'],
+});
 const status = JSON.parse(execFileSync(process.execPath, [supabaseCli, 'status', '--output', 'json'], {
   encoding: 'utf8', env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: '1' }, stdio: ['ignore', 'pipe', 'ignore'],
 }));

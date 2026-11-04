@@ -1,0 +1,182 @@
+/* Approved direction: round 2, option 2. Shared forms keep their existing contracts. */
+[hidden] { display: none !important; }
+.app-shell .brand { display: flex; align-items: center; gap: .5rem; font-size: 1.6rem; letter-spacing: -.06em; }
+.app-shell .brand > span { margin-left: -.5rem; color: #a44e32; }
+.app-shell .brand svg { width: 27px; height: 27px; }
+.app-shell .topbar { gap: 1.25rem; }
+.app-shell .topnav { justify-content: center; }
+.app-shell .member-label { min-height: 32px; font-size: .7rem; }
+.app-shell .nav-item[aria-current] { background: #e8eee0; border-radius: 4px; }
+.trip-menu { position: relative; }
+.trip-menu > summary { min-height: 44px; padding: .5rem .75rem; font-size: .8rem; font-weight: 500; border: 1px solid var(--line); border-radius: 4px; list-style: none; }
+.trip-menu > summary::before { display: none; }
+.trip-menu > summary::-webkit-details-marker { display: none; }
+.trip-menu-items { position: absolute; top: calc(100% + .5rem); right: 0; width: 210px; padding: .5rem; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; box-shadow: 0 8px 30px #203b301a; }
+.trip-menu-items .button { width: 100%; justify-content: flex-start; }
+.roteiro-heading { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.5rem; }
+.roteiro-heading .eyebrow { font-size: .65rem; margin-bottom: .5rem; }
+.roteiro-heading h1 { font-family: Georgia, serif; font-weight: 400; font-size: clamp(1.75rem, 3vw, 2.6rem); line-height: 1.15; }
+.roteiro-heading p { margin-bottom: 0; font-size: .8rem; }
+.roteiro-heading .button { flex-shrink: 0; font-size: .75rem; }
+.roteiro-layout { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 2.5rem; align-items: start; }
+.roteiro-context { min-width: 0; background: #eef2e7; border: 1px solid #d4ddcc; border-radius: 6px; }
+.roteiro-map-disclosure > summary { padding: 1rem 1.25rem; gap: .5rem; font-size: .75rem; }
+.roteiro-map-disclosure > summary small { margin-left: auto; color: var(--muted); font-size: .65rem; font-weight: 400; }
+.roteiro-map-disclosure > summary svg { width: 18px; height: 18px; }
+.roteiro-map-disclosure > summary::before { margin-right: .25rem; }
+.roteiro-map-surface { position: relative; aspect-ratio: 1.8; background: #e6ebde; overflow: hidden; border-top: 1px solid #d4ddcc; }
+.roteiro-map-surface > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.roteiro-country { position: absolute; font-size: .55rem; letter-spacing: .17em; color: #50674b; }
+.roteiro-country.be { left: 8%; top: 66%; }
+.roteiro-country.nl { left: 60%; top: 3%; }
+.roteiro-map-stop { position: absolute; transform: translate(-50%, -30%); min-height: 44px; width: 104px; display: flex; flex-direction: column; align-items: center; gap: .2rem; border: 0; padding: 4px; background: transparent; color: #2c4937; font-size: .7rem; }
+.roteiro-map-stop strong { font-weight: 500; background: #e6ebded9; padding: 1px 4px; border-radius: 3px; }
+.roteiro-map-stop small { font-size: .6rem; background: #e6ebde; }
+.roteiro-map-dot { display: block; width: 11px; height: 11px; background: #fcfcf4; border: 2px solid #4c6c48; border-radius: 50%; }
+.roteiro-map-stop[aria-pressed=true] .roteiro-map-dot { border-color: #ac4e2f; background: #ac4e2f; box-shadow: 0 0 0 5px #f9f3df; }
+.roteiro-map-stop[aria-pressed=true] strong { color: white; background: #31523e; padding: 3px 6px; }
+.roteiro-map-stop:hover { outline: 1px solid #809b78; }
+.roteiro-map-empty { position: absolute; inset: 40% 10% auto; text-align: center; font-size: .9rem; }
+.roteiro-map-caption { margin: 0; padding: .7rem 1.2rem; border-bottom: 1px solid #d4ddcc; font-size: .65rem; color: #52664b; }
+.roteiro-visit-select { padding: 1rem 1.2rem; font-size: .7rem; font-weight: 500; }
+.roteiro-visit-select select { font-size: .8rem; background: #fafcf5; border-color: #c8d3c0; }
+.roteiro-city-context { border-top: 1px solid #d4ddcc; padding: 1.25rem; }
+.roteiro-city-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.roteiro-city-heading > div { min-width: 0; }
+.roteiro-city-heading .eyebrow { font-size: .6rem; margin-bottom: .5rem; }
+.roteiro-city-heading h2 { font-family: Georgia, serif; font-weight: 400; font-size: 1.9rem; line-height: 1.2; overflow-wrap: anywhere; }
+.roteiro-illustration { width: 130px; height: 90px; flex-shrink: 0; }
+.roteiro-city-context > .muted { font-size: .8rem; margin: .5rem 0 0; }
+.roteiro-city-context .city-dates-anchor { width: auto; max-width: 100%; padding: 0; }
+.roteiro-city-context .city-dates-trigger { font-size: .75rem; max-width: 100%; }
+.roteiro-city-days { display: flex; flex-wrap: wrap; gap: .4rem; margin: .8rem 0; }
+.roteiro-city-days button { background: #f9fbf3; border: 1px solid #c6d3bf; min-height: 36px; padding: .35rem .6rem; font-size: .7rem; color: var(--ink); }
+.roteiro-city-days button[aria-pressed=true] { background: #385b43; border-color: #385b43; color: white; }
+.roteiro-city-checklists { padding-top: 1rem; margin-top: 1rem; border-top: 1px solid #d4ddcc; }
+.roteiro-city-checklists h3 { font-size: .75rem; font-weight: 500; }
+.roteiro-city-checklists .city-checklist { margin: 0; padding: 0; }
+.roteiro-city-checklists .city-checklist::before { display: none; }
+.roteiro-city-checklists .transition-card { width: 100%; }
+.roteiro-agenda { min-width: 0; }
+.roteiro-agenda-controls { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.roteiro-agenda-controls h2 { font-size: 1.25rem; margin-bottom: 0; }
+.roteiro-agenda-controls input { font-size: .75rem; min-height: 40px; width: 150px; padding: .5rem; }
+.roteiro-week-controls { display: flex; justify-content: space-between; align-items: center; margin: .75rem 0 .5rem; font-size: .7rem; color: var(--muted); }
+.roteiro-week-controls button { display: grid; place-items: center; min-width: 36px; min-height: 36px; background: transparent; border: 1px solid var(--line); color: var(--ink); }
+.roteiro-week { display: flex; border: 1px solid var(--line); border-radius: 5px; overflow-x: auto; scrollbar-width: thin; }
+.roteiro-week > button { display: flex; flex: 1 0 0; min-width: 58px; flex-direction: column; gap: .2rem; align-items: flex-start; padding: .7rem .5rem; border: 0; border-right: 1px solid var(--line); background: transparent; border-radius: 0; color: var(--ink); text-align: left; }
+.roteiro-week > button:last-child { border-right: 0; }
+.roteiro-week > button[aria-pressed=true] { background: #e5eddb; box-shadow: inset 0 3px 0 #3e634b; }
+.roteiro-week small { font-size: .6rem; text-transform: uppercase; }
+.roteiro-week strong { font-size: 1.5rem; font-weight: 400; }
+.roteiro-week span { font-size: .6rem; overflow-wrap: anywhere; }
+.roteiro-view-controls { display: flex; gap: .75rem; border-bottom: 1px solid var(--line); margin-top: 1.2rem; }
+.roteiro-view-controls button { padding: .8rem .1rem; min-height: 44px; border: 0; border-radius: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); font-size: .8rem; }
+.roteiro-view-controls button[aria-pressed=true] { border-color: #355d43; color: var(--ink); font-weight: 600; }
+.roteiro-multi-city { font-size: .7rem; padding: .75rem; background: #edf1e5; margin: .75rem 0; }
+.roteiro-agenda .calendar-page { width: 100%; padding-right: 0; }
+.roteiro-agenda .itinerary-day, .roteiro-agenda .itinerary-day:last-child { padding: 1.2rem 0 0; border: 0; min-height: 0; scroll-margin-top: 120px; }
+.roteiro-agenda .day-heading { align-items: flex-start; gap: 1rem; margin-bottom: .7rem; }
+.roteiro-agenda .day-heading h2 { font-size: 1.1rem; text-transform: none; letter-spacing: -.02em; }
+.roteiro-agenda .day-heading p { font-size: .7rem; }
+.roteiro-agenda .day-heading > button { font-size: .7rem; padding: .3rem; min-height: 36px; }
+.roteiro-agenda .itinerary-days { gap: 0; }
+.roteiro-agenda .day-empty { font-size: .85rem; padding: 1.5rem 0; }
+.roteiro-agenda .calendar-page > .fine-print { margin-top: 1rem; font-size: .65rem; }
+.roteiro-event { display: grid; grid-template-columns: 56px 21px minmax(0,1fr); gap: .8rem; align-items: start; border-bottom: 1px solid var(--line); padding: .8rem 0; }
+.roteiro-event > svg { width: 20px; height: 20px; margin-top: .7rem; }
+.roteiro-event-time { font-size: .75rem; padding-top: .6rem; font-variant-numeric: tabular-nums; }
+.roteiro-event-time span { display: block; font-size: .6rem; color: var(--muted); }
+.roteiro-event-details { min-width: 0; }
+.roteiro-event-details > summary { min-height: 48px; font-size: .9rem; font-weight: 500; overflow-wrap: anywhere; }
+.roteiro-event-details > summary::before { display: none; }
+.roteiro-event-details > summary::after { content: '+'; margin-left: auto; padding-left: .5rem; font-size: 1rem; }
+.roteiro-event-details[open] > summary::after { content: '−'; }
+.roteiro-event-details summary small { display: block; font-size: .65rem; font-weight: 400; margin-top: .2rem; color: var(--muted); }
+.roteiro-event-details > p { font-size: .8rem; margin: .5rem 0; overflow-wrap: anywhere; }
+.roteiro-event-details .button { font-size: .7rem; padding: .4rem; }
+.roteiro-event-warning { grid-column: 2/-1; margin: 0; font-size: .7rem; }
+.roteiro-ideas { padding-top: 1.2rem; }
+.roteiro-ideas > h2 { font-size: 1.1rem; }
+.roteiro-ideas .places-page { gap: .75rem; }
+.roteiro-ideas .route-workspace, .roteiro-ideas .checkpoint-details { width: 100%; margin: 0; padding: 0; border: 0; max-width: none; }
+.roteiro-ideas .checkpoint-form-area { margin: 0; }
+.roteiro-unscheduled-filter { display: flex; align-items: center; gap: .5rem; font-weight: 400; font-size: .75rem; padding-bottom: 1rem; }
+.roteiro-ideas .checkpoint-quick-add { margin-top: 1rem; }
+.roteiro-notes { margin-top: 1.5rem; padding: 1rem; background: #f0eedf; border-radius: 5px; }
+.roteiro-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.roteiro-section-heading h2 { display: flex; align-items: center; gap: .5rem; margin: 0; font-size: .85rem; font-weight: 500; }
+.roteiro-section-heading h2 svg { width: 17px; height: 17px; }
+.roteiro-section-heading .button { padding: .4rem 0; font-size: .7rem; min-height: 36px; }
+.roteiro-notes > ul { list-style: none; padding: 0; margin: .5rem 0 0; }
+.roteiro-notes li + li { border-top: 1px solid #d4d6c0; }
+.roteiro-notes li button { display: flex; align-items: center; gap: 1rem; width: 100%; text-align: left; padding: .75rem 0; border: 0; background: transparent; color: var(--ink); }
+.roteiro-notes li button > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.roteiro-notes li strong { display: block; font-size: .8rem; font-weight: 500; }
+.roteiro-notes li small { display: block; font-size: .65rem; color: var(--muted); margin-top: .2rem; }
+.roteiro-notes li svg { width: 16px; height: 16px; }
+.roteiro-notes > .muted { font-size: .75rem; margin: .5rem 0 0; }
+.roteiro-organizer > .button { margin-bottom: 1.5rem; }
+@media (max-width: 1100px) {
+  .roteiro-layout { gap: 1.5rem; }
+  .roteiro-city-heading h2 { font-size: 1.6rem; }
+  .roteiro-illustration { width: 100px; height: 80px; }
+  .roteiro-map-surface { aspect-ratio: 1; }
+  .roteiro-week > button { min-width: 58px; }
+  .roteiro-heading h1 { font-size: 2rem; }
+}
+@media (max-width: 899px) {
+  .roteiro-layout { grid-template-columns: 1fr; gap: 1.5rem; }
+  .roteiro-map-surface { aspect-ratio: 1.6; }
+  .roteiro-heading { align-items: flex-start; }
+  .roteiro-city-context { padding: 1rem; }
+  .roteiro-city-heading h2 { font-size: 1.6rem; margin-bottom: .5rem; }
+  .roteiro-city-heading .eyebrow { font-size: .55rem; }
+  .roteiro-illustration { width: 115px; height: 72px; }
+  .roteiro-context .roteiro-city-checklists { margin-top: .75rem; padding-top: .75rem; }
+}
+@media (max-width: 640px) {
+  .app-shell .brand-group { max-width: none; flex: 1; }
+  .app-shell .brand { font-size: 1.4rem; }
+  .app-shell .brand svg { width: 23px; height: 23px; }
+  .app-shell .member-role { display: none; }
+  .app-shell .topbar { gap: .5rem; }
+  .app-shell .topnav { justify-content: flex-start; padding: 0; }
+  .app-shell .topnav .nav-item { min-height: 40px; flex: 1; }
+  .app-shell .session-controls { gap: .35rem; }
+  .app-shell .session-controls .button { font-size: .7rem; padding: .4rem .5rem; }
+  .app-shell .session-controls .button svg { display: none; }
+  .trip-menu > summary { font-size: .7rem; padding: .4rem .6rem; }
+  .roteiro-heading { flex-direction: column; gap: .8rem; margin-bottom: 1rem; }
+  .roteiro-heading h1 { font-size: 1.8rem; }
+  .roteiro-heading .button { min-height: 40px; }
+  .roteiro-heading .eyebrow { font-size: .6rem; }
+  .roteiro-map-surface { aspect-ratio: 380/410; }
+  .roteiro-map-stop { width: 85px; font-size: .65rem; }
+  .roteiro-map-stop small { font-size: .5rem; }
+  .roteiro-country { font-size: .45rem; }
+  .roteiro-map-disclosure > summary { min-height: 48px; padding: .65rem 1rem; }
+  .roteiro-agenda .day-heading { flex-wrap: wrap; gap: .4rem; }
+  .roteiro-agenda .day-heading h2 { font-size: 1rem; }
+  .roteiro-agenda .day-heading .button { min-height: 44px; }
+  .roteiro-event { gap: .65rem; grid-template-columns: 48px 18px minmax(0,1fr); }
+  .roteiro-event > svg { width: 18px; height: 18px; }
+  .roteiro-event-details summary { font-size: .85rem; }
+  .roteiro-event-details .actions { gap: .2rem; }
+  .roteiro-week { scroll-snap-type: x proximity; }
+  .roteiro-week > button { min-width: 64px; scroll-snap-align: center; }
+  .roteiro-city-days button { min-height: 44px; }
+  .roteiro-view-controls { gap: 1rem; }
+  .roteiro-view-controls button { font-size: .75rem; }
+  .roteiro-notes { padding: .8rem; }
+  .roteiro-section-heading { gap: .6rem; }
+}
+@media (max-width: 360px) {
+  .roteiro-map-stop { width: 73px; font-size: .6rem; }
+  .roteiro-city-heading h2 { font-size: 1.45rem; }
+  .roteiro-illustration { width: 90px; }
+  .roteiro-section-heading h2 { font-size: .8rem; }
+  .roteiro-section-heading .button { font-size: .65rem; }
+  .app-shell .brand { font-size: 1.25rem; }
+  .app-shell .brand svg { width: 20px; height: 20px; }
+}

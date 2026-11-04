@@ -89,6 +89,37 @@ describe('remembered trips', () => {
     expect(restored.store.get('one:owner')?.credential).toBe(token('b'));
   });
 
+  it('removes all local identities and saved pages for a deleted trip, preserving other trips', () => {
+    const { store, local } = fixture();
+    select(store, snapshot('one'), token('a'));
+    store.setPage('one:owner', 'places');
+    const old = store.capture();
+    select(store, snapshot('one', 'editor', 'editor'), token('b'));
+    store.setPage('one:editor', 'notes');
+    select(store, snapshot('one-more'), token('c'));
+    store.forgetTrip('one');
+    expect(store.getSnapshot().entries.map(entry => entry.id)).toEqual(['one-more:owner']);
+    expect(store.getPage('one:owner')).toBe('today');
+    expect(store.getPage('one:editor')).toBe('today');
+    expect(store.capture().credential).toBe(token('c'));
+    expect(() => store.accept(snapshot('one'), token('a'), old)).toThrow(AccessChangedError);
+    expect(fixture(local).store.getSnapshot().entries.map(entry => entry.id)).toEqual(['one-more:owner']);
+  });
+
+  it('clears the active deleted trip without selecting another remembered trip', () => {
+    const { store, local, tab } = fixture();
+    select(store, snapshot('keep'), token('a'));
+    select(store, snapshot('delete'), token('b'));
+    store.forgetTrip('delete');
+    expect(store.capture().credential).toBe('');
+    expect(store.getSnapshot().activeId).toBeNull();
+    expect(tab.getItem('session')).toBe('');
+    expect(fixture(local).store.capture().credential).toBe('');
+    expect(store.get('keep:owner')).not.toBeNull();
+    store.forgetTrip('delete');
+    expect(store.get('keep:owner')).not.toBeNull();
+  });
+
   it('does not invalidate a newer credential when an older tab receives a delayed 401', () => {
     const { store, local } = fixture();
     select(store, snapshot());

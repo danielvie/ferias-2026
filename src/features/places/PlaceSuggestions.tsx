@@ -16,14 +16,14 @@ export function PlaceSuggestions({ formOpen, cityId }: { formOpen: boolean; city
   if (!canEdit || (available.length === 0 && !message)) return null;
 
   return (
-    <section className="checkpoint-ideas" aria-label="Activity ideas">
+    <section className="checkpoint-ideas" aria-label="Sugestões de atividades">
       {available.length > 0 && <>
-      <h3>Activity ideas</h3>
-      <ul className="place-suggestions" aria-label="Suggested activities">
+      <h3>Sugestões</h3>
+      <ul className="place-suggestions" aria-label="Atividades sugeridas">
         {available.map(({ suggestion, city }) => <li key={suggestion.title}>
           <button className="button secondary" type="button" disabled={busy || saving || formOpen}
-            aria-label={`Save suggestion: ${suggestion.title}`}
-            title={`${suggestion.description} ${suggestion.durationMinutes} minutes, suggested. Saves an idea, not a booking.`}
+            aria-label={`Salvar sugestão: ${suggestion.title}`}
+            title={`${suggestion.description} ${suggestion.durationMinutes} minutos sugeridos. Salva uma ideia, não faz reserva.`}
             onClick={async event => {
               if (busy || formOpen || submitting.current) return;
               const input = event.currentTarget.closest('#checkpoint-details')?.querySelector<HTMLInputElement>('.checkpoint-quick-add input');
@@ -35,7 +35,7 @@ export function PlaceSuggestions({ formOpen, cityId }: { formOpen: boolean; city
                   type: 'place.save',
                   place: { ...newPlace(city.id), title, category, description, durationMinutes },
                 })) {
-                  setMessage(`${title} saved as an idea.`);
+                  setMessage(`${title} salva como ideia.`);
                   requestAnimationFrame(() => input?.focus());
                 }
               } finally {

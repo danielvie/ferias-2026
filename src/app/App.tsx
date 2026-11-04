@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type { Page } from '../../shared/model';
-import { CalendarPage } from '../features/calendar/CalendarPage';
-import { PlacesPage } from '../features/places/PlacesPage';
+import { RoteiroPage } from '../features/roteiro/RoteiroPage';
 import { NotesPage } from '../features/notes/NotesPage';
 import { ChecklistsPage } from '../features/checklists/ChecklistsPage';
 import { SharingPage } from '../features/sharing/SharingPage';
@@ -85,7 +84,7 @@ export function App() {
   const canEdit = snapshot?.session.role === 'owner' || snapshot?.session.role === 'editor';
   const currentTripId = snapshot && !session.accessLost ? tripIdentity(snapshot) : null;
   const safePage = !snapshot || (family && !['today', 'calendar', 'places'].includes(page)) ? 'today' : page;
-  const pages = { calendar: CalendarPage, places: PlacesPage, notes: NotesPage, checklists: ChecklistsPage, sharing: SharingPage };
+  const pages = { calendar: RoteiroPage, places: RoteiroPage, notes: NotesPage, checklists: ChecklistsPage, sharing: SharingPage };
   const FeaturePage = safePage === 'today' ? null : pages[safePage];
   async function saveDetails(details: TripDetailsInput) {
     let saved: boolean;
@@ -149,7 +148,7 @@ export function App() {
       </details>}
     {activePanel === 'link' && <OpenTripForm busy={session.busy} error={session.error} onJoin={join} onCancel={closePanel} />}
     {activePanel === 'link' && isOnlineBackend && <button className="button secondary" type="button"
-      disabled={session.busy} onClick={() => openPanel('master')}>Use master key instead</button>}
+      disabled={session.busy} onClick={() => openPanel('master')}>Gerenciar todas as viagens</button>}
   </ModalPane>;
   const memberPanel = activePanel === 'member' && snapshot && <ModalPane title="Your profile"
     busy={session.busy} onClose={() => { if (canLeave()) closePanel(); }}>
@@ -160,7 +159,7 @@ export function App() {
     onOpen={id => void openTrip(id)} onForget={id => void forgetTrip(id)}
     onOpenLink={() => openPanel('link')} onCreate={() => openPanel('create')}
     onMasterKey={isOnlineBackend ? () => openPanel('master') : undefined} />;
-  const tripsPanel = activePanel === 'trips' && <ModalPane title="Your trips" busy={session.busy} onClose={closePanel}>
+  const tripsPanel = activePanel === 'trips' && <ModalPane title="Minhas viagens" busy={session.busy} onClose={closePanel}>
     {error}
     {session.storageWarning && <p role="status" className="places-warning">{session.storageWarning}</p>}
     {trips}
@@ -174,14 +173,19 @@ export function App() {
     {session.pendingAccess && <section className="access-retry" aria-label="Retry trip link"><p>The link is kept in memory while this page stays open. Retry when your connection is back.</p><button className="button secondary" disabled={session.busy} onClick={() => void join(session.pendingAccess)}>Retry opening trip</button></section>}
     {snapshot ? <fieldset className="trip-content" disabled={session.accessLost}>
       <legend className="visually-hidden">Trip workspace</legend>
-      {FeaturePage ? <FeaturePage /> : <CalendarPage />}
+      {FeaturePage && safePage !== 'places' && safePage !== 'calendar' ? <FeaturePage /> : <RoteiroPage ideas={safePage === 'places'} />}
     </fieldset> : session.remembered.length > 0 && !quickStarting ?
       <section className="stack"><h1>Your trips</h1>{trips}</section> : <Dashboard busy={session.busy} onDetails={() => openPanel('details')} onQuickStart={() => void openQuickStart()} />}
     {detailsPanel}
     {memberPanel}
     {tripsPanel}
     {activePanel === 'master' && <MasterKeyPane busy={session.busy} error={session.error}
-      onOpen={session.masterOpen} onClose={closePanel} />}
+      onOpen={session.masterOpen} onDelete={async (key, tripId) => {
+        const currentTrip = snapshot?.data.trip.id === tripId;
+        const deleted = await session.masterDelete(key, tripId);
+        if (deleted && currentTrip) closePanel();
+        return deleted;
+      }} onClose={closePanel} />}
     {session.pendingJoin && <JoinTripPane key={session.pendingJoin.token} trip={session.pendingJoin.trip}
       busy={session.busy} error={session.error} onJoin={joinTrip}
       onRetry={() => void session.openJoinLink(session.pendingJoin!.token)} onCancel={session.cancelJoin} />}
