@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { Store } from '../server/store';
 import { commandInput, createTripInput } from '../server/validation';
-import { routeDateConflicts, visitLabel } from '../shared/route';
+import { visitLabel } from '../shared/route';
 import type { Place, TripCommand } from '../shared/model';
 
 const stores: Store[] = [];
@@ -95,15 +95,5 @@ describe('route visits and activity identities', () => {
         { type: 'visit.move', id: first.id, beforeId: null })).toThrow('does not allow');
     }
     expect(() => commandInput({ type: 'visit.move', id: first.id })).toThrow();
-  });
-
-  it('warns when calendar times contradict the route, including same-day plans', () => {
-    const { state, command } = setup();
-    const [first, second] = state().data.trip.cities;
-    const event = { title: 'Plan', date: '2030-06-02', endTime: '19:00', kind: 'activity' as const,
-      status: 'planned' as const, placeId: '', description: '' };
-    command({ type: 'event.save', event: { ...event, id: 'late', cityId: first.id, startTime: '18:00' } });
-    command({ type: 'event.save', event: { ...event, id: 'early', cityId: second.id, startTime: '10:00' } });
-    expect(routeDateConflicts(state().data.trip.cities, state().data.events)).toEqual([first.id, second.id]);
   });
 });

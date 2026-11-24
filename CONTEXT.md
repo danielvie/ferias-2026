@@ -31,7 +31,7 @@ not independently issued trip links.
 
 **Place**: The saved point of interest and planning details of an activity.
 
-**Event**: A timed plan on a trip day, optionally linked to a saved place.
+**Event**: A plan on a trip day, optionally linked to a saved place. Activities can have a day without a time. Transport and lodging require both start and end.
 _Avoid_: Using "place" for a scheduled appointment.
 
 **Transfer**: A move between two cities on a specific trip day, with its own departure checklist.

@@ -25,19 +25,34 @@ describe('itinerary dates and intervals', () => {
     expect(validateEventTime({ ...event, endTime: '09:00' }, trip)).not.toBe('');
   });
 
-  it('warns about intersecting events but not adjacency, another date or itself', () => {
+  it('accepts only activities with neither time and rejects incomplete intervals', () => {
+    const trip = { startDate: '2026-07-01', endDate: '2026-07-03' };
+    const untimed = { ...event, startTime: '', endTime: '' };
+    expect(validateEventTime(untimed, trip)).toBe('');
+    expect(validateEventTime({ ...untimed, startTime: '10:00' }, trip)).not.toBe('');
+    expect(validateEventTime({ ...untimed, endTime: '10:00' }, trip)).not.toBe('');
+    expect(validateEventTime({ ...untimed, kind: 'transport', status: 'tentative' }, trip)).toBe('');
+    expect(validateEventTime({ ...untimed, kind: 'transport', status: 'planned' }, trip)).not.toBe('');
+    expect(validateEventTime({ ...untimed, kind: 'stay' }, trip)).not.toBe('');
+  });
+
+  it('warns about intersecting times but ignores items without a complete interval', () => {
     const overlap = { ...event, id: 'two', startTime: '10:30', endTime: '12:00' };
     expect(overlappingEvents(event, [
       event, overlap, { ...event, id: 'adjacent', startTime: '11:00' },
       { ...event, id: 'tomorrow', date: '2026-07-02' },
+      { ...event, id: 'untimed', startTime: '', endTime: '' },
+      { ...event, id: 'incomplete', startTime: '', endTime: '12:00' },
     ])).toEqual([overlap]);
+    expect(overlappingEvents({ ...event, startTime: '', endTime: '11:00' }, [overlap])).toEqual([]);
   });
 
   it('sorts by date then time without mutating the snapshot', () => {
     const early = { ...event, id: 'early', startTime: '09:00' };
-    const events = [event, early];
-    expect(sortEvents(events)).toEqual([early, event]);
-    expect(events).toEqual([event, early]);
+    const untimed = { ...event, id: 'untimed', startTime: '', endTime: '' };
+    const events = [untimed, event, early];
+    expect(sortEvents(events)).toEqual([early, event, untimed]);
+    expect(events).toEqual([untimed, event, early]);
   });
 
   it('includes every trip day, including empty days, leap days and DST boundaries', () => {

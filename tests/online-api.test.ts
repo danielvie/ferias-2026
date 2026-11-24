@@ -78,6 +78,20 @@ describe('online API with actual PostgreSQL migrations', () => {
     return response.json();
   }
 
+  test.each(['activity', 'transport'] as const)('persists an untimed tentative %s through the online API', async (kind) => {
+    const event = {
+      id: 'plan', title: 'Provisional plan', cityId: state.data.trip.cities[0].id, date: '2026-12-03',
+      startTime: '', endTime: '', kind, status: 'tentative' as const, placeId: '', description: '',
+    };
+    await command({ type: 'event.save', event });
+    expect((await load()).data.events).toEqual([event]);
+    const stored = await db.query<{ payload: unknown }>('select payload from trip_private.events where id = $1', [event.id]);
+    expect(stored.rows[0].payload).toEqual(event);
+    const timed = { ...event, startTime: '10:00', endTime: '11:00' };
+    await command({ type: 'event.save', event: timed });
+    expect((await load()).data.events).toEqual([timed]);
+  });
+
   test('persists named checklists with isolated items, attribution and read-only projections', async () => {
     const original = state.data.packing;
     await command({ type: 'checklist.add', id: 'documents', title: 'Documents' });

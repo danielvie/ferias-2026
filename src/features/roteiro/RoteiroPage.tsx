@@ -8,7 +8,8 @@ import { tripDates } from '../calendar/itinerary';
 import { PlacesPage } from '../places/PlacesPage';
 import { CityDates } from '../places/CityDates';
 import { CityChecklists } from '../places/CityChecklists';
-import { RouteMap, CityIllustration } from './RouteMap';
+import { CityIllustration } from './CityIllustration';
+import { RouteMap } from './RouteMap';
 import { RouteNotes } from './RouteNotes';
 import { restoreSelection, visitDates, visitsOnDate } from './selection';
 import './roteiro.css';
@@ -101,7 +102,7 @@ export function RoteiroPage({ ideas = false }: { ideas?: boolean }) {
           }} />
         </details>
         <section className="roteiro-city-context">
-          <div className="roteiro-city-heading"><div><span className="eyebrow">Parada selecionada</span><h2>{city ? visitLabel(trip.cities, city.id) : 'Onde vamos?'}</h2></div><CityIllustration /></div>
+          <div className="roteiro-city-heading"><div><span className="eyebrow">Parada selecionada</span><h2>{city ? visitLabel(trip.cities, city.id) : 'Onde vamos?'}</h2></div><CityIllustration cityName={city?.name} /></div>
           {!city && <p className="muted">Nenhuma cidade definida para este dia. Escolha uma parada no mapa ou na lista.</p>}
           {city && <>
             {!family && <CityDates key={city.id} city={city} disabled={blocked}

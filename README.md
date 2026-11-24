@@ -8,6 +8,15 @@ ferramentas anteriores. Notas e Listas continuam como páginas próprias.
 Os trechos abaixo sobre a agenda contínua e a navegação antiga são históricos.
 
 Desenho editável: [roteiro-lado-a-lado.excalidraw](roteiro-lado-a-lado.excalidraw).
+Atividades com dia definido podem ficar **Sem horário**; a agenda não precisa
+seguir a ordem das paradas. Veja o [ADR-017](docs/decisions/017-plan-activities-without-a-time.md)
+e o desenho [e-02-agenda-sem-horario.excalidraw](e-02-agenda-sem-horario.excalidraw).
+
+O painel **Parada selecionada** mostra um símbolo turístico para cada uma das dez
+cidades do mapa. Para outras cidades, mantém a ilustração genérica. Veja as
+[referências dos símbolos](prototypes/simbolos-das-cidades.html) e a prancha
+[e-03-simbolos-das-cidades.excalidraw](e-03-simbolos-das-cidades.excalidraw).
+
 Regras, escopo e pendências: [ADR-016](docs/decisions/016-unify-route-and-itinerary.md).
 Contexto para retomar: [handoff-2-roteiro-local-management.md](handoff/handoff-2-roteiro-local-management.md).
 

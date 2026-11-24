@@ -41,18 +41,3 @@ export function RouteMap({ cities, selectedId, disabled, onSelect }: {
     </label>
   </div>;
 }
-
-export function CityIllustration() {
-  return <svg className="roteiro-illustration" viewBox="0 0 300 180" aria-hidden="true">
-    <circle cx="234" cy="40" r="25" fill="#e7bd60" />
-    <path d="M10 145h280v35H10z" fill="#a8c7be" />
-    <g stroke="#395346" strokeWidth="2.5" strokeLinejoin="round">
-      <path d="M32 145V72l30-28 30 28v73" fill="#cc8668" />
-      <path d="M98 145V90l32-25 32 25v55" fill="#e9c786" />
-      <path d="M170 145V52l27-28 27 28v93" fill="#d6dcc5" />
-      <path d="M230 145V93l23-20 24 20v52" fill="#bb9679" />
-      <path d="M190 29V10h14v19M47 83h10v18H47zm24 0h10v18H71zm41 18h10v18h-10zm25 0h10v18h-10zm46-37h9v18h-9zm21 0h9v18h-9zm-21 34h9v18h-9zm21 0h9v18h-9zm38 6h9v17h-9zm17 0h9v17h-9z" fill="#425e4f" />
-      <path d="M6 145h288M69 164h62l-10 12H80z" fill="#bd7654" />
-    </g>
-  </svg>;
-}

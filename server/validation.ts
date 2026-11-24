@@ -1,4 +1,5 @@
 import type { CreateTripInput, InviteInput, TripCommand } from '../shared/model.ts';
+import { canOmitEventTime } from '../shared/route.ts';
 
 export class HttpError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -152,13 +153,15 @@ export function commandInput(value: unknown): TripCommand {
     }
     case 'event.save': {
       const e = object(v.event);
-      const startTime = time(e.startTime), endTime = time(e.endTime);
-      check(startTime < endTime, 'The event must end after it starts on the same day.');
+      const kind = oneOf(e.kind, ['activity', 'transport', 'stay'], 'event kind');
+      const status = oneOf(e.status, ['planned', 'tentative'], 'event status');
+      const untimed = canOmitEventTime({ kind, status }) && e.startTime === '' && e.endTime === '';
+      const startTime = untimed ? '' : time(e.startTime), endTime = untimed ? '' : time(e.endTime);
+      check(untimed || startTime < endTime, 'The event must end after it starts on the same day.');
       return { type, event: {
         id: saveId(e.id), title: text(e.title, 'Event title'), cityId: id(e.cityId),
         date: date(e.date), startTime, endTime,
-        kind: oneOf(e.kind, ['activity', 'transport', 'stay'], 'event kind'),
-        status: oneOf(e.status, ['planned', 'tentative'], 'event status'),
+        kind, status,
         placeId: e.placeId === '' ? '' : id(e.placeId), description: text(e.description, 'Description', 10000, true),
       } };
     }

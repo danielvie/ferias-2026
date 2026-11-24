@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TripEvent } from '../../../shared/model';
-import { routeDateConflicts, visitLabel } from '../../../shared/route';
+import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { displayDate } from '../../app/dates';
 import { EventForm } from './EventForm';
@@ -23,7 +23,6 @@ export function CalendarPage({ selectedDate, initialCityId, onFormChange }: {
   const trigger = useRef<HTMLButtonElement | null>(null);
   const deleting = useRef(false);
   const family = snapshot.session.role === 'family';
-  const conflicts = routeDateConflicts(trip.cities, events);
 
   useEffect(() => {
     onFormChange?.(Boolean(form));
@@ -42,7 +41,8 @@ export function CalendarPage({ selectedDate, initialCityId, onFormChange }: {
     setForm(null);
   }
   async function deleteEvent(event: TripEvent) {
-    if (busy || deleting.current || !canEdit || !window.confirm(selectedDate ? `Excluir "${event.title}" da agenda?` : `Delete "${event.title}" from the calendar?`)) return;
+    if (busy || deleting.current || !canEdit) return;
+    if (!selectedDate && !window.confirm(`Delete "${event.title}" from the calendar?`)) return;
     deleting.current = true;
     try {
       if (await command({ type: 'event.delete', id: event.id })) {
@@ -68,6 +68,13 @@ export function CalendarPage({ selectedDate, initialCityId, onFormChange }: {
     return true;
   }
 
+  function renderEvents(items: TripEvent[], label?: string) {
+    return <ol className="calendar-events" aria-label={label}>
+      {items.map(event => <ItineraryEvent key={event.id} event={event} editing={Boolean(form)} compact={Boolean(selectedDate)}
+        onEdit={button => openForm(event, true, button)} onDelete={() => void deleteEvent(event)} />)}
+    </ol>;
+  }
+
   return <div className="calendar-page">
     {!selectedDate && <header className="itinerary-heading">
       <p className="muted">{family ? 'Shared itinerary' : 'Your itinerary'}</p>
@@ -75,15 +82,14 @@ export function CalendarPage({ selectedDate, initialCityId, onFormChange }: {
       <p className="muted">{displayDate(trip.startDate)} to {displayDate(trip.endDate, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
       <p className="itinerary-cities">{trip.cities.map((city) => visitLabel(trip.cities, city.id)).join(' / ')}</p>
       {!canEdit && <p className="fine-print">{family ? 'Selected activities and places, shared by the owner.' : 'Read-only. An owner or editor can change the plans.'}</p>}
-      {conflicts.length > 0 && <p className="calendar-overlap">
-        Scheduled dates do not follow your route order. Review these plans; dates and bookings have not been moved.
-      </p>}
     </header>}
-    {selectedDate && conflicts.length > 0 && <p className="calendar-overlap">A ordem da rota difere das datas agendadas. Revise os planos; nenhum horário foi alterado.</p>}
     <div className="itinerary-days">
       {days.filter(day => !selectedDate || day.date === selectedDate).map(({ date, events: dayEvents }) => {
         const cityNames = [...new Set(dayEvents.map((event) => visitLabel(trip.cities, event.cityId)))];
         const moves = family ? [] : transfers.filter((move) => move.date === date);
+        const timed = dayEvents.filter(event => event.startTime);
+        const untimed = dayEvents.filter(event => !event.startTime);
+        const untimedLabel = selectedDate ? 'Sem horário' : 'No time set';
         return <section className="itinerary-day" data-trip-day={date} key={date} aria-labelledby={`day-${date}`}>
           <header className="day-heading">
             <div><h2 id={`day-${date}`} tabIndex={-1}>{selectedDate ? new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`)) : displayDate(date, { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
@@ -93,10 +99,12 @@ export function CalendarPage({ selectedDate, initialCityId, onFormChange }: {
           </header>
           {canEdit && form && (selectedDate || (dates.includes(form.event.date) ? form.event.date : dates[0]) === date) &&
             <EventForm key={form.event.id} initial={form.event} editing={form.editing} onClose={closeForm} />}
-          {dayEvents.length ? <ol className="calendar-events">
-            {dayEvents.map((event) => <ItineraryEvent key={event.id} event={event} editing={Boolean(form)} compact={Boolean(selectedDate)}
-              onEdit={(button) => openForm(event, true, button)} onDelete={() => void deleteEvent(event)} />)}
-          </ol> : <p className="day-empty">{selectedDate ? (family ? 'Nenhuma atividade compartilhada neste dia.' : 'Nada agendado neste dia. Deixe livre ou adicione uma atividade.') : family ? 'No activities shared for this day.' : 'Nothing planned yet. Leave it open, or add an activity.'}</p>}
+          {timed.length > 0 && renderEvents(timed)}
+          {untimed.length > 0 && <div className="calendar-untimed">
+            <p className="calendar-untimed-label">{untimedLabel}</p>
+            {renderEvents(untimed, untimedLabel)}
+          </div>}
+          {dayEvents.length === 0 && <p className="day-empty">{selectedDate ? (family ? 'Nenhuma atividade compartilhada neste dia.' : 'Nada agendado neste dia. Deixe livre ou adicione uma atividade.') : family ? 'No activities shared for this day.' : 'Nothing planned yet. Leave it open, or add an activity.'}</p>}
           {moves.map((move) => <button className="departure-link" key={move.id} onClick={() => navigate('checklists')}>
             {move.time} · {visitLabel(trip.cities, move.fromCityId)} → {visitLabel(trip.cities, move.toCityId)}
             <span>{selectedDate ? 'Abrir checklist do deslocamento' : 'Open departure checklist'}</span>

@@ -1,11 +1,14 @@
 import type { Page } from '../../shared/model';
 
-const paths: Record<Page | 'arrow' | 'brand' | 'ordered' | 'grip' | 'close' | 'delete', string> = {
+const paths: Record<Page | 'arrow' | 'brand' | 'ordered' | 'grip' | 'close' | 'edit' | 'delete' | 'chevron-down' | 'check', string> = {
   today: 'M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z',
   calendar: 'M4 5h16v16H4ZM8 2v6M16 2v6M4 10h16M8 14h2M14 14h2M8 18h2',
   ordered: 'M10 7h11M10 17h11M3 4h1v6M3 10h3M3 16c0-2 3-2 3 0 0 1.5-3 2-3 4h3',
   grip: 'M8 5h.01M16 5h.01M8 12h.01M16 12h.01M8 19h.01M16 19h.01',
   close: 'M6 6l12 12M18 6 6 18',
+  check: 'm5 12 4 4L19 6',
+  'chevron-down': 'm6 9 6 6 6-6',
+  edit: 'M13.5 6.5l4 4M4 20l4.5-1 11-11a2.8 2.8 0 0 0-4-4l-11 11L4 20Z',
   delete: 'M4 7h16M10 4h4M6 7l1 13h10l1-13M10 11v5M14 11v5',
   places: 'M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0ZM15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
   notes: 'M5 3h14v18H5ZM8 8h8M8 12h8M8 16h5',

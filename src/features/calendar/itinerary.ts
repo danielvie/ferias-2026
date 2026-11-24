@@ -1,4 +1,5 @@
 import type { Trip, TripEvent } from '../../../shared/model';
+import { canOmitEventTime } from '../../../shared/route';
 
 // Date-only values are always formatted in UTC, never shifted into the device timezone.
 export function formatTripDate(date: string): string {
@@ -29,15 +30,15 @@ export function tripDates(trip: Pick<Trip, 'startDate' | 'endDate'>): string[] {
 }
 
 export function validateEventTime(
-  event: Pick<TripEvent, 'date' | 'startTime' | 'endTime'>,
+  event: Pick<TripEvent, 'date' | 'startTime' | 'endTime' | 'kind' | 'status'>,
   trip: Pick<Trip, 'startDate' | 'endDate'>,
 ): string {
   if (!event.date || event.date < trip.startDate || event.date > trip.endDate) {
-    return 'Choose a date within the trip dates.';
+    return 'Escolha uma data dentro do período da viagem.';
   }
-  if (!event.startTime || !event.endTime || event.endTime <= event.startTime) {
-    return 'End time must be after start time on the same day.';
-  }
+  if (canOmitEventTime(event) && !event.startTime && !event.endTime) return '';
+  if (!event.startTime || !event.endTime) return 'Preencha o início e o fim.';
+  if (event.endTime <= event.startTime) return 'O fim deve ser depois do início, no mesmo dia.';
   return '';
 }
 
@@ -45,22 +46,23 @@ export function overlappingEvents(
   event: Pick<TripEvent, 'id' | 'date' | 'startTime' | 'endTime'>,
   events: TripEvent[],
 ): TripEvent[] {
+  if (!event.startTime || !event.endTime) return [];
   return events.filter(other =>
-    other.id !== event.id && other.date === event.date &&
+    other.id !== event.id && other.date === event.date && other.startTime && other.endTime &&
     other.startTime < event.endTime && event.startTime < other.endTime,
   );
 }
 
 export function sortEvents(events: TripEvent[]): TripEvent[] {
   return [...events].sort((a, b) =>
-    a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime) ||
+    a.date.localeCompare(b.date) || Number(!a.startTime) - Number(!b.startTime) || a.startTime.localeCompare(b.startTime) ||
     a.title.localeCompare(b.title) || a.id.localeCompare(b.id),
   );
 }
 
 export function emptyEvent(cityId: string, date: string): TripEvent {
   return {
-    id: crypto.randomUUID(), cityId, date, title: '', startTime: '10:00', endTime: '11:00',
+    id: crypto.randomUUID(), cityId, date, title: '', startTime: '', endTime: '',
     kind: 'activity', status: 'planned', placeId: '', description: '',
   };
 }

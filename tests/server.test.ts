@@ -99,6 +99,21 @@ function note(overrides: Partial<Pick<Note, 'id' | 'title' | 'body' | 'visibilit
 }
 
 describe('trip API', () => {
+  it('persists an untimed activity pair across reopening the database', async () => {
+    const dbPath = join(await directory(), 'trip.sqlite');
+    const first = await start({ dbPath }), owner = first.client();
+    const created = await owner.create();
+    const activity = event(owner.city(), { startTime: '', endTime: '', status: 'tentative' });
+    await owner.command({ type: 'event.save', event: activity });
+    await first.close();
+    const second = await start({ dbPath }), restored = second.client();
+    await restored.request('/session', 'POST', { token: created.body.ownerToken });
+    expect((await restored.load()).data.events).toEqual([activity]);
+    const timed = { ...activity, startTime: '10:00', endTime: '11:00' };
+    await restored.command({ type: 'event.save', event: timed });
+    expect((await restored.load()).data.events).toEqual([timed]);
+  });
+
   it('shares one reusable join link and gives each named traveler their own editor identity', async () => {
     const app = await start(), owner = app.client();
     const created = await owner.create();

@@ -8,13 +8,9 @@ import { emptyEvent, overlappingEvents, validateEventTime } from '../calendar/it
 export function SchedulePlaceForm({ place, onClose, initialDate }: { place: Place; initialDate?: string; onClose: () => void }) {
   const { snapshot, canEdit, busy, command } = useTrip();
   const { trip, events } = snapshot.data;
-  const [draft, setDraft] = useState(() => {
-    const endMinutes = Math.min(23 * 60 + 59, 10 * 60 + place.durationMinutes);
-    return {
-      ...emptyEvent(place.cityId, initialDate ?? trip.startDate), placeId: place.id, title: place.title,
-      endTime: `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`,
-    };
-  });
+  const [draft, setDraft] = useState(() => ({
+    ...emptyEvent(place.cityId, initialDate ?? trip.startDate), placeId: place.id, title: place.title,
+  }));
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   useNavigationGuard(busy || saving);
@@ -29,7 +25,9 @@ export function SchedulePlaceForm({ place, onClose, initialDate }: { place: Plac
     const duplicate = events.some(item => item.placeId === place.id && item.date === draft.date &&
       item.startTime === draft.startTime && item.endTime === draft.endTime);
     if (validation || duplicate) {
-      setError(validation || 'Esta atividade já está agendada nesta data e horário. Edite o agendamento na agenda.');
+      setError(validation || (draft.startTime
+        ? 'Esta atividade já está na agenda neste dia e horário.'
+        : 'Esta atividade já está na agenda sem horário neste dia.'));
       return;
     }
     submitting.current = true;
@@ -48,7 +46,6 @@ export function SchedulePlaceForm({ place, onClose, initialDate }: { place: Plac
   return (
     <section className="panel stack" aria-labelledby={`${id}-heading`}>
       <h2 id={`${id}-heading`}>Agendar {place.title}</h2>
-      <p className="muted">Horários locais da viagem, em Europe/Brussels. Salvar adiciona a atividade à agenda e a marca como planejada.</p>
       <form onSubmit={submit}>
         <fieldset className="places-form-fields stack" disabled={busy || saving || !canEdit}>
           <legend className="visually-hidden">Data e horário</legend>

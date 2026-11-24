@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { TripEvent } from '../../../shared/model';
 import { visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
@@ -12,31 +13,41 @@ export function ItineraryEvent({ event, editing, onEdit, onDelete, compact = fal
   onDelete: () => void;
 }) {
   const { snapshot, canEdit, busy, navigate } = useTrip();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const { trip, places, events } = snapshot.data;
   const place = places.find((item) => item.id === event.placeId);
   if (compact) return <li className="roteiro-event">
-    <div className="roteiro-event-time"><time dateTime={`${event.date}T${event.startTime}`}>{event.startTime}</time><span>até {event.endTime}</span></div>
+    <div className="roteiro-event-time">{event.startTime
+      ? <><time dateTime={`${event.date}T${event.startTime}`}>{event.startTime}</time><span>até {event.endTime}</span></>
+      : <span>A definir</span>}</div>
     <Icon name={event.kind === 'transport' ? 'arrow' : event.kind === 'stay' ? 'today' : 'places'} />
     <details className="roteiro-event-details">
-      <summary><span>{event.title}<small>{visitLabel(trip.cities, event.cityId)} · {event.status === 'tentative' ? 'Provisório' : 'Planejado'}{event.kind === 'stay' && ' · Hospedagem'}{event.kind === 'transport' && ' · Transporte'}</small></span></summary>
+      <summary><span>{event.title}<small>{visitLabel(trip.cities, event.cityId)} · {event.status === 'tentative' ? 'Provisório' : 'Planejado'}{event.kind === 'stay' && ' · Hospedagem'}{event.kind === 'transport' && ' · Transporte'}</small></span>
+        <span className="button ghost roteiro-event-toggle" aria-hidden="true"><Icon name="chevron-down" /></span>
+      </summary>
       {event.description && <p>{event.description}</p>}
       {place && <p className="muted">Atividade salva: {place.title}</p>}
-      <div className="actions">
+      {(place || (event.kind === 'transport' && snapshot.session.role !== 'family')) && <div className="actions">
         {place && <button className="button ghost" disabled={busy || editing} onClick={() => navigate('places')}>Ver ideias e atividades</button>}
         {event.kind === 'transport' && snapshot.session.role !== 'family' && <button className="button ghost" disabled={busy} onClick={() => navigate('checklists')}>Checklists do deslocamento</button>}
-        {canEdit && <>
-          <button className="button ghost" disabled={busy || editing} aria-label={`Editar ${event.title}`} onClick={click => onEdit(click.currentTarget)}>Editar</button>
-          <button className="button ghost" disabled={busy || editing} aria-label={`Excluir ${event.title}`} onClick={onDelete}>Excluir</button>
-        </>}
-      </div>
+      </div>}
     </details>
+    {canEdit && <div className="roteiro-event-controls">
+      <button type="button" className={`button ${confirmingDelete ? 'roteiro-confirm-delete' : 'ghost'}`} disabled={busy || editing}
+        aria-label={`${confirmingDelete ? 'Confirmar exclusão de' : 'Editar'} ${event.title}`}
+        title={confirmingDelete ? 'Confirmar exclusão' : 'Editar atividade'}
+        onClick={click => confirmingDelete ? onDelete() : onEdit(click.currentTarget)}><Icon name={confirmingDelete ? 'check' : 'edit'} /></button>
+      <button type="button" className={`button ${confirmingDelete ? 'secondary' : 'ghost'}`} disabled={busy || editing}
+        aria-label={`${confirmingDelete ? 'Cancelar exclusão de' : 'Excluir'} ${event.title}`}
+        title={confirmingDelete ? 'Cancelar exclusão' : 'Excluir atividade'}
+        onClick={() => setConfirmingDelete(!confirmingDelete)}><Icon name={confirmingDelete ? 'close' : 'delete'} /></button>
+    </div>}
     {overlappingEvents(event, events).length > 0 && <p className="calendar-overlap roteiro-event-warning">Horário coincide com outra atividade.</p>}
   </li>;
   return <li className="calendar-event">
-    <div className="calendar-event-time">
-      <time dateTime={`${event.date}T${event.startTime}`}>{event.startTime}</time>
-      <span>–{event.endTime}</span>
-    </div>
+    <div className="calendar-event-time">{event.startTime
+      ? <><time dateTime={`${event.date}T${event.startTime}`}>{event.startTime}</time><span>–{event.endTime}</span></>
+      : <span>Not set</span>}</div>
     <div className="calendar-event-content">
       <h3>{event.title}</h3>
       <p className="event-meta">{visitLabel(trip.cities, event.cityId)} <span> / </span>

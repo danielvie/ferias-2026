@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type FormEvent } from 'react';
 import type { TripEvent } from '../../../shared/model';
-import { visitLabel } from '../../../shared/route';
+import { canOmitEventTime, visitLabel } from '../../../shared/route';
 import { useTrip } from '../../app/TripContext';
 import { useNavigationGuard } from '../../app/useNavigationGuard';
 import { DateTimeFields } from './DateTimeFields';
@@ -74,8 +74,6 @@ export function EventForm({ initial, editing, onClose }: {
               </select>
             </div>
           </div>
-          <DateTimeFields value={draft} trip={trip} onChange={patch} />
-          <p className="muted">Horários locais da viagem, em Europe/Brussels. Início e fim devem ser no mesmo dia.</p>
           <div className="form-grid">
             <div className="field">
               <label htmlFor={`${id}-kind`}>Tipo</label>
@@ -93,6 +91,7 @@ export function EventForm({ initial, editing, onClose }: {
               </select>
             </div>
           </div>
+          <DateTimeFields value={draft} trip={trip} onChange={patch} timeRequired={!canOmitEventTime(draft)} />
           <div className="field">
             <label htmlFor={`${id}-description`}>Descrição, opcional</label>
             <textarea id={`${id}-description`} name="description" rows={3} value={draft.description}

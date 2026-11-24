@@ -4,7 +4,9 @@
 
 Implemented locally. Hosted migration and deployment are not part of this change.
 
-ADR-007 supersedes the zig-zag layout and sheet/panel presentation below. The identity, command and scheduling decisions still apply.
+ADR-007 supersedes the zig-zag layout and sheet/panel presentation below.
+[ADR-017](017-plan-activities-without-a-time.md) supersedes the route-order warning.
+The visit identity and move commands still apply.
 
 ## Context
 

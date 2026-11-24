@@ -54,7 +54,8 @@ export function PlaceCard({ place, formOpen, onEdit, onSchedule }: {
       </div>
       {visits.length > 0 && <div className="place-visits">
         <h3>Na sua agenda</h3>
-        <ul>{visits.map(visit => <li key={visit.id}>{formatTripDate(visit.date)} · {visit.startTime} a {visit.endTime}</li>)}</ul>
+        <ul>{visits.map(visit => <li key={visit.id}>{formatTripDate(visit.date)} · {visit.startTime
+          ? `${visit.startTime} a ${visit.endTime}` : 'Sem horário'}</li>)}</ul>
         <button className="button ghost" type="button" onClick={() => navigate('calendar')}>Ver agenda</button>
       </div>}
       {canEdit && <div className="actions">

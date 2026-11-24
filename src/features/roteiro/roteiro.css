@@ -84,17 +84,24 @@
 .roteiro-agenda .day-empty { font-size: .85rem; padding: 1.5rem 0; }
 .roteiro-agenda .calendar-page > .fine-print { margin-top: 1rem; font-size: .65rem; }
 .roteiro-event { display: grid; grid-template-columns: 56px 21px minmax(0,1fr); gap: .8rem; align-items: start; border-bottom: 1px solid var(--line); padding: .8rem 0; }
+.roteiro-event:has(> .roteiro-event-controls) { grid-template-columns: 56px 21px minmax(0,1fr) auto; }
+.roteiro-event-controls { display: flex; gap: .5rem; }
+.roteiro-event-controls .button, .roteiro-event-details .roteiro-event-toggle { width: 44px; height: 48px; padding: 0; }
+.roteiro-event-controls .roteiro-confirm-delete { background: var(--danger); border-color: var(--danger); }
+.roteiro-event-controls .roteiro-confirm-delete:hover:not(:disabled) { background: #7a2c1d; border-color: #7a2c1d; }
 .roteiro-event > svg { width: 20px; height: 20px; margin-top: .7rem; }
 .roteiro-event-time { font-size: .75rem; padding-top: .6rem; font-variant-numeric: tabular-nums; }
 .roteiro-event-time span { display: block; font-size: .6rem; color: var(--muted); }
 .roteiro-event-details { min-width: 0; }
 .roteiro-event-details > summary { min-height: 48px; font-size: .9rem; font-weight: 500; overflow-wrap: anywhere; }
 .roteiro-event-details > summary::before { display: none; }
-.roteiro-event-details > summary::after { content: '+'; margin-left: auto; padding-left: .5rem; font-size: 1rem; }
-.roteiro-event-details[open] > summary::after { content: '−'; }
+.roteiro-event-details > summary > span:first-child { min-width: 0; }
+.roteiro-event-toggle { flex: none; margin-left: auto; border-radius: var(--radius); }
+.roteiro-event-details > summary:is(:hover, :focus-visible) .roteiro-event-toggle { background: var(--soft-green); color: var(--forest-dark); }
+.roteiro-event-details[open] .roteiro-event-toggle svg { transform: rotate(180deg); }
 .roteiro-event-details summary small { display: block; font-size: .65rem; font-weight: 400; margin-top: .2rem; color: var(--muted); }
 .roteiro-event-details > p { font-size: .8rem; margin: .5rem 0; overflow-wrap: anywhere; }
-.roteiro-event-details .button { font-size: .7rem; padding: .4rem; }
+.roteiro-event-details .actions .button { font-size: .7rem; padding: .4rem; }
 .roteiro-event-warning { grid-column: 2/-1; margin: 0; font-size: .7rem; }
 .roteiro-ideas { padding-top: 1.2rem; }
 .roteiro-ideas > h2 { font-size: 1.1rem; }
@@ -160,6 +167,7 @@
   .roteiro-agenda .day-heading h2 { font-size: 1rem; }
   .roteiro-agenda .day-heading .button { min-height: 44px; }
   .roteiro-event { gap: .65rem; grid-template-columns: 48px 18px minmax(0,1fr); }
+  .roteiro-event:has(> .roteiro-event-controls) { grid-template-columns: 42px 16px minmax(0,1fr) auto; column-gap: .45rem; }
   .roteiro-event > svg { width: 18px; height: 18px; }
   .roteiro-event-details summary { font-size: .85rem; }
   .roteiro-event-details .actions { gap: .2rem; }

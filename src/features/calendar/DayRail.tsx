@@ -15,7 +15,8 @@ function Summary({ day, cities }: { day: ItineraryDay; cities: City[] }) {
   return <>
     {names.length > 0 && <p className="muted">{names.join(' / ')}</p>}
     {day.events.length ? <ul className="day-summary">{day.events.slice(0, 3).map((event) =>
-      <li key={event.id}><time>{event.startTime}</time><span>{event.title}</span></li>)}</ul> : <p className="muted">Nothing planned yet.</p>}
+      <li key={event.id}>{event.startTime ? <time>{event.startTime}</time> : <span className="muted">No time</span>}
+        <span>{event.title}</span></li>)}</ul> : <p className="muted">Nothing planned yet.</p>}
     {day.events.length > 3 && <p className="fine-print">+ {day.events.length - 3} more activities</p>}
   </>;
 }

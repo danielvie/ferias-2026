@@ -39,17 +39,21 @@ test.each(['viewer', 'family'] as const)('%s gets a read-only itinerary with no 
   expect(html).toContain(role === 'family' ? 'No activities shared for this day.' : 'Read-only.');
 });
 
-test('reflects route visit order while keeping chronological days, the day rail and booked times', () => {
+test('route order is displayed without warning or changing the chronological agenda', () => {
   const cities = [{ id: 'return', name: 'Brussels' }, { id: 'first', name: 'Brussels' }];
   const event = { startTime: '10:00', endTime: '11:00', kind: 'activity' as const,
     status: 'planned' as const, placeId: '', description: '' };
   const html = render('owner', cities, [
     { ...event, id: 'later', cityId: 'return', date: '2030-06-03', title: 'Later booking' },
     { ...event, id: 'earlier', cityId: 'first', date: '2030-06-01', title: 'Earlier booking' },
+    { ...event, id: 'flexible', cityId: 'first', date: '2030-06-01', title: 'Flexible walk', startTime: '', endTime: '' },
   ]);
   expect(html).toContain('Brussels · parada 1 / Brussels · parada 2');
-  expect(html).toContain('Scheduled dates do not follow your route order');
-  expect(html.indexOf('<h3>Earlier booking</h3>')).toBeLessThan(html.indexOf('<h3>Later booking</h3>'));
+  expect(html).not.toContain('route order');
+  expect(html).toContain('aria-label="No time set"');
+  expect(html).not.toContain('dateTime="2030-06-01T"');
+  expect(html.indexOf('<h3>Earlier booking</h3>')).toBeLessThan(html.indexOf('<h3>Flexible walk</h3>'));
+  expect(html.indexOf('<h3>Flexible walk</h3>')).toBeLessThan(html.indexOf('<h3>Later booking</h3>'));
   expect(html.match(/data-trip-day=/g)).toHaveLength(6);
   expect(html.match(/class="day-marker"/g)).toHaveLength(6);
   expect(html).toContain('dateTime="2030-06-03T10:00"');
