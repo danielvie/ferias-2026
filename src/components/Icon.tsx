@@ -12,7 +12,7 @@ const paths: Record<Page | 'arrow' | 'brand' | 'ordered' | 'grip' | 'close' | 'd
   checklists: 'M9 5h12M9 12h12M9 19h12M2 5l2 2 3-4M2 12l2 2 3-4M2 19l2 2 3-4',
   sharing: 'M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM17 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 21v-6a6 6 0 0 1 12 0v6M14 15a5 5 0 0 1 8 4v2',
   arrow: 'M4 12h16M14 6l6 6-6 6',
-  brand: 'M3 21V10l5-5 5 5v11M13 21V6l4-4 4 4v15M6 13h4M6 17h4M16 9h2M16 13h2M1 21h22',
+  brand: 'M16 12a4 4 0 1 0-8 0 4 4 0 1 0 8 0ZM12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M19 5l-1.5 1.5m-11 11L5 19',
 };
 
 export function Icon({ name }: { name: keyof typeof paths }) {
